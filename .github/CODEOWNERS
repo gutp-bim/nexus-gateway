@@ -1,0 +1,13 @@
+# Default reviewer for all files
+*                                           @takashikasuya
+
+# gRPC wire contract — any change requires explicit review
+/proto/                                     @takashikasuya
+
+# Connector implementations — protocol expertise required
+/connector/bacnet/                          @takashikasuya
+/connector/opcua/                           @takashikasuya
+/connector/mqtt/                            @takashikasuya
+
+# ADRs — architectural decisions need owner sign-off
+/docs/adr/                                  @takashikasuya

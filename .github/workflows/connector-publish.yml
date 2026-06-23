@@ -1,0 +1,148 @@
+name: Connector Publish (reusable)
+# Reusable workflow: build → scan → SBOM → push → cosign sign → catalog update.
+# ADR-0006: images distributed only as digest-pinned references; scanning is a
+# hard gate (CRITICAL CVE → no push, no catalog update).
+
+on:
+  workflow_call:
+    inputs:
+      connector-name:
+        description: Catalog connector name (must match fixtures/catalog.json)
+        required: true
+        type: string
+      image-name:
+        description: Full GHCR image name without tag (e.g. ghcr.io/owner/repo/name)
+        required: true
+        type: string
+      dockerfile:
+        description: Path to Dockerfile relative to repo root
+        required: true
+        type: string
+      context:
+        description: Docker build context relative to repo root
+        required: false
+        type: string
+        default: "."
+      version:
+        description: Semantic version for the catalog entry (e.g. 1.2.3)
+        required: true
+        type: string
+
+permissions:
+  contents: write          # commit catalog update back to master
+  packages: write          # push to GHCR
+  id-token: write          # cosign keyless OIDC token
+  security-events: write   # upload Trivy SARIF results
+
+jobs:
+  publish:
+    name: Build, scan, sign, and publish ${{ inputs.connector-name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build locally first so Trivy can scan before anything is pushed.
+      - name: Build image (local)
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          push: false
+          load: true
+          tags: ${{ inputs.image-name }}:ci-scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Vulnerability gate ──────────────────────────────────────────────────
+      # CRITICAL vulnerabilities abort the pipeline; no image is pushed.
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ inputs.image-name }}:ci-scan
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: "1"
+          severity: CRITICAL
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+
+      # ── SBOM generation ─────────────────────────────────────────────────────
+      - name: Generate SBOM (Syft / SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ inputs.image-name }}:ci-scan
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
+
+      # ── Push (only after scan passes) ───────────────────────────────────────
+      - name: Push image to GHCR
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          push: true
+          # Tag with version for human discoverability; catalog entry uses digest only.
+          tags: ${{ inputs.image-name }}:${{ inputs.version }}
+          cache-from: type=gha
+
+      # ── Cosign sign ─────────────────────────────────────────────────────────
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless Sigstore OIDC)
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          cosign sign --yes \
+            "${{ inputs.image-name }}@${DIGEST}"
+
+      # ── SBOM attestation ────────────────────────────────────────────────────
+      - name: Attest SBOM
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          cosign attest --yes \
+            --predicate sbom.spdx.json \
+            --type spdxjson \
+            "${{ inputs.image-name }}@${DIGEST}"
+
+      # ── Catalog update ───────────────────────────────────────────────────────
+      - name: Update catalog manifest
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          .github/scripts/update-catalog.sh \
+            "${{ inputs.connector-name }}" \
+            "${{ inputs.image-name }}" \
+            "${DIGEST}" \
+            "${{ inputs.version }}" \
+            "fixtures/catalog.json"
+
+      - name: Commit catalog update
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fixtures/catalog.json
+          git diff --cached --quiet && exit 0
+          git commit -m "catalog: ${{ inputs.connector-name }} → ${{ inputs.version }} (${DIGEST})"
+          git push

@@ -1,0 +1,6002 @@
+[
+  {
+    "local_id": "analogInput,1",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,2",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,3",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,4",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,5",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,6",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,7",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,8",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,9",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,10",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,11",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,12",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,13",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,14",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,15",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,16",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,17",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,18",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,19",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,20",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,21",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,22",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,23",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,24",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,25",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,26",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,27",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,28",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,29",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,30",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,31",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,32",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,33",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,34",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,35",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,36",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,37",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,38",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,39",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,40",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,41",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,42",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,43",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,44",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,45",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,46",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,47",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,48",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,49",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,50",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,51",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,52",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,53",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,54",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,55",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,56",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,57",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,58",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,59",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,60",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,61",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,62",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,63",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,64",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,65",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,66",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,67",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,68",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,69",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,70",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,71",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,72",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,73",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,74",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,75",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,76",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,77",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,78",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,79",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,80",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,81",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,82",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,83",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,84",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,85",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,86",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,87",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,88",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,89",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,90",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,91",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,92",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,93",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,94",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,95",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,96",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,97",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,98",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,99",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,100",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,101",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,102",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,103",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,104",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,105",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,106",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,107",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,108",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,109",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,110",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,111",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,112",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,113",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,114",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,115",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,116",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,117",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,118",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,119",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,120",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,121",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,122",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,123",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,124",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,125",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,126",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,127",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,128",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,129",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,130",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,131",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,132",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,133",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,134",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,135",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,136",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,137",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,138",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,139",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,140",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,141",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,142",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,143",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,144",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,145",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,146",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,147",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,148",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,149",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,150",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,151",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,152",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,153",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,154",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,155",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,156",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,157",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,158",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,159",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,160",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,161",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,162",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,163",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,164",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,165",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,166",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,167",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,168",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,169",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,170",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,171",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,172",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,173",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,174",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,175",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,176",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,177",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,178",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,179",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,180",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,181",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,182",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,183",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,184",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,185",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,186",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,187",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,188",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,189",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,190",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,191",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,192",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,193",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,194",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,195",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,196",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,197",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,198",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,199",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,200",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,201",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,202",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,203",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,204",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,205",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,206",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,207",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,208",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,209",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,210",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,211",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,212",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,213",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,214",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,215",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,216",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,217",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,218",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,219",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,220",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,221",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,222",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,223",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,224",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,225",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,226",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,227",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,228",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,229",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,230",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,231",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,232",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,233",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,234",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,235",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,236",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,237",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,238",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,239",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,240",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,241",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,242",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,243",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,244",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,245",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,246",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,247",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,248",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,249",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,250",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,251",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,252",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,253",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,254",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,255",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,256",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,257",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,258",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,259",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,260",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,261",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,262",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,263",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,264",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,265",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,266",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,267",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,268",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,269",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,270",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,271",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,272",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,273",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,274",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,275",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,276",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,277",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,278",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,279",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,280",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,281",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,282",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,283",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,284",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,285",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,286",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,287",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,288",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,289",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,290",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,291",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,292",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,293",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,294",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,295",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,296",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,297",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,298",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,299",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,300",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,301",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,302",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,303",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,304",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,305",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,306",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,307",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,308",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,309",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,310",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,311",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,312",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,313",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,314",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,315",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,316",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,317",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,318",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,319",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,320",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,321",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,322",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,323",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,324",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,325",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,326",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,327",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,328",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,329",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,330",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,331",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,332",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,333",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,334",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,335",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,336",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,337",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,338",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,339",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,340",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,341",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,342",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,343",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,344",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,345",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,346",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,347",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,348",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,349",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,350",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,351",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,352",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,353",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,354",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,355",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,356",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,357",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,358",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,359",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,360",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,361",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,362",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,363",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,364",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,365",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,366",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,367",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,368",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,369",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,370",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,371",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,372",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,373",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,374",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,375",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,376",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,377",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,378",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,379",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,380",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,381",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,382",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,383",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,384",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,385",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,386",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,387",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,388",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,389",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,390",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,391",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,392",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,393",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,394",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,395",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,396",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,397",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,398",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,399",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,400",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,401",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,402",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,403",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,404",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,405",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,406",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,407",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,408",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,409",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,410",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,411",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,412",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,413",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,414",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,415",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,416",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,417",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,418",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,419",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,420",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,421",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,422",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,423",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,424",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,425",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,426",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,427",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,428",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,429",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,430",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,431",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,432",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,433",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,434",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,435",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,436",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,437",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,438",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,439",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,440",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,441",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,442",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,443",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,444",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,445",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,446",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,447",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,448",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,449",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,450",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,451",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,452",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,453",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,454",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,455",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,456",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,457",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,458",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,459",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,460",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,461",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,462",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,463",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,464",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,465",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,466",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,467",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,468",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,469",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,470",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,471",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,472",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,473",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,474",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,475",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,476",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,477",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,478",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,479",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,480",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,481",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,482",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,483",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,484",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,485",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,486",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,487",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,488",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,489",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,490",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,491",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,492",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,493",
+    "device_ref": "ahu-01",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,494",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,495",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,496",
+    "device_ref": "ahu-01",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,497",
+    "device_ref": "ahu-01",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,498",
+    "device_ref": "ahu-01",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,499",
+    "device_ref": "ahu-01",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "analogInput,500",
+    "device_ref": "ahu-01",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "analogOutput,1",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,2",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,3",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,4",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,5",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,6",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,7",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,8",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,9",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,10",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,11",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,12",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,13",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,14",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,15",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,16",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,17",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,18",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,19",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,20",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,21",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,22",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,23",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,24",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,25",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,26",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,27",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,28",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,29",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,30",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,31",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,32",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,33",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,34",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,35",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,36",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,37",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,38",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,39",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,40",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,41",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,42",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,43",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,44",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,45",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,46",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,47",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,48",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,49",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,50",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,51",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,52",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,53",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,54",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,55",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,56",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,57",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,58",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,59",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,60",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,61",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,62",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,63",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,64",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,65",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,66",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,67",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,68",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,69",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,70",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,71",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,72",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,73",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,74",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,75",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,76",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,77",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,78",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,79",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,80",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,81",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,82",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,83",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,84",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,85",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,86",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,87",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,88",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,89",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,90",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,91",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,92",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,93",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,94",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,95",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,96",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,97",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,98",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,99",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,100",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,101",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,102",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,103",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,104",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,105",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,106",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,107",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,108",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,109",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,110",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,111",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,112",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,113",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,114",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,115",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,116",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,117",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,118",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,119",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,120",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,121",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,122",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,123",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,124",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,125",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,126",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,127",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,128",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,129",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,130",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,131",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,132",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,133",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,134",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,135",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,136",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,137",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,138",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,139",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,140",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,141",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,142",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,143",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,144",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,145",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,146",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,147",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,148",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,149",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,150",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,151",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,152",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,153",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,154",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,155",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,156",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,157",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,158",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,159",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,160",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,161",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,162",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,163",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,164",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,165",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,166",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,167",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,168",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,169",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,170",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,171",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,172",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,173",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,174",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,175",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,176",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,177",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,178",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,179",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,180",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,181",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,182",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,183",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,184",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,185",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,186",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,187",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,188",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,189",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,190",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,191",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,192",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,193",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,194",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,195",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,196",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,197",
+    "device_ref": "ahu-01",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,198",
+    "device_ref": "ahu-01",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,199",
+    "device_ref": "ahu-01",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "analogOutput,200",
+    "device_ref": "ahu-01",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "binaryInput,1",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,2",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,3",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,4",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,5",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,6",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,7",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,8",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,9",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,10",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,11",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,12",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,13",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,14",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,15",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,16",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,17",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,18",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,19",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,20",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,21",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,22",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,23",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,24",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,25",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,26",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,27",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,28",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,29",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,30",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,31",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,32",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,33",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,34",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,35",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,36",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,37",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,38",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,39",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,40",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,41",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,42",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,43",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,44",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,45",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,46",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,47",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,48",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,49",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,50",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,51",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,52",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,53",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,54",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,55",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,56",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,57",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,58",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,59",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,60",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,61",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,62",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,63",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,64",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,65",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,66",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,67",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,68",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,69",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,70",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,71",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,72",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,73",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,74",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,75",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,76",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,77",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,78",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,79",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,80",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,81",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,82",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,83",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,84",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,85",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,86",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,87",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,88",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,89",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,90",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,91",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,92",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,93",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,94",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,95",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,96",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,97",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,98",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,99",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,100",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,101",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,102",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,103",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,104",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,105",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,106",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,107",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,108",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,109",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,110",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,111",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,112",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,113",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,114",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,115",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,116",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,117",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,118",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,119",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,120",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,121",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,122",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,123",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,124",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,125",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,126",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,127",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,128",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,129",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,130",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,131",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,132",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,133",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,134",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,135",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,136",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,137",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,138",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,139",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,140",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,141",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,142",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,143",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,144",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,145",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,146",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,147",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,148",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,149",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,150",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,151",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,152",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,153",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,154",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,155",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,156",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,157",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,158",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,159",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,160",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,161",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,162",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,163",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,164",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,165",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,166",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,167",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,168",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,169",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,170",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,171",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,172",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,173",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,174",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,175",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,176",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,177",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,178",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,179",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,180",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,181",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,182",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,183",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,184",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,185",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,186",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,187",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,188",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,189",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,190",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,191",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,192",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,193",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,194",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,195",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,196",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,197",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,198",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,199",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryInput,200",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "binaryOutput,1",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,2",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,3",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,4",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,5",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,6",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,7",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,8",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,9",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,10",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,11",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,12",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,13",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,14",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,15",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,16",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,17",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,18",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,19",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,20",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,21",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,22",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,23",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,24",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,25",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,26",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,27",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,28",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,29",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,30",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,31",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,32",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,33",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,34",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,35",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,36",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,37",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,38",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,39",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,40",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,41",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,42",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,43",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,44",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,45",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,46",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,47",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,48",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,49",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,50",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,51",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,52",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,53",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,54",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,55",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,56",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,57",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,58",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,59",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,60",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,61",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,62",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,63",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,64",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,65",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,66",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,67",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,68",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,69",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,70",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,71",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,72",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,73",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,74",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,75",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,76",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,77",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,78",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,79",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,80",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,81",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,82",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,83",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,84",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,85",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,86",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,87",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,88",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,89",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,90",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,91",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,92",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,93",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,94",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,95",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,96",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,97",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,98",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,99",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "binaryOutput,100",
+    "device_ref": "ahu-01",
+    "unit": "",
+    "writable": true
+  }
+]

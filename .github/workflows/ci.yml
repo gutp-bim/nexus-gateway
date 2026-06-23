@@ -1,0 +1,174 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch: # manual trigger for MVP+1 jobs (e.g. e2e-bacnet)
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build
+        run: go build ./...
+      - name: Test
+        run: go test -race ./...
+
+  e2e-opcua:
+    name: E2E — OPC-UA telemetry (#39)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout nexus-gateway
+        uses: actions/checkout@v7
+
+      - name: Checkout opcua-sim-gateway (sibling)
+        uses: actions/checkout@v7
+        with:
+          repository: takashikasuya/opcua-sim-gateway
+          path: ../opcua-sim-gateway
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build integration stack (opcua profile)
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.integration.yml \
+            --profile opcua \
+            up -d --build
+
+      - name: Wait for NATS healthy and gateway running
+        run: |
+          timeout 120 bash -c '
+            until docker inspect nexus-gateway-nats-1 \
+                --format "{{.State.Health.Status}}" 2>/dev/null \
+                | grep -q healthy; do sleep 3; done
+            until docker inspect nexus-gateway-gateway-1 \
+                --format "{{.State.Status}}" 2>/dev/null \
+                | grep -q running; do sleep 3; done
+          '
+
+      - name: Run OPC-UA E2E test
+        env:
+          E2E_NATS_URL: nats://localhost:14222
+          # Gateway Admin API: the test scrapes /metrics (unauthenticated) to assert
+          # the store-and-forward path reached mock Building OS (storefwd_*).
+          E2E_ADMIN_URL: http://localhost:18080
+        run: |
+          go test ./integration/... \
+            -run TestE2E_OpcUATelemetry \
+            -v -timeout 240s
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.integration.yml \
+            --profile opcua \
+            logs --tail=50
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.integration.yml \
+            --profile opcua \
+            down -v
+
+  e2e-bacnet:
+    name: E2E — BACnet telemetry (#40)
+    # BACnet is MVP+1 (needs host networking for Who-Is/I-Am broadcast and is
+    # flaky on hosted runners), so it is NOT an MVP gate. Run on demand only.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout nexus-gateway
+        uses: actions/checkout@v7
+
+      - name: Checkout bacnet-sim-gateway (sibling)
+        uses: actions/checkout@v7
+        with:
+          repository: takashikasuya/bacnet-sim-gateway
+          path: ../bacnet-sim-gateway
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build integration stack (bacnet profile)
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.integration.yml \
+            --profile bacnet \
+            up -d --build
+
+      - name: Wait for NATS healthy and gateway running
+        run: |
+          timeout 120 bash -c '
+            until docker inspect nexus-gateway-nats-1 \
+                --format "{{.State.Health.Status}}" 2>/dev/null \
+                | grep -q healthy; do sleep 3; done
+            until docker inspect nexus-gateway-gateway-1 \
+                --format "{{.State.Status}}" 2>/dev/null \
+                | grep -q running; do sleep 3; done
+          '
+
+      - name: Run BACnet E2E test
+        env:
+          E2E_NATS_URL: nats://localhost:14222
+        run: |
+          go test ./integration/... \
+            -run TestE2E_BacnetTelemetry \
+            -v -timeout 120s
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.integration.yml \
+            --profile bacnet \
+            logs --tail=50
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.integration.yml \
+            --profile bacnet \
+            down -v
+
+  admin-ui:
+    name: Admin UI type-check & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-ui
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: admin-ui/package-lock.json
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run build

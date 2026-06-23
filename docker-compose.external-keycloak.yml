@@ -1,0 +1,53 @@
+# docker-compose.external-keycloak.yml
+#
+# Compose override for integration / production environments where
+# the Building OS Keycloak (or an org-wide IdP) is used instead of
+# the bundled dev Keycloak.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.external-keycloak.yml up
+#
+# Set the following env vars (e.g. in .env or your secrets manager):
+#
+#   KC_BASE          — base URL of the external Keycloak, e.g. https://auth.example.com
+#   KC_REALM         — realm name, e.g. building-os
+#   KC_AUDIENCE      — client audience for the Admin API, e.g. nexus-gateway-admin-api
+#   KEYCLOAK_ID      — client ID for the Admin UI, e.g. nexus-gateway-admin-ui
+#   KEYCLOAK_SECRET  — client secret for the Admin UI
+#   NEXTAUTH_URL     — public URL of the Admin UI, e.g. https://gateway-admin.example.com
+#   NEXTAUTH_SECRET  — random secret for NextAuth session encryption
+#   ADMIN_API_URL    — URL the Admin UI uses to reach the Gateway Admin API
+
+services:
+  # Disable the bundled dev Keycloak.
+  keycloak:
+    profiles:
+      - disabled  # never matched by default → service does not start
+
+  gateway:
+    environment:
+      - KEYCLOAK_JWKS_URL=${KC_BASE}/realms/${KC_REALM}/protocol/openid-connect/certs
+      - KEYCLOAK_ISSUER=${KC_BASE}/realms/${KC_REALM}
+      - KEYCLOAK_AUDIENCE=${KC_AUDIENCE:-nexus-gateway-admin-api}
+    # Remove the dependency on the (now-disabled) keycloak service.
+    depends_on:
+      nats:
+        condition: service_healthy
+      mock-bos:
+        condition: service_healthy
+
+  admin-ui:
+    environment:
+      - KEYCLOAK_ID=${KEYCLOAK_ID}
+      - KEYCLOAK_SECRET=${KEYCLOAK_SECRET}
+      # Browser-facing issuer (must match the iss claim in tokens).
+      - KEYCLOAK_ISSUER=${KC_BASE}/realms/${KC_REALM}
+      # Server-side issuer for NextAuth code-exchange / token-refresh.
+      # Usually the same as KEYCLOAK_ISSUER unless behind an internal proxy.
+      - KEYCLOAK_INTERNAL_ISSUER=${KC_INTERNAL_BASE:-${KC_BASE}}/realms/${KC_REALM}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - ADMIN_API_URL=${ADMIN_API_URL:-http://gateway:8080}
+    depends_on:
+      gateway:
+        condition: service_started

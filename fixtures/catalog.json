@@ -1,0 +1,50 @@
+[
+  {
+    "name": "sim-connector",
+    "version": "0.0.0",
+    "image": "ghcr.io/takashikasuya/nexus-gateway/sim-connector",
+    "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "min_gateway_version": "0.1.0",
+    "permissions": {
+      "network": [],
+      "mounts": []
+    },
+    "signature_required": false
+  },
+  {
+    "name": "bacnet-connector",
+    "version": "0.1.0",
+    "image": "ghcr.io/takashikasuya/nexus-gateway/bacnet-connector",
+    "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "min_gateway_version": "0.1.0",
+    "permissions": {
+      "network": ["bacnet/ip"],
+      "mounts": []
+    },
+    "signature_required": false
+  },
+  {
+    "name": "opcua-connector",
+    "version": "0.1.0",
+    "image": "ghcr.io/takashikasuya/nexus-gateway/opcua-connector",
+    "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "min_gateway_version": "0.1.0",
+    "permissions": {
+      "network": ["opc.tcp"],
+      "mounts": []
+    },
+    "signature_required": false
+  },
+  {
+    "name": "mqtt-connector",
+    "version": "0.1.0",
+    "image": "ghcr.io/takashikasuya/nexus-gateway/mqtt-connector",
+    "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "min_gateway_version": "0.1.0",
+    "permissions": {
+      "network": ["mqtt"],
+      "mounts": []
+    },
+    "signature_required": false
+  }
+]

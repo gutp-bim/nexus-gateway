@@ -1,0 +1,18 @@
+[
+  {
+    "connector_id": "sim-01",
+    "protocol": "sim",
+    "local_id": "sim://ahu-01/supply_air_temp",
+    "point_id": "supply_air_temp",
+    "unit": "Cel",
+    "writable": false
+  },
+  {
+    "connector_id": "sim-01",
+    "protocol": "sim",
+    "local_id": "sim://ahu-01/fan_run",
+    "point_id": "fan_run",
+    "unit": "",
+    "writable": true
+  }
+]

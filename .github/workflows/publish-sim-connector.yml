@@ -1,0 +1,31 @@
+name: Publish sim-connector
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "connector/sim/**"
+      - "cmd/sim-connector/**"
+      - ".github/workflows/publish-sim-connector.yml"
+      - ".github/workflows/connector-publish.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g. 0.2.0)"
+        required: true
+        default: "0.1.0"
+
+jobs:
+  publish:
+    uses: ./.github/workflows/connector-publish.yml
+    with:
+      connector-name: sim-connector
+      image-name: ghcr.io/${{ github.repository_owner }}/nexus-gateway/sim-connector
+      dockerfile: connector/sim/Dockerfile
+      context: "."
+      version: ${{ inputs.version || '0.1.0' }}
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      security-events: write

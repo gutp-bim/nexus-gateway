@@ -1,0 +1,20 @@
+*.exe
+*.test
+*.out
+/tmp/
+nats-data/
+# Store-and-Forward SQLite DB + runtime point-list (created by the gateway/container)
+/data/
+connector/bacnet/.venv/
+connector/bacnet/**/__pycache__/
+connector/bacnet/**/*.pyc
+connector/bacnet/.venv/
+connector/bacnet/.pytest_cache/
+connector/bacnet/**/__pycache__/
+connector/bacnet/**/*.pyc
+
+# compiled gateway binary
+/gateway
+
+# Claude Code local config (memory, worktrees, settings)
+.claude/

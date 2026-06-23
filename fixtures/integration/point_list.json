@@ -1,0 +1,19 @@
+[
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "analogInput,1001",    "point_id": "PT001", "device_ref": "ahu-01", "unit": "Cel",  "writable": false },
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "analogInput,1",       "point_id": "PT002", "device_ref": "ahu-01", "unit": "%RH",  "writable": false },
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "binaryInput,1",       "point_id": "PT003", "device_ref": "ahu-01", "unit": "",     "writable": false },
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "binaryOutput,2001",   "point_id": "PT004", "device_ref": "ahu-01", "unit": "",     "writable": true  },
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "multiStateInput,1",   "point_id": "PT005", "device_ref": "ahu-01", "unit": "",     "writable": false },
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "analogValue,1002",    "point_id": "PT006", "device_ref": "ahu-01", "unit": "Cel",  "writable": true  },
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "multiStateValue,3001","point_id": "PT007", "device_ref": "ahu-01", "unit": "",     "writable": true  },
+  { "connector_id": "bacnet-01", "protocol": "bacnet", "local_id": "analogInput,1003",    "point_id": "PT008", "device_ref": "ahu-01", "unit": "ppm",  "writable": false },
+
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT001", "point_id": "PT101", "device_ref": "ahu-01", "unit": "Cel",  "writable": false },
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT002", "point_id": "PT102", "device_ref": "ahu-01", "unit": "%RH",  "writable": false },
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT003", "point_id": "PT103", "device_ref": "ahu-01", "unit": "",     "writable": false },
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT004", "point_id": "PT104", "device_ref": "ahu-01", "unit": "",     "writable": true  },
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT005", "point_id": "PT105", "device_ref": "ahu-01", "unit": "",     "writable": false },
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT006", "point_id": "PT106", "device_ref": "ahu-01", "unit": "Cel",  "writable": true  },
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT007", "point_id": "PT107", "device_ref": "ahu-01", "unit": "",     "writable": true  },
+  { "connector_id": "opcua-01", "protocol": "opcua", "local_id": "ns=2;s=PT008", "point_id": "PT108", "device_ref": "ahu-01", "unit": "ppm",  "writable": false }
+]

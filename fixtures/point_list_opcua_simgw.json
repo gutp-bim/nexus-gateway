@@ -1,0 +1,74 @@
+[
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT001",
+    "point_id": "AHU01/supply_air_temp",
+    "unit": "degC",
+    "writable": false,
+    "device_ref": "DEV001"
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT002",
+    "point_id": "AHU01/return_humidity",
+    "unit": "%RH",
+    "writable": false,
+    "device_ref": "DEV001"
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT003",
+    "point_id": "AHU01/occupancy",
+    "unit": "",
+    "writable": false,
+    "device_ref": "DEV001"
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT004",
+    "point_id": "AHU01/damper_cmd",
+    "unit": "",
+    "writable": true,
+    "device_ref": "DEV001"
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT005",
+    "point_id": "AHU01/fan_speed",
+    "unit": "",
+    "writable": false,
+    "device_ref": "DEV001"
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT006",
+    "point_id": "AHU01/temp_setpoint",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "DEV001"
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT007",
+    "point_id": "AHU01/operation_mode",
+    "unit": "",
+    "writable": true,
+    "device_ref": "DEV001"
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=PT008",
+    "point_id": "AHU01/co2_level",
+    "unit": "ppm",
+    "writable": false,
+    "device_ref": "DEV001"
+  }
+]

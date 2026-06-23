@@ -1,0 +1,50 @@
+# OPC UA integration stack using opcua-sim-gateway as the northbound OPC UA server.
+#
+# Usage (from nexus-gateway root, with opcua-sim-gateway checked out alongside):
+#   docker compose -f docker-compose.yml -f docker-compose.opcua-simgw.yml up
+#
+# opcua-sim-gateway path: ../opcua-sim-gateway  (sibling directory)
+
+version: "3.9"
+
+services:
+  # Override: use opcua-sim-gateway instead of the internal stub simulator.
+  opcua-sim:
+    build:
+      context: ../opcua-sim-gateway
+      dockerfile: docker/Dockerfile
+    image: opcua-sim-gateway:dev
+    ports:
+      - "4840:4840"
+    environment:
+      # server_id MUST NOT be derived from gateway_id (ADR-003 of opcua-sim-gateway)
+      SERVER_ID: ua-local-001
+    volumes:
+      - ../opcua-sim-gateway/config:/app/config:ro
+    command: ["run", "--config", "config/simulator.yaml"]
+    restart: unless-stopped
+
+  opcua-connector:
+    build:
+      context: connector/opcua
+    environment:
+      - CONNECTOR_ID=opcua-01
+      - NATS_URL=nats://nats:4222
+      # asyncua server uses no path suffix (unlike freeopcua)
+      - OPCUA_ENDPOINT=opc.tcp://opcua-sim:4840
+      - OPCUA_DEVICE_REF=DEV001
+      - OPCUA_POLL_INTERVAL=30
+      - OPCUA_POINTS=[{"local_id":"ns=2;s=PT001","device_ref":"DEV001","unit":"degC"},{"local_id":"ns=2;s=PT002","device_ref":"DEV001","unit":"%RH"},{"local_id":"ns=2;s=PT003","device_ref":"DEV001","unit":""},{"local_id":"ns=2;s=PT005","device_ref":"DEV001","unit":""},{"local_id":"ns=2;s=PT008","device_ref":"DEV001","unit":"ppm"}]
+    depends_on:
+      nats:
+        condition: service_healthy
+      opcua-sim:
+        condition: service_started
+    restart: unless-stopped
+
+  # Override gateway to use opcua-simgw point list
+  gateway:
+    environment:
+      - POINT_LIST_FILE=/fixtures/point_list_opcua_simgw.json
+    volumes:
+      - ./fixtures:/fixtures:ro

@@ -1,0 +1,143 @@
+version: "3.9"
+
+# Host-port mapping: shifted to 1xxxx range to coexist with building-os
+# (which occupies 4222/NATS, 8080/API, 3000/Grafana, etc.).
+# Internal Docker networking is unchanged — services talk to each other via
+# service names and original container ports.
+#
+# Host ports used by this stack:
+#   NATS client  : 14222   (container: 4222)
+#   NATS monitor : 18222   (container: 8222)
+#   Keycloak     : 18090   (container: 8090)
+#   Gateway API  : 18080   (container: 8080)
+#   Admin UI     : 13000   (container: 3000)
+#   mock-bos gRPC: 15051   (container: 50051)
+#   OPC-UA sim   : 4840    (no building-os conflict)
+#   BACnet sim   : host-network (UDP 47808)
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    command: ["--jetstream", "--store_dir=/data", "-m", "8222"]
+    ports:
+      - "14222:4222"
+      - "18222:8222"
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mock-bos:
+    build:
+      context: .
+      dockerfile: Dockerfile.mockbos
+    ports:
+      - "15051:50051"
+    depends_on:
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50051 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: "8090"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      # Browser-facing issuer — must match the iss claim in tokens.
+      KC_HOSTNAME_URL: "http://localhost:18090"
+    ports:
+      - "18090:8090"
+    volumes:
+      - ./fixtures/keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      # Keycloak 24 image has neither curl nor wget; probe TCP port instead.
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8090' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    environment:
+      - GATEWAY_ID=gw-001
+      - NATS_URL=nats://nats:4222
+      - BOS_ADDR=mock-bos:50051
+      # BOS_INGRESS_ADDR / BOS_EGRESS_ADDR override BOS_ADDR per-service when BOS exposes
+      # GatewayIngressService and GatewayEgressService on different ports (e.g. 5051 / 5052).
+      # Omit both to use BOS_ADDR for both services (default for dev with mock-bos).
+      #- BOS_INGRESS_ADDR=<bos-host>:5051
+      #- BOS_EGRESS_ADDR=<bos-host>:5052
+      - POINT_LIST_FILE=/fixtures/point_list.json
+      # CONNECTOR_MAP maps BOS native.protocol values to connector IDs for the HTTP provisioning path.
+      # When unset, falls back to {"bacnet": PROVISIONING_CONNECTOR_ID} for backward compatibility.
+      # For multi-protocol deployments (BACnet + OPC-UA), set e.g.:
+      #- CONNECTOR_MAP=bacnet:bacnet-01,opcua:opcua-01
+      - ADMIN_ADDR=:8080
+      # Connector Catalog (ADR-0006): file-backed for dev; replace with CATALOG_URL in production.
+      - CATALOG_FILE=/fixtures/catalog.json
+      - CATALOG_ALLOWLIST=ghcr.io
+      # When KEYCLOAK_JWKS_URL is set, tokens are validated; omit for auth-free dev.
+      - KEYCLOAK_JWKS_URL=http://keycloak:8090/realms/nexus-gateway/protocol/openid-connect/certs
+      # Issuer must match the iss claim in tokens (uses external hostname seen by browser).
+      - KEYCLOAK_ISSUER=http://localhost:18090/realms/nexus-gateway
+      - KEYCLOAK_AUDIENCE=account
+      - BOS_INSECURE=true
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./fixtures:/fixtures:ro
+      # Mount host Docker socket so the gateway can manage connector containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      nats:
+        condition: service_healthy
+      mock-bos:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health | grep -q '\"status\":\"ok\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  admin-ui:
+    build:
+      context: ./admin-ui
+      dockerfile: Dockerfile
+    ports:
+      - "13000:3000"
+    environment:
+      - NEXTAUTH_URL=http://localhost:13000
+      - NEXTAUTH_SECRET=dev-secret-change-in-production
+      - KEYCLOAK_ID=admin-ui
+      - KEYCLOAK_SECRET=admin-ui-secret
+      # Browser-facing issuer (must match iss claim in tokens, which KC_HOSTNAME_URL controls).
+      - KEYCLOAK_ISSUER=http://localhost:18090/realms/nexus-gateway
+      # Internal Docker hostname for NextAuth server-side OIDC discovery (code exchange, token refresh).
+      - KEYCLOAK_INTERNAL_ISSUER=http://keycloak:8090/realms/nexus-gateway
+      - ADMIN_API_URL=http://gateway:8080
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+
+volumes:
+  nats-data:

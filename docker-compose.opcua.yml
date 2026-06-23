@@ -1,0 +1,23 @@
+# OPC-UA connector stack.
+# The OPC-UA simulator is provided by the external opcua-sim-gateway repository.
+# Use docker-compose.opcua-simgw.yml to bring up the full stack including the simulator.
+#
+# Run with: docker compose -f docker-compose.yml -f docker-compose.opcua.yml up
+#
+# Set OPCUA_ENDPOINT to the simulator's address before starting:
+#   OPCUA_ENDPOINT=opc.tcp://<host>:4840 docker compose ...
+
+services:
+  opcua-connector:
+    build:
+      context: connector/opcua
+    environment:
+      - CONNECTOR_ID=opcua-01
+      - NATS_URL=nats://nats:4222
+      - OPCUA_ENDPOINT=${OPCUA_ENDPOINT:-opc.tcp://localhost:4840}
+      - OPCUA_POLL_INTERVAL=30
+      - OPCUA_POINTS=${OPCUA_POINTS:-[]}
+    depends_on:
+      nats:
+        condition: service_healthy
+    restart: unless-stopped

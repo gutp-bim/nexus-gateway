@@ -1,0 +1,6002 @@
+[
+  {
+    "local_id": "ns=2;s=UA-F-0001",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0002",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0003",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0004",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0005",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0006",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0007",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0008",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0009",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0010",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0011",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0012",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0013",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0014",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0015",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0016",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0017",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0018",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0019",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0020",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0021",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0022",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0023",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0024",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0025",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0026",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0027",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0028",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0029",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0030",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0031",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0032",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0033",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0034",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0035",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0036",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0037",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0038",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0039",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0040",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0041",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0042",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0043",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0044",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0045",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0046",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0047",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0048",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0049",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0050",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0051",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0052",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0053",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0054",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0055",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0056",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0057",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0058",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0059",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0060",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0061",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0062",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0063",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0064",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0065",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0066",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0067",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0068",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0069",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0070",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0071",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0072",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0073",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0074",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0075",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0076",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0077",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0078",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0079",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0080",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0081",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0082",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0083",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0084",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0085",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0086",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0087",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0088",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0089",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0090",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0091",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0092",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0093",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0094",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0095",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0096",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0097",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0098",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0099",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0100",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0101",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0102",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0103",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0104",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0105",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0106",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0107",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0108",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0109",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0110",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0111",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0112",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0113",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0114",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0115",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0116",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0117",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0118",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0119",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0120",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0121",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0122",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0123",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0124",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0125",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0126",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0127",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0128",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0129",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0130",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0131",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0132",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0133",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0134",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0135",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0136",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0137",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0138",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0139",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0140",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0141",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0142",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0143",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0144",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0145",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0146",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0147",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0148",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0149",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0150",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0151",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0152",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0153",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0154",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0155",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0156",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0157",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0158",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0159",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0160",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0161",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0162",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0163",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0164",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0165",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0166",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0167",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0168",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0169",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0170",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0171",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0172",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0173",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0174",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0175",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0176",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0177",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0178",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0179",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0180",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0181",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0182",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0183",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0184",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0185",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0186",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0187",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0188",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0189",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0190",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0191",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0192",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0193",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0194",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0195",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0196",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0197",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0198",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0199",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0200",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0201",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0202",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0203",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0204",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0205",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0206",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0207",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0208",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0209",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0210",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0211",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0212",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0213",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0214",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0215",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0216",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0217",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0218",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0219",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0220",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0221",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0222",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0223",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0224",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0225",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0226",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0227",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0228",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0229",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0230",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0231",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0232",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0233",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0234",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0235",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0236",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0237",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0238",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0239",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0240",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0241",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0242",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0243",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0244",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0245",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0246",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0247",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0248",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0249",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0250",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0251",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0252",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0253",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0254",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0255",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0256",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0257",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0258",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0259",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0260",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0261",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0262",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0263",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0264",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0265",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0266",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0267",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0268",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0269",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0270",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0271",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0272",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0273",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0274",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0275",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0276",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0277",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0278",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0279",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0280",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0281",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0282",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0283",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0284",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0285",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0286",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0287",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0288",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0289",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0290",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0291",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0292",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0293",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0294",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0295",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0296",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0297",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0298",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0299",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0300",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0301",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0302",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0303",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0304",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0305",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0306",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0307",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0308",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0309",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0310",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0311",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0312",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0313",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0314",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0315",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0316",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0317",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0318",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0319",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0320",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0321",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0322",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0323",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0324",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0325",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0326",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0327",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0328",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0329",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0330",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0331",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0332",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0333",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0334",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0335",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0336",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0337",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0338",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0339",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0340",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0341",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0342",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0343",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0344",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0345",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0346",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0347",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0348",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0349",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0350",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0351",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0352",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0353",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0354",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0355",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0356",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0357",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0358",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0359",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0360",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0361",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0362",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0363",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0364",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0365",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0366",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0367",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0368",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0369",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0370",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0371",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0372",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0373",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0374",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0375",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0376",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0377",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0378",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0379",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0380",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0381",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0382",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0383",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0384",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0385",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0386",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0387",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0388",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0389",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0390",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0391",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0392",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0393",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0394",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0395",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0396",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0397",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0398",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0399",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0400",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0401",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0402",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0403",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0404",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0405",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0406",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0407",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0408",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0409",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0410",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0411",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0412",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0413",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0414",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0415",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0416",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0417",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0418",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0419",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0420",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0421",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0422",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0423",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0424",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0425",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0426",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0427",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0428",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0429",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0430",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0431",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0432",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0433",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0434",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0435",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0436",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0437",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0438",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0439",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0440",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0441",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0442",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0443",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0444",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0445",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0446",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0447",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0448",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0449",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0450",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0451",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0452",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0453",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0454",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0455",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0456",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0457",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0458",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0459",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0460",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0461",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0462",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0463",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0464",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0465",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0466",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0467",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0468",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0469",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0470",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0471",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0472",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0473",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0474",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0475",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0476",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0477",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0478",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0479",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0480",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0481",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0482",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0483",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0484",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0485",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0486",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0487",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0488",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0489",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0490",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0491",
+    "device_ref": "opcua-server",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0492",
+    "device_ref": "opcua-server",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0493",
+    "device_ref": "opcua-server",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0494",
+    "device_ref": "opcua-server",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0495",
+    "device_ref": "opcua-server",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0496",
+    "device_ref": "opcua-server",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0497",
+    "device_ref": "opcua-server",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0498",
+    "device_ref": "opcua-server",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0499",
+    "device_ref": "opcua-server",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-F-0500",
+    "device_ref": "opcua-server",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0001",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0002",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0003",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0004",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0005",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0006",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0007",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0008",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0009",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0010",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0011",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0012",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0013",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0014",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0015",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0016",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0017",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0018",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0019",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0020",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0021",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0022",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0023",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0024",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0025",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0026",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0027",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0028",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0029",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0030",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0031",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0032",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0033",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0034",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0035",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0036",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0037",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0038",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0039",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0040",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0041",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0042",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0043",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0044",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0045",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0046",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0047",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0048",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0049",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0050",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0051",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0052",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0053",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0054",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0055",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0056",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0057",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0058",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0059",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0060",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0061",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0062",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0063",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0064",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0065",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0066",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0067",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0068",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0069",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0070",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0071",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0072",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0073",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0074",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0075",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0076",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0077",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0078",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0079",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0080",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0081",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0082",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0083",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0084",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0085",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0086",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0087",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0088",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0089",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0090",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0091",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0092",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0093",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0094",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0095",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0096",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0097",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0098",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0099",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0100",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0101",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0102",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0103",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0104",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0105",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0106",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0107",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0108",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0109",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0110",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0111",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0112",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0113",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0114",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0115",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0116",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0117",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0118",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0119",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0120",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0121",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0122",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0123",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0124",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0125",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0126",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0127",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0128",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0129",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0130",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0131",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0132",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0133",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0134",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0135",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0136",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0137",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0138",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0139",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0140",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0141",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0142",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0143",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0144",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0145",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0146",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0147",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0148",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0149",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0150",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0151",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0152",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0153",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0154",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0155",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0156",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0157",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0158",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0159",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0160",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0161",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0162",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0163",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0164",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0165",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0166",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0167",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0168",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0169",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0170",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0171",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0172",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0173",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0174",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0175",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0176",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0177",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0178",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0179",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0180",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0181",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0182",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0183",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0184",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0185",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0186",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0187",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0188",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0189",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0190",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0191",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0192",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0193",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0194",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0195",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0196",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0197",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0198",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0199",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0200",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0201",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0202",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0203",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0204",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0205",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0206",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0207",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0208",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0209",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0210",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0211",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0212",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0213",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0214",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0215",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0216",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0217",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0218",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0219",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0220",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0221",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0222",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0223",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0224",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0225",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0226",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0227",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0228",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0229",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0230",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0231",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0232",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0233",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0234",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0235",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0236",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0237",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0238",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0239",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0240",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0241",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0242",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0243",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0244",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0245",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0246",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0247",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0248",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0249",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0250",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0251",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0252",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0253",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0254",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0255",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0256",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0257",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0258",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0259",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0260",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0261",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0262",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0263",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0264",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0265",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0266",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0267",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0268",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0269",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0270",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0271",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0272",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0273",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0274",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0275",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0276",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0277",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0278",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0279",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0280",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0281",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0282",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0283",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0284",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0285",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0286",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0287",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0288",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0289",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0290",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0291",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0292",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0293",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0294",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0295",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0296",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0297",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0298",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0299",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-B-0300",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0001",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0002",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0003",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0004",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0005",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0006",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0007",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0008",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0009",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0010",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0011",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0012",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0013",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0014",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0015",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0016",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0017",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0018",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0019",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0020",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0021",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0022",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0023",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0024",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0025",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0026",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0027",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0028",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0029",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0030",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0031",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0032",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0033",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0034",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0035",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0036",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0037",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0038",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0039",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0040",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0041",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0042",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0043",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0044",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0045",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0046",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0047",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0048",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0049",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0050",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": true
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0051",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0052",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0053",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0054",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0055",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0056",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0057",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0058",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0059",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0060",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0061",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0062",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0063",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0064",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0065",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0066",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0067",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0068",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0069",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0070",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0071",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0072",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0073",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0074",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0075",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0076",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0077",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0078",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0079",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0080",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0081",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0082",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0083",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0084",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0085",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0086",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0087",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0088",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0089",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0090",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0091",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0092",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0093",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0094",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0095",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0096",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0097",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0098",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0099",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0100",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0101",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0102",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0103",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0104",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0105",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0106",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0107",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0108",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0109",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0110",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0111",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0112",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0113",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0114",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0115",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0116",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0117",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0118",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0119",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0120",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0121",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0122",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0123",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0124",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0125",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0126",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0127",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0128",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0129",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0130",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0131",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0132",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0133",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0134",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0135",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0136",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0137",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0138",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0139",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0140",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0141",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0142",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0143",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0144",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0145",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0146",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0147",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0148",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0149",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0150",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0151",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0152",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0153",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0154",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0155",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0156",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0157",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0158",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0159",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0160",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0161",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0162",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0163",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0164",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0165",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0166",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0167",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0168",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0169",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0170",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0171",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0172",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0173",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0174",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0175",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0176",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0177",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0178",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0179",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0180",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0181",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0182",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0183",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0184",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0185",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0186",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0187",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0188",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0189",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0190",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0191",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0192",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0193",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0194",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0195",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0196",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0197",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0198",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0199",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "local_id": "ns=2;s=UA-I-0200",
+    "device_ref": "opcua-server",
+    "unit": "",
+    "writable": false
+  }
+]

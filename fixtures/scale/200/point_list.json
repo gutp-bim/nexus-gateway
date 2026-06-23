@@ -1,0 +1,1802 @@
+[
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,1",
+    "point_id": "BN-AI-0001",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0001",
+    "point_id": "UA-F-0001",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,2",
+    "point_id": "BN-AI-0002",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0002",
+    "point_id": "UA-F-0002",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,3",
+    "point_id": "BN-AI-0003",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0003",
+    "point_id": "UA-F-0003",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,4",
+    "point_id": "BN-AI-0004",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0004",
+    "point_id": "UA-F-0004",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,5",
+    "point_id": "BN-AI-0005",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0005",
+    "point_id": "UA-F-0005",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,6",
+    "point_id": "BN-AI-0006",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0006",
+    "point_id": "UA-F-0006",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,7",
+    "point_id": "BN-AI-0007",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0007",
+    "point_id": "UA-F-0007",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,8",
+    "point_id": "BN-AI-0008",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0008",
+    "point_id": "UA-F-0008",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,9",
+    "point_id": "BN-AI-0009",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0009",
+    "point_id": "UA-F-0009",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,10",
+    "point_id": "BN-AI-0010",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0010",
+    "point_id": "UA-F-0010",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,11",
+    "point_id": "BN-AI-0011",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0011",
+    "point_id": "UA-F-0011",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,12",
+    "point_id": "BN-AI-0012",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0012",
+    "point_id": "UA-F-0012",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,13",
+    "point_id": "BN-AI-0013",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0013",
+    "point_id": "UA-F-0013",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,14",
+    "point_id": "BN-AI-0014",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0014",
+    "point_id": "UA-F-0014",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,15",
+    "point_id": "BN-AI-0015",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0015",
+    "point_id": "UA-F-0015",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,16",
+    "point_id": "BN-AI-0016",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0016",
+    "point_id": "UA-F-0016",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,17",
+    "point_id": "BN-AI-0017",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0017",
+    "point_id": "UA-F-0017",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,18",
+    "point_id": "BN-AI-0018",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0018",
+    "point_id": "UA-F-0018",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,19",
+    "point_id": "BN-AI-0019",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0019",
+    "point_id": "UA-F-0019",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,20",
+    "point_id": "BN-AI-0020",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0020",
+    "point_id": "UA-F-0020",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,21",
+    "point_id": "BN-AI-0021",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0021",
+    "point_id": "UA-F-0021",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,22",
+    "point_id": "BN-AI-0022",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0022",
+    "point_id": "UA-F-0022",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,23",
+    "point_id": "BN-AI-0023",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0023",
+    "point_id": "UA-F-0023",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,24",
+    "point_id": "BN-AI-0024",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0024",
+    "point_id": "UA-F-0024",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,25",
+    "point_id": "BN-AI-0025",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0025",
+    "point_id": "UA-F-0025",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,26",
+    "point_id": "BN-AI-0026",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0026",
+    "point_id": "UA-F-0026",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,27",
+    "point_id": "BN-AI-0027",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0027",
+    "point_id": "UA-F-0027",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,28",
+    "point_id": "BN-AI-0028",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0028",
+    "point_id": "UA-F-0028",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,29",
+    "point_id": "BN-AI-0029",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0029",
+    "point_id": "UA-F-0029",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,30",
+    "point_id": "BN-AI-0030",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0030",
+    "point_id": "UA-F-0030",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,31",
+    "point_id": "BN-AI-0031",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0031",
+    "point_id": "UA-F-0031",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,32",
+    "point_id": "BN-AI-0032",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0032",
+    "point_id": "UA-F-0032",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,33",
+    "point_id": "BN-AI-0033",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0033",
+    "point_id": "UA-F-0033",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,34",
+    "point_id": "BN-AI-0034",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0034",
+    "point_id": "UA-F-0034",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,35",
+    "point_id": "BN-AI-0035",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0035",
+    "point_id": "UA-F-0035",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,36",
+    "point_id": "BN-AI-0036",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0036",
+    "point_id": "UA-F-0036",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,37",
+    "point_id": "BN-AI-0037",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0037",
+    "point_id": "UA-F-0037",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,38",
+    "point_id": "BN-AI-0038",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0038",
+    "point_id": "UA-F-0038",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,39",
+    "point_id": "BN-AI-0039",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0039",
+    "point_id": "UA-F-0039",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,40",
+    "point_id": "BN-AI-0040",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0040",
+    "point_id": "UA-F-0040",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,41",
+    "point_id": "BN-AI-0041",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0041",
+    "point_id": "UA-F-0041",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,42",
+    "point_id": "BN-AI-0042",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0042",
+    "point_id": "UA-F-0042",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,43",
+    "point_id": "BN-AI-0043",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0043",
+    "point_id": "UA-F-0043",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,44",
+    "point_id": "BN-AI-0044",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0044",
+    "point_id": "UA-F-0044",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,45",
+    "point_id": "BN-AI-0045",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0045",
+    "point_id": "UA-F-0045",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,46",
+    "point_id": "BN-AI-0046",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0046",
+    "point_id": "UA-F-0046",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,47",
+    "point_id": "BN-AI-0047",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0047",
+    "point_id": "UA-F-0047",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,48",
+    "point_id": "BN-AI-0048",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0048",
+    "point_id": "UA-F-0048",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,49",
+    "point_id": "BN-AI-0049",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0049",
+    "point_id": "UA-F-0049",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,50",
+    "point_id": "BN-AI-0050",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0050",
+    "point_id": "UA-F-0050",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,51",
+    "point_id": "BN-AI-0051",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0051",
+    "point_id": "UA-F-0051",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,52",
+    "point_id": "BN-AI-0052",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0052",
+    "point_id": "UA-F-0052",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,53",
+    "point_id": "BN-AI-0053",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0053",
+    "point_id": "UA-F-0053",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,54",
+    "point_id": "BN-AI-0054",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0054",
+    "point_id": "UA-F-0054",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,55",
+    "point_id": "BN-AI-0055",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0055",
+    "point_id": "UA-F-0055",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,56",
+    "point_id": "BN-AI-0056",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0056",
+    "point_id": "UA-F-0056",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,57",
+    "point_id": "BN-AI-0057",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0057",
+    "point_id": "UA-F-0057",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,58",
+    "point_id": "BN-AI-0058",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0058",
+    "point_id": "UA-F-0058",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,59",
+    "point_id": "BN-AI-0059",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0059",
+    "point_id": "UA-F-0059",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,60",
+    "point_id": "BN-AI-0060",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0060",
+    "point_id": "UA-F-0060",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,61",
+    "point_id": "BN-AI-0061",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0061",
+    "point_id": "UA-F-0061",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,62",
+    "point_id": "BN-AI-0062",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0062",
+    "point_id": "UA-F-0062",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,63",
+    "point_id": "BN-AI-0063",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0063",
+    "point_id": "UA-F-0063",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,64",
+    "point_id": "BN-AI-0064",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0064",
+    "point_id": "UA-F-0064",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,65",
+    "point_id": "BN-AI-0065",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0065",
+    "point_id": "UA-F-0065",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,66",
+    "point_id": "BN-AI-0066",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0066",
+    "point_id": "UA-F-0066",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,67",
+    "point_id": "BN-AI-0067",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0067",
+    "point_id": "UA-F-0067",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,68",
+    "point_id": "BN-AI-0068",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0068",
+    "point_id": "UA-F-0068",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,69",
+    "point_id": "BN-AI-0069",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0069",
+    "point_id": "UA-F-0069",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,70",
+    "point_id": "BN-AI-0070",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0070",
+    "point_id": "UA-F-0070",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,71",
+    "point_id": "BN-AI-0071",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0071",
+    "point_id": "UA-F-0071",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,72",
+    "point_id": "BN-AI-0072",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0072",
+    "point_id": "UA-F-0072",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,73",
+    "point_id": "BN-AI-0073",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0073",
+    "point_id": "UA-F-0073",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,74",
+    "point_id": "BN-AI-0074",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0074",
+    "point_id": "UA-F-0074",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,75",
+    "point_id": "BN-AI-0075",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0075",
+    "point_id": "UA-F-0075",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,76",
+    "point_id": "BN-AI-0076",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0076",
+    "point_id": "UA-F-0076",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,77",
+    "point_id": "BN-AI-0077",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0077",
+    "point_id": "UA-F-0077",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,78",
+    "point_id": "BN-AI-0078",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0078",
+    "point_id": "UA-F-0078",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,79",
+    "point_id": "BN-AI-0079",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0079",
+    "point_id": "UA-F-0079",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,80",
+    "point_id": "BN-AI-0080",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0080",
+    "point_id": "UA-F-0080",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,81",
+    "point_id": "BN-AI-0081",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0081",
+    "point_id": "UA-F-0081",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,82",
+    "point_id": "BN-AI-0082",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0082",
+    "point_id": "UA-F-0082",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,83",
+    "point_id": "BN-AI-0083",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0083",
+    "point_id": "UA-F-0083",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,84",
+    "point_id": "BN-AI-0084",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0084",
+    "point_id": "UA-F-0084",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,85",
+    "point_id": "BN-AI-0085",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0085",
+    "point_id": "UA-F-0085",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,86",
+    "point_id": "BN-AI-0086",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0086",
+    "point_id": "UA-F-0086",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,87",
+    "point_id": "BN-AI-0087",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0087",
+    "point_id": "UA-F-0087",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,88",
+    "point_id": "BN-AI-0088",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0088",
+    "point_id": "UA-F-0088",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,89",
+    "point_id": "BN-AI-0089",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0089",
+    "point_id": "UA-F-0089",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,90",
+    "point_id": "BN-AI-0090",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0090",
+    "point_id": "UA-F-0090",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,91",
+    "point_id": "BN-AI-0091",
+    "unit": "degC",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0091",
+    "point_id": "UA-F-0091",
+    "unit": "degC",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,92",
+    "point_id": "BN-AI-0092",
+    "unit": "%RH",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0092",
+    "point_id": "UA-F-0092",
+    "unit": "%RH",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,93",
+    "point_id": "BN-AI-0093",
+    "unit": "ppm",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0093",
+    "point_id": "UA-F-0093",
+    "unit": "ppm",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,94",
+    "point_id": "BN-AI-0094",
+    "unit": "Pa",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0094",
+    "point_id": "UA-F-0094",
+    "unit": "Pa",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,95",
+    "point_id": "BN-AI-0095",
+    "unit": "m3/h",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0095",
+    "point_id": "UA-F-0095",
+    "unit": "m3/h",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,96",
+    "point_id": "BN-AI-0096",
+    "unit": "kW",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0096",
+    "point_id": "UA-F-0096",
+    "unit": "kW",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,97",
+    "point_id": "BN-AI-0097",
+    "unit": "kWh",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0097",
+    "point_id": "UA-F-0097",
+    "unit": "kWh",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,98",
+    "point_id": "BN-AI-0098",
+    "unit": "lux",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0098",
+    "point_id": "UA-F-0098",
+    "unit": "lux",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,99",
+    "point_id": "BN-AI-0099",
+    "unit": "m/s",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0099",
+    "point_id": "UA-F-0099",
+    "unit": "m/s",
+    "writable": true,
+    "device_ref": "opcua-server"
+  },
+  {
+    "connector_id": "bacnet-01",
+    "device_ref": "ahu-01",
+    "protocol": "bacnet",
+    "local_id": "analogInput,100",
+    "point_id": "BN-AI-0100",
+    "unit": "bar",
+    "writable": false
+  },
+  {
+    "connector_id": "opcua-01",
+    "protocol": "opcua",
+    "local_id": "ns=2;s=UA-F-0100",
+    "point_id": "UA-F-0100",
+    "unit": "bar",
+    "writable": true,
+    "device_ref": "opcua-server"
+  }
+]

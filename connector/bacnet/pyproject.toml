@@ -1,0 +1,22 @@
+[project]
+name = "nexus-bacnet-connector"
+version = "0.1.0"
+description = "BACnet → NATS JetStream connector for nexus-gateway"
+requires-python = ">=3.11"
+dependencies = [
+    "bacpypes3>=0.0.100",
+    "nats-py>=2.0",
+]
+
+[project.scripts]
+connector = "bacnet_connector.main:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+]

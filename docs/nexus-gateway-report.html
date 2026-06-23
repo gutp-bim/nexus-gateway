@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nexus-gateway — 技術レポート</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --text: #e0e4f0;
+    --muted: #7b82a8;
+    --accent: #5b8af0;
+    --accent2: #7c5bf0;
+    --green: #3ec98d;
+    --yellow: #f0c040;
+    --red: #f05b5b;
+    --orange: #f0904e;
+    --cyan: #40d4f0;
+    --fact: #1e3d2e;
+    --fact-border: #3ec98d;
+    --assume: #3d2e10;
+    --assume-border: #f0c040;
+    --code-bg: #0c0e18;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  nav {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  nav .logo {
+    padding: 0 20px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    letter-spacing: .05em;
+  }
+  nav ul { list-style: none; }
+  nav ul li a {
+    display: block;
+    padding: 6px 20px;
+    color: var(--muted);
+    font-size: 12.5px;
+    transition: color .15s, background .15s;
+    border-left: 3px solid transparent;
+  }
+  nav ul li a:hover,
+  nav ul li a.active {
+    color: var(--text);
+    background: var(--surface2);
+    border-left-color: var(--accent);
+    text-decoration: none;
+  }
+  nav ul li.section {
+    padding: 14px 20px 4px;
+    color: var(--muted);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  main {
+    flex: 1;
+    padding: 40px 48px;
+    max-width: 960px;
+  }
+
+  /* Header */
+  .page-header {
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -.01em;
+  }
+  .page-header .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 6px;
+  }
+  .badges { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .03em;
+  }
+  .badge-blue { background: #1a2e6e; color: #7aadff; border: 1px solid #2a4eb0; }
+  .badge-green { background: #122b1e; color: #3ec98d; border: 1px solid #1e5a38; }
+  .badge-yellow { background: #2b2208; color: #f0c040; border: 1px solid #5a4208; }
+  .badge-purple { background: #1e1040; color: #a07af0; border: 1px solid #3a1a80; }
+
+  /* Sections */
+  section {
+    margin-bottom: 56px;
+    scroll-margin-top: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .icon { font-size: 18px; }
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 24px 0 12px;
+  }
+  h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    margin: 16px 0 8px;
+  }
+  p { margin-bottom: 12px; color: var(--text); }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .card-sm {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .card-sm .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .card-sm .value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* Code */
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 12px;
+    color: var(--cyan);
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  pre .kw { color: #a07af0; }
+  pre .str { color: var(--green); }
+  pre .cm { color: var(--muted); }
+  pre .sym { color: var(--cyan); }
+  pre .num { color: var(--orange); }
+
+  /* Fact/Assumption callouts */
+  .fact {
+    background: var(--fact);
+    border-left: 3px solid var(--fact-border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .fact::before {
+    content: '✓ 確認済み ';
+    font-weight: 700;
+    color: var(--green);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .assume {
+    background: var(--assume);
+    border-left: 3px solid var(--assume-border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .assume::before {
+    content: '⚠ 推測・未確認 ';
+    font-weight: 700;
+    color: var(--yellow);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  /* Source cite */
+  .src {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+  }
+
+  /* Status indicators */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .status-ok { background: #122b1e; color: var(--green); }
+  .status-warn { background: #2b2208; color: var(--yellow); }
+  .status-risk { background: #2b1010; color: var(--red); }
+  .status-tbd { background: #1a1d27; color: var(--muted); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* ADR pills */
+  .adr {
+    display: inline-block;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #1a2e6e;
+    color: #7aadff;
+    font-weight: 600;
+    border: 1px solid #2a4eb0;
+    white-space: nowrap;
+  }
+
+  /* Risk matrix */
+  .risk-high { color: var(--red); font-weight: 700; }
+  .risk-med { color: var(--yellow); font-weight: 700; }
+  .risk-low { color: var(--green); font-weight: 700; }
+
+  /* Lists */
+  ul.styled, ol.styled {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+  ul.styled li, ol.styled li {
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* Metric row */
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .metric-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    text-align: center;
+  }
+  .metric-box .mval {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .metric-box .mlabel {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Footer */
+  footer {
+    color: var(--muted);
+    font-size: 11px;
+    padding: 24px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  @media (max-width: 768px) {
+    .layout { flex-direction: column; }
+    nav { width: 100%; height: auto; position: static; }
+    main { padding: 24px 20px; }
+    .metric-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- Sidebar Navigation -->
+<nav>
+  <div class="logo">nexus-gateway</div>
+  <ul>
+    <li class="section">はじめに</li>
+    <li><a href="#background">背景と動機</a></li>
+    <li><a href="#overview">概要・コンセプト</a></li>
+    <li class="section">設計</li>
+    <li><a href="#architecture">アーキテクチャ</a></li>
+    <li><a href="#features">機能一覧</a></li>
+    <li><a href="#dataflow">データフロー</a></li>
+    <li class="section">実装</li>
+    <li><a href="#stack">技術スタック</a></li>
+    <li><a href="#performance">パフォーマンス</a></li>
+    <li><a href="#quality">品質とテスト</a></li>
+    <li class="section">運用</li>
+    <li><a href="#security">セキュリティモデル</a></li>
+    <li><a href="#setup">セットアップと使い方</a></li>
+    <li><a href="#risks">リスクと提言</a></li>
+  </ul>
+</nav>
+
+<!-- Main Content -->
+<main>
+
+<!-- Page Header -->
+<div class="page-header">
+  <h1>nexus-gateway</h1>
+  <div class="subtitle">ビル設備プロトコル統合エッジゲートウェイ — 技術レポート</div>
+  <div class="badges">
+    <span class="badge badge-green">Go 1.25</span>
+    <span class="badge badge-blue">NATS JetStream</span>
+    <span class="badge badge-blue">gRPC</span>
+    <span class="badge badge-yellow">v0.1.0 public preview</span>
+    <span class="badge badge-purple">Apache-2.0</span>
+  </div>
+  <div style="margin-top:14px; font-size:12px; color:var(--muted);">
+    生成日: 2026-06-21 &nbsp;|&nbsp;
+    リポジトリ: <span class="src">nexus-gateway / master</span> &nbsp;|&nbsp;
+    <span style="color:var(--green);">✓ 確認済み</span> と <span style="color:var(--yellow);">⚠ 推測・未確認</span> を区別して記載
+  </div>
+</div>
+
+<!-- ==================== BACKGROUND ==================== -->
+<section id="background">
+  <h2><span class="icon">📌</span>背景と動機</h2>
+
+  <p>
+    スマートビルディングの設備は、BACnet・OPC-UA・MQTT・Modbus など複数のプロトコルで動作し、
+    各々が独自のアドレス体系・データ型・意味論を持つ。上位の Building OS は
+    <code>(gateway_id, point_id)</code> を鍵とする単一の telemetry/control 契約を要求する。
+    このギャップをエッジで吸収する層として nexus-gateway は設計された。
+    <span class="src">docs/background.ja.md</span>
+  </p>
+
+  <div class="card-grid">
+    <div class="card-sm">
+      <div class="label">主目的</div>
+      <div class="value">プロトコル多様性の吸収</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">System of Record</div>
+      <div class="value">Building OS（ゲートウェイではない）</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">ゲートウェイの責務</div>
+      <div class="value">接続と変換のみ</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">ステータス</div>
+      <div class="value"><span class="status status-warn"><span class="dot"></span>v0.1.0 public preview / MVP baseline: OPC-UA</span></div>
+    </div>
+  </div>
+
+  <h3>なぜ EdgeX Foundry を使わないのか</h3>
+  <div class="fact">
+    EdgeX Foundry の Core Metadata（Device/Profile レジストリ）と Core Command（REST → Device Service）は、
+    Building OS がすでに Digital Twin として所有する責務と重複する。最小構成でも 10〜20 コンテナになる。
+    nexus-gateway はプロトコル別コンテナ分離と Common Event パイプラインの思想を「プラットフォームの重さなしに」借用している。
+    <span class="src">README.ja.md §EdgeX</span>
+  </div>
+
+  <h3>類似システムとの位置づけ</h3>
+  <table>
+    <thead><tr><th>システム</th><th>特徴</th><th>nexus-gateway との違い</th></tr></thead>
+    <tbody>
+      <tr><td>EdgeX Foundry</td><td>汎用 IoT エッジプラットフォーム</td><td>Core Metadata/Command が Building OS と重複。思想のみ借用</td></tr>
+      <tr><td>Azure IoT Edge</td><td>コンテナ型モジュール運用</td><td>最も近い設計思想。ただし Azure 管理プレーン非依存</td></tr>
+      <tr><td>Eclipse Kura</td><td>Java/OSGi ベースエッジ</td><td>OSGi 一体型。独立 OCI コンテナとは異なる</td></tr>
+      <tr><td>ThingsBoard GW</td><td>ThingsBoard へのプロトコル変換</td><td>上位が ThingsBoard 前提。Building OS Point List 非対応</td></tr>
+      <tr><td>EMQX Neuron</td><td>産業プロトコル → MQTT 変換</td><td>MQTT 化が主眼。canonical telemetry への正規化ではない</td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px; color:var(--muted);">出典: <span class="src">docs/background.ja.md §3</span></div>
+</section>
+
+<!-- ==================== OVERVIEW ==================== -->
+<section id="overview">
+  <h2><span class="icon">🔭</span>概要・コンセプト</h2>
+
+  <p>
+    nexus-gateway は「Building OS を System of Record とするための、エッジ側プロトコル吸収層」である。
+    機器・ポイント・デジタルツインの正本を Building OS が持ち、ゲートウェイは接続と変換だけを担う。
+    <span class="src">docs/background.ja.md §1</span>
+  </p>
+
+  <h3>成功の定義</h3>
+  <ul class="styled">
+    <li>新プロトコルのコネクタを OCI コンテナとしてデプロイするだけで対応できる（Core への変更不要）</li>
+    <li>BACnet・OPC-UA・MQTT 由来のテレメトリが、統一された common-model フォームで Building OS に届く</li>
+    <li>アップリンク停止中も SQLite バッファでデータを保持し、復旧後に順序を保ってフォワード</li>
+  </ul>
+  <div style="font-size:12px; color:var(--muted);">出典: <span class="src">docs/vision/vision.md</span></div>
+
+  <h3>スコープ外（明示的に除外）</h3>
+  <ul class="styled">
+    <li>デバイスレジストリ・メタデータレジストリ・コマンド権限 → Building OS が所有</li>
+    <li>Kubernetes オーケストレーション（コンテナ型だが K8s 非依存）</li>
+    <li>セマンティック推論・知識グラフ・推論エンジン</li>
+    <li>マルチゲートウェイ連携（サイトをまたいだフェデレーション）</li>
+    <li>ファームウェア OTA（コネクタ OTA は IN スコープ、ファームウェアは除外）</li>
+  </ul>
+  <div style="font-size:12px; color:var(--muted);">出典: <span class="src">docs/vision/vision.md, MVP_READINESS.md</span></div>
+
+  <h3>Common Event フォーマット（コネクタが出力する共通形式）</h3>
+  <pre>
+<span class="cm">// コネクタはネイティブアドレッシングのみを持つ。point_id は Normalizer が付与。</span>
+<span class="cm">// Subject: evt.&lt;protocol&gt;.&lt;connector_id&gt;  (ADR-0001, ADR-0005)</span>
+{
+  <span class="str">"protocol"</span>:     <span class="str">"opcua"</span>,
+  <span class="str">"connector_id"</span>: <span class="str">"opcua-01"</span>,
+  <span class="str">"local_id"</span>:     <span class="str">"ns=2;s=AHU01.SupplyAirTemp"</span>,
+  <span class="str">"device_ref"</span>:   <span class="str">"opc.tcp://192.0.2.10:4840"</span>,
+  <span class="str">"value"</span>:        <span class="num">23.4</span>,
+  <span class="str">"unit"</span>:         <span class="str">"Cel"</span>,
+  <span class="str">"quality"</span>:      <span class="str">"Good"</span>,
+  <span class="str">"timestamp"</span>:    <span class="str">"2026-06-20T11:51:10Z"</span>
+}
+</pre>
+  <div style="font-size:12px; color:var(--muted);">出典: <span class="src">docs/memory/architecture.md §Common Event Model</span></div>
+</section>
+
+<!-- ==================== ARCHITECTURE ==================== -->
+<section id="architecture">
+  <h2><span class="icon">🏗</span>アーキテクチャ</h2>
+
+  <!-- SVG Architecture Diagram -->
+  <svg viewBox="0 0 860 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:860px;margin-bottom:24px;background:#0c0e18;border-radius:8px;border:1px solid #2e3350;display:block;">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#5b8af0"/>
+      </marker>
+      <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#f0904e"/>
+      </marker>
+      <marker id="arr3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#3ec98d"/>
+      </marker>
+    </defs>
+
+    <!-- Field devices -->
+    <rect x="10" y="30" width="130" height="120" rx="6" fill="#1a1d27" stroke="#2e3350"/>
+    <text x="75" y="52" text-anchor="middle" fill="#7b82a8" font-size="10" font-family="sans-serif">フィールド設備</text>
+    <rect x="20" y="60" width="110" height="20" rx="3" fill="#22263a" stroke="#2e3350"/>
+    <text x="75" y="74" text-anchor="middle" fill="#3ec98d" font-size="10" font-family="sans-serif">BACnet/IP</text>
+    <rect x="20" y="86" width="110" height="20" rx="3" fill="#22263a" stroke="#2e3350"/>
+    <text x="75" y="100" text-anchor="middle" fill="#40d4f0" font-size="10" font-family="sans-serif">OPC-UA</text>
+    <rect x="20" y="112" width="110" height="20" rx="3" fill="#22263a" stroke="#2e3350"/>
+    <text x="75" y="126" text-anchor="middle" fill="#a07af0" font-size="10" font-family="sans-serif">MQTT</text>
+
+    <!-- Connectors -->
+    <rect x="180" y="20" width="120" height="150" rx="6" fill="#1a1d27" stroke="#5b8af0"/>
+    <text x="240" y="42" text-anchor="middle" fill="#5b8af0" font-size="11" font-weight="bold" font-family="sans-serif">Connectors</text>
+    <text x="240" y="57" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">各プロトコル独立</text>
+    <rect x="190" y="65" width="100" height="18" rx="3" fill="#22263a" stroke="#3ec98d"/>
+    <text x="240" y="77" text-anchor="middle" fill="#3ec98d" font-size="9.5" font-family="sans-serif">BACnet (Python)</text>
+    <rect x="190" y="88" width="100" height="18" rx="3" fill="#22263a" stroke="#40d4f0"/>
+    <text x="240" y="100" text-anchor="middle" fill="#40d4f0" font-size="9.5" font-family="sans-serif">OPC-UA (Java)</text>
+    <rect x="190" y="111" width="100" height="18" rx="3" fill="#22263a" stroke="#a07af0"/>
+    <text x="240" y="123" text-anchor="middle" fill="#a07af0" font-size="9.5" font-family="sans-serif">MQTT (Go)</text>
+    <rect x="190" y="134" width="100" height="18" rx="3" fill="#22263a" stroke="#f0904e"/>
+    <text x="240" y="146" text-anchor="middle" fill="#f0904e" font-size="9.5" font-family="sans-serif">sim (Go)</text>
+
+    <!-- Arrow: Devices → Connectors -->
+    <line x1="142" y1="90" x2="178" y2="90" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- NATS -->
+    <rect x="340" y="60" width="120" height="60" rx="6" fill="#1a1d27" stroke="#7c5bf0"/>
+    <text x="400" y="84" text-anchor="middle" fill="#7c5bf0" font-size="11" font-weight="bold" font-family="sans-serif">NATS JetStream</text>
+    <text x="400" y="100" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">EVENTS stream</text>
+    <text x="400" y="113" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">evt.&lt;proto&gt;.&lt;id&gt;</text>
+
+    <!-- Arrow: Connectors → NATS -->
+    <line x1="302" y1="95" x2="338" y2="95" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="320" y="88" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">publish</text>
+
+    <!-- Normalizer -->
+    <rect x="340" y="160" width="120" height="70" rx="6" fill="#1a1d27" stroke="#3ec98d"/>
+    <text x="400" y="182" text-anchor="middle" fill="#3ec98d" font-size="11" font-weight="bold" font-family="sans-serif">Normalizer</text>
+    <text x="400" y="197" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">local_id → point_id</text>
+    <text x="400" y="211" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">Point List JOIN</text>
+    <text x="400" y="222" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">TelemetryFrame 発行</text>
+
+    <!-- Arrow: NATS → Normalizer -->
+    <line x1="400" y1="122" x2="400" y2="158" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="412" y="142" fill="#7b82a8" font-size="8" font-family="sans-serif">durable consumer</text>
+
+    <!-- Store & Forward -->
+    <rect x="340" y="275" width="120" height="70" rx="6" fill="#1a1d27" stroke="#f0c040"/>
+    <text x="400" y="297" text-anchor="middle" fill="#f0c040" font-size="11" font-weight="bold" font-family="sans-serif">Store-and-Forward</text>
+    <text x="400" y="312" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">SQLite ring buffer</text>
+    <text x="400" y="326" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">best-effort (ADR-0002)</text>
+    <text x="400" y="338" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">drop-oldest overflow</text>
+
+    <!-- Arrow: Normalizer → S&F -->
+    <line x1="400" y1="232" x2="400" y2="273" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr)"/>
+
+    <!-- Building OS -->
+    <rect x="600" y="60" width="140" height="300" rx="6" fill="#1a1d27" stroke="#f0904e"/>
+    <text x="670" y="85" text-anchor="middle" fill="#f0904e" font-size="12" font-weight="bold" font-family="sans-serif">Building OS</text>
+    <text x="670" y="102" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">System of Record</text>
+    <line x1="610" y1="115" x2="730" y2="115" stroke="#2e3350" stroke-width="1"/>
+    <text x="670" y="135" text-anchor="middle" fill="#5b8af0" font-size="9.5" font-family="sans-serif">GatewayIngress</text>
+    <text x="670" y="150" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">StreamTelemetry</text>
+    <line x1="610" y1="165" x2="730" y2="165" stroke="#2e3350" stroke-width="1"/>
+    <text x="670" y="185" text-anchor="middle" fill="#f05b5b" font-size="9.5" font-family="sans-serif">GatewayEgress</text>
+    <text x="670" y="200" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">Connect (bidi)</text>
+    <line x1="610" y1="215" x2="730" y2="215" stroke="#2e3350" stroke-width="1"/>
+    <text x="670" y="235" text-anchor="middle" fill="#3ec98d" font-size="9.5" font-family="sans-serif">Point List API</text>
+    <text x="670" y="250" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">provisioning (#224)</text>
+    <line x1="610" y1="263" x2="730" y2="263" stroke="#2e3350" stroke-width="1"/>
+    <text x="670" y="285" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">Digital Twin</text>
+    <text x="670" y="300" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">(OxiGraph / sbco:PointExt)</text>
+    <text x="670" y="320" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">Keycloak / OIDC</text>
+    <text x="670" y="338" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">Traefik (mTLS edge)</text>
+
+    <!-- Arrow: S&F → BOS (gRPC Ingress) -->
+    <line x1="462" y1="300" x2="598" y2="145" stroke="#3ec98d" stroke-width="1.5" marker-end="url(#arr3)"/>
+    <text x="520" y="232" fill="#3ec98d" font-size="8.5" font-family="sans-serif" transform="rotate(-30,520,232)">gRPC StreamTelemetry</text>
+
+    <!-- Arrow: BOS → Connectors (Control) -->
+    <line x1="598" y1="195" x2="462" y2="195" stroke="#f0904e" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <text x="520" y="188" text-anchor="middle" fill="#f0904e" font-size="8" font-family="sans-serif">ControlCommand</text>
+
+    <!-- Arrow: Connectors → BOS (cmd) -->
+    <line x1="300" y1="185" x2="338" y2="185" stroke="#f0904e" stroke-width="1" stroke-dasharray="3,3"/>
+
+    <!-- Egress agent -->
+    <rect x="500" y="170" width="90" height="40" rx="4" fill="#22263a" stroke="#f0904e"/>
+    <text x="545" y="186" text-anchor="middle" fill="#f0904e" font-size="9" font-family="sans-serif">Egress Agent</text>
+    <text x="545" y="200" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">Dispatch</text>
+
+    <!-- Point List Sync -->
+    <rect x="180" y="290" width="120" height="55" rx="6" fill="#1a1d27" stroke="#3ec98d"/>
+    <text x="240" y="312" text-anchor="middle" fill="#3ec98d" font-size="10" font-weight="bold" font-family="sans-serif">Point List Sync</text>
+    <text x="240" y="327" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">diff sync (ADR-0003)</text>
+    <text x="240" y="340" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">local_id → point_id</text>
+
+    <!-- Arrow: BOS → PointList -->
+    <line x1="598" y1="248" x2="302" y2="318" stroke="#3ec98d" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr3)"/>
+
+    <!-- Arrow: PointList → Normalizer -->
+    <line x1="300" y1="320" x2="340" y2="215" stroke="#3ec98d" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr3)"/>
+
+    <!-- Admin UI -->
+    <rect x="10" y="390" width="120" height="45" rx="4" fill="#1a1d27" stroke="#7c5bf0"/>
+    <text x="70" y="410" text-anchor="middle" fill="#7c5bf0" font-size="10" font-family="sans-serif">Admin UI</text>
+    <text x="70" y="426" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">Next.js / Keycloak</text>
+
+    <!-- Connector Catalog -->
+    <rect x="180" y="390" width="120" height="45" rx="4" fill="#1a1d27" stroke="#a07af0"/>
+    <text x="240" y="410" text-anchor="middle" fill="#a07af0" font-size="10" font-family="sans-serif">Connector Catalog</text>
+    <text x="240" y="426" text-anchor="middle" fill="#7b82a8" font-size="8.5" font-family="sans-serif">signed OCI / cosign</text>
+
+    <!-- Legend -->
+    <rect x="700" y="390" width="140" height="80" rx="4" fill="#1a1d27" stroke="#2e3350"/>
+    <text x="770" y="408" text-anchor="middle" fill="#7b82a8" font-size="9" font-family="sans-serif">凡例</text>
+    <line x1="712" y1="420" x2="740" y2="420" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="748" y="424" fill="#7b82a8" font-size="8.5" font-family="sans-serif">テレメトリ</text>
+    <line x1="712" y1="436" x2="740" y2="436" stroke="#f0904e" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <text x="748" y="440" fill="#7b82a8" font-size="8.5" font-family="sans-serif">制御</text>
+    <line x1="712" y1="452" x2="740" y2="452" stroke="#3ec98d" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr3)"/>
+    <text x="748" y="456" fill="#7b82a8" font-size="8.5" font-family="sans-serif">同期</text>
+  </svg>
+
+  <h3>主要コンポーネント</h3>
+  <table>
+    <thead><tr><th>コンポーネント</th><th>言語</th><th>責務</th><th>出典</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Core Agent</strong></td>
+        <td>Go</td>
+        <td>コネクタライフサイクル管理、Admin API、Point List 同期オーケストレーション、Docker Engine API 呼び出し</td>
+        <td><span class="src">cmd/gateway/</span></td>
+      </tr>
+      <tr>
+        <td><strong>Normalizer</strong></td>
+        <td>Go</td>
+        <td>JetStream の durable consumer。Point List を JOIN して <code>local_id → point_id</code> を解決し TelemetryFrame を発行</td>
+        <td><span class="src">internal/normalizer/</span></td>
+      </tr>
+      <tr>
+        <td><strong>Store-and-Forward</strong></td>
+        <td>Go + SQLite</td>
+        <td>有界リングバッファ。アップリンク停止時に蓄積、復旧後にドレイン</td>
+        <td><span class="src">internal/storeforward/</span></td>
+      </tr>
+      <tr>
+        <td><strong>Ingress Uplink</strong></td>
+        <td>Go / gRPC</td>
+        <td><code>GatewayIngress/StreamTelemetry</code> で Building OS へ TelemetryFrame をストリーム</td>
+        <td><span class="src">internal/uplink/</span></td>
+      </tr>
+      <tr>
+        <td><strong>Egress Agent</strong></td>
+        <td>Go / gRPC</td>
+        <td><code>GatewayEgress/Connect</code> ストリームを維持し ControlCommand を受信、core NATS request-reply でコネクタへ dispatch</td>
+        <td><span class="src">internal/egress/, internal/dispatch/</span></td>
+      </tr>
+      <tr>
+        <td><strong>Point List Sync</strong></td>
+        <td>Go</td>
+        <td>Building OS（または file/CSV）から diff 同期。起動時ブロッキング取得後、低頻度ポーリング（既定 10 分）</td>
+        <td><span class="src">internal/pointlist/, internal/pointsync/</span></td>
+      </tr>
+      <tr>
+        <td><strong>BACnet connector</strong></td>
+        <td>Python (BACpypes3)</td>
+        <td>BACnet/IP デバイスのポーリング・COV 購読・WriteProperty</td>
+        <td><span class="src">connector/bacnet/</span></td>
+      </tr>
+      <tr>
+        <td><strong>OPC-UA connector</strong></td>
+        <td>Java (Eclipse Milo)</td>
+        <td>OPC-UA サーバーへの接続・Read/Subscribe・Write</td>
+        <td><span class="src">connector/opcua/</span></td>
+      </tr>
+      <tr>
+        <td><strong>MQTT connector</strong></td>
+        <td>Go (Paho)</td>
+        <td>MQTT broker 購読・publish</td>
+        <td><span class="src">connector/mqtt/</span></td>
+      </tr>
+      <tr>
+        <td><strong>Admin UI</strong></td>
+        <td>Next.js</td>
+        <td>コネクタライフサイクル操作・ヘルス監視・Keycloak OIDC 保護</td>
+        <td><span class="src">admin-ui/</span></td>
+      </tr>
+      <tr>
+        <td><strong>Connector Catalog</strong></td>
+        <td>外部サービス</td>
+        <td>署名済み OCI manifest の配布。Building OS とは別運用（ADR-0006）</td>
+        <td><span class="adr">ADR-0006</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>主要な設計決定（ADR）</h3>
+  <table>
+    <thead><tr><th>ADR</th><th>決定内容</th><th>根拠</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="adr">ADR-0001</span></td>
+        <td>コネクタはネイティブアドレスのみ発行、<code>local_id → point_id</code> は Normalizer が所有</td>
+        <td>Point List 変更時に Normalizer だけ変更すればよい。コネクタが canonical ID を持つと再 normalization が不可能</td>
+      </tr>
+      <tr>
+        <td><span class="adr">ADR-0002</span></td>
+        <td>テレメトリは best-effort。SQLite 有界リングバッファ、overflow 時 drop-oldest</td>
+        <td>Building OS gRPC 契約が cumulative ack のみ（per-frame ID なし）のため exactly-once は実装不可能</td>
+      </tr>
+      <tr>
+        <td><span class="adr">ADR-0003</span></td>
+        <td>Point List の正本は Building OS twin。ゲートウェイは diff 同期の copy のみ</td>
+        <td>二重管理を避ける。ゲートウェイが Point List を編集すると twin との不整合が生じる</td>
+      </tr>
+      <tr>
+        <td><span class="adr">ADR-0004</span></td>
+        <td>制御は real-time-or-fail。core NATS request-reply（JetStream 不使用）、stale write 禁止</td>
+        <td>古い制御指令が障害復旧後に物理設備へ適用されると安全上の問題となる</td>
+      </tr>
+      <tr>
+        <td><span class="adr">ADR-0005</span></td>
+        <td>JetStream を Normalizer の前段に置く（raw event を replay 可能に）</td>
+        <td>Point List 変更後に raw event を再 normalize できる。正規化済み telemetry だけだと修正不可能</td>
+      </tr>
+      <tr>
+        <td><span class="adr">ADR-0006</span></td>
+        <td>コネクタは署名済み OCI、digest 固定実行、Catalog 経由 cosign 検証</td>
+        <td>コネクタは物理設備への接続を持つため、unsigned image 実行はサプライチェーン攻撃リスク</td>
+      </tr>
+      <tr>
+        <td><span class="adr">ADR-0007</span></td>
+        <td>gRPC は Building OS Traefik エッジで mTLS 終端。<code>gateway_id = cert CN/SAN</code></td>
+        <td>機械間通信は OIDC より mTLS が適切。Building OS 側は Traefik + cert-manager で実装済み（BOS #296/#298）</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================== FEATURES ==================== -->
+<section id="features">
+  <h2><span class="icon">✨</span>機能一覧</h2>
+
+  <div class="card-grid">
+    <div class="card-sm">
+      <div class="label">対応プロトコル</div>
+      <div class="value">BACnet · OPC-UA · MQTT</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">コネクタ形態</div>
+      <div class="value">独立 OCI コンテナ</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">耐障害バッファ</div>
+      <div class="value">SQLite ring buffer</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">認証（Admin）</div>
+      <div class="value">Keycloak / OIDC</div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>機能</th><th>実装状況</th><th>説明</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>テレメトリ収集</td>
+        <td><span class="status status-ok"><span class="dot"></span>実装済み</span></td>
+        <td>Common Event → NATS → Normalizer → TelemetryFrame → gRPC</td>
+      </tr>
+      <tr>
+        <td>Store-and-Forward</td>
+        <td><span class="status status-ok"><span class="dot"></span>実装済み</span></td>
+        <td>SQLite 有界リングバッファ。アップリンク停止を吸収</td>
+      </tr>
+      <tr>
+        <td>制御コマンド</td>
+        <td><span class="status status-ok"><span class="dot"></span>実装済み</span></td>
+        <td>GatewayEgress → core NATS request-reply → コネクタ。stale write 禁止</td>
+      </tr>
+      <tr>
+        <td>Point List 同期</td>
+        <td><span class="status status-ok"><span class="dot"></span>実装済み</span></td>
+        <td>file/CSV bootstrap。Building OS provisioning API は依存先 BOS #224 待ち</td>
+      </tr>
+      <tr>
+        <td>Admin API</td>
+        <td><span class="status status-ok"><span class="dot"></span>実装済み</span></td>
+        <td><code>/health</code> <code>/metrics</code> <code>/connectors</code> <code>/devices</code> <code>/telemetry</code></td>
+      </tr>
+      <tr>
+        <td>Admin UI</td>
+        <td><span class="status status-warn"><span class="dot"></span>MVP 任意</span></td>
+        <td>Next.js + Keycloak OIDC。コネクタ start/stop/restart/upgrade</td>
+      </tr>
+      <tr>
+        <td>OPC-UA E2E</td>
+        <td><span class="status status-ok"><span class="dot"></span>実装済み</span></td>
+        <td><code>integration/TestE2E_OpcUATelemetry</code>。MVP baseline シナリオ</td>
+      </tr>
+      <tr>
+        <td>BACnet E2E</td>
+        <td><span class="status status-warn"><span class="dot"></span>MVP+1</span></td>
+        <td>host networking 要件のため CI ゲート外（ローカルでは動作）</td>
+      </tr>
+      <tr>
+        <td>コネクタ OTA</td>
+        <td><span class="status status-warn"><span class="dot"></span>dev catalog のみ</span></td>
+        <td>ADR-0006 設計済み。cosign 本番検証は MVP+1</td>
+      </tr>
+      <tr>
+        <td>mTLS（本番）</td>
+        <td><span class="status status-warn"><span class="dot"></span>設定例のみ</span></td>
+        <td>Building OS 側 Traefik 実装済み（BOS #296/#298）。GW は config 追加のみで対応可</td>
+      </tr>
+      <tr>
+        <td>BACnet auto-discovery</td>
+        <td><span class="status status-tbd"><span class="dot"></span>Issue #90</span></td>
+        <td>現状は BACNET_POINTS 環境変数が必要。Who-Is + object-list 実装で解決予定</td>
+      </tr>
+      <tr>
+        <td>OPC-UA auto-discovery</td>
+        <td><span class="status status-tbd"><span class="dot"></span>Issue #91</span></td>
+        <td>Browse 呼び出しは実装済みだがログのみ。結果を nodeIds に使えば完成</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">MVP_READINESS.md</span></div>
+</section>
+
+<!-- ==================== DATA FLOW ==================== -->
+<section id="dataflow">
+  <h2><span class="icon">🔄</span>データフロー / コネクタ</h2>
+
+  <h3>テレメトリ上り経路（Telemetry Uplink）</h3>
+
+  <!-- SVG Data Flow -->
+  <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;margin-bottom:16px;display:block;">
+    <defs>
+      <marker id="arr4" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="#5b8af0"/>
+      </marker>
+    </defs>
+    <rect x="2" y="20" width="100" height="36" rx="5" fill="#1a1d27" stroke="#5b8af0"/>
+    <text x="52" y="43" text-anchor="middle" fill="#5b8af0" font-size="10" font-family="sans-serif">Connectors</text>
+    <line x1="104" y1="38" x2="148" y2="38" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr4)"/>
+    <text x="126" y="32" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">publish</text>
+    <rect x="150" y="20" width="100" height="36" rx="5" fill="#1a1d27" stroke="#7c5bf0"/>
+    <text x="200" y="37" text-anchor="middle" fill="#7c5bf0" font-size="10" font-family="sans-serif">NATS</text>
+    <text x="200" y="50" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">JetStream</text>
+    <line x1="252" y1="38" x2="296" y2="38" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr4)"/>
+    <text x="274" y="32" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">consume</text>
+    <rect x="298" y="20" width="100" height="36" rx="5" fill="#1a1d27" stroke="#3ec98d"/>
+    <text x="348" y="43" text-anchor="middle" fill="#3ec98d" font-size="10" font-family="sans-serif">Normalizer</text>
+    <line x1="400" y1="38" x2="444" y2="38" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr4)"/>
+    <rect x="446" y="20" width="100" height="36" rx="5" fill="#1a1d27" stroke="#f0c040"/>
+    <text x="496" y="37" text-anchor="middle" fill="#f0c040" font-size="10" font-family="sans-serif">Store-and-</text>
+    <text x="496" y="50" text-anchor="middle" fill="#f0c040" font-size="10" font-family="sans-serif">Forward</text>
+    <line x1="548" y1="38" x2="592" y2="38" stroke="#5b8af0" stroke-width="1.5" marker-end="url(#arr4)"/>
+    <text x="570" y="32" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">gRPC stream</text>
+    <rect x="594" y="20" width="110" height="36" rx="5" fill="#1a1d27" stroke="#f0904e"/>
+    <text x="649" y="37" text-anchor="middle" fill="#f0904e" font-size="10" font-family="sans-serif">Building OS</text>
+    <text x="649" y="50" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">GatewayIngress</text>
+    <!-- Labels -->
+    <text x="52" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">Common Event</text>
+    <text x="200" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">evt.&lt;proto&gt;.&lt;id&gt;</text>
+    <text x="348" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">TelemetryFrame</text>
+    <text x="496" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">SQLite rows</text>
+    <text x="649" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">StreamAck</text>
+  </svg>
+
+  <h3>BACnet COV リアルタイムパス</h3>
+
+  <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+    BACnet COV 通知はポーリングと<strong>並列</strong>で動作し、同一の JetStream パイプラインを通じて Building OS に届く。
+    ゲートウェイ側での追加バッファリングはなく、COV 発火から BOS 到達まで通常 <strong>50 ms 未満</strong>（最悪 500 ms）。
+  </p>
+
+  <!-- COV timing SVG -->
+  <svg viewBox="0 0 860 130" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:860px;margin-bottom:4px;display:block;">
+    <defs>
+      <marker id="arr6" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="#3ec98d"/>
+      </marker>
+    </defs>
+    <!-- boxes -->
+    <rect x="2"   y="24" width="106" height="36" rx="5" fill="#1a1d27" stroke="#3ec98d"/>
+    <text x="55"  y="40" text-anchor="middle" fill="#3ec98d" font-size="9.5" font-family="sans-serif">BACnet device</text>
+    <text x="55"  y="53" text-anchor="middle" fill="#7b82a8" font-size="8"   font-family="sans-serif">COV threshold</text>
+
+    <line x1="110" y1="42" x2="148" y2="42" stroke="#3ec98d" stroke-width="1.5" marker-end="url(#arr6)"/>
+    <text x="129"  y="36" text-anchor="middle" fill="#7b82a8" font-size="7.5" font-family="sans-serif">notify</text>
+
+    <rect x="150" y="24" width="106" height="36" rx="5" fill="#1a1d27" stroke="#3ec98d"/>
+    <text x="203" y="40" text-anchor="middle" fill="#3ec98d" font-size="9.5" font-family="sans-serif">_cov_loop</text>
+    <text x="203" y="53" text-anchor="middle" fill="#7b82a8" font-size="8"   font-family="sans-serif">js.publish() &lt;5ms</text>
+
+    <line x1="258" y1="42" x2="296" y2="42" stroke="#3ec98d" stroke-width="1.5" marker-end="url(#arr6)"/>
+    <text x="277"  y="36" text-anchor="middle" fill="#7b82a8" font-size="7.5" font-family="sans-serif">evt.bacnet.*</text>
+
+    <rect x="298" y="24" width="106" height="36" rx="5" fill="#1a1d27" stroke="#7c5bf0"/>
+    <text x="351" y="40" text-anchor="middle" fill="#7c5bf0" font-size="9.5" font-family="sans-serif">NATS JetStream</text>
+    <text x="351" y="53" text-anchor="middle" fill="#7b82a8" font-size="8"   font-family="sans-serif">&lt;1ms</text>
+
+    <line x1="406" y1="42" x2="444" y2="42" stroke="#3ec98d" stroke-width="1.5" marker-end="url(#arr6)"/>
+    <text x="425"  y="36" text-anchor="middle" fill="#7b82a8" font-size="7.5" font-family="sans-serif">Fetch</text>
+
+    <rect x="446" y="24" width="106" height="36" rx="5" fill="#1a1d27" stroke="#3ec98d"/>
+    <text x="499" y="40" text-anchor="middle" fill="#3ec98d" font-size="9.5" font-family="sans-serif">Normalizer</text>
+    <text x="499" y="53" text-anchor="middle" fill="#7b82a8" font-size="8"   font-family="sans-serif">maxWait 0–500ms</text>
+
+    <line x1="554" y1="42" x2="592" y2="42" stroke="#3ec98d" stroke-width="1.5" marker-end="url(#arr6)"/>
+    <text x="573"  y="36" text-anchor="middle" fill="#7b82a8" font-size="7.5" font-family="sans-serif">WriteNotify</text>
+
+    <rect x="594" y="24" width="106" height="36" rx="5" fill="#1a1d27" stroke="#f0c040"/>
+    <text x="647" y="40" text-anchor="middle" fill="#f0c040" font-size="9.5" font-family="sans-serif">S&amp;F Forwarder</text>
+    <text x="647" y="53" text-anchor="middle" fill="#7b82a8" font-size="8"   font-family="sans-serif">drain() &lt;5ms</text>
+
+    <line x1="702" y1="42" x2="740" y2="42" stroke="#3ec98d" stroke-width="1.5" marker-end="url(#arr6)"/>
+    <text x="721"  y="36" text-anchor="middle" fill="#7b82a8" font-size="7.5" font-family="sans-serif">gRPC Send</text>
+
+    <rect x="742" y="24" width="108" height="36" rx="5" fill="#1a1d27" stroke="#f0904e"/>
+    <text x="796" y="40" text-anchor="middle" fill="#f0904e" font-size="9.5" font-family="sans-serif">Building OS</text>
+    <text x="796" y="53" text-anchor="middle" fill="#7b82a8" font-size="8"   font-family="sans-serif">StreamTelemetry</text>
+
+    <!-- footnote -->
+    <text x="430" y="100" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">
+      ポーリングと COV は同一 JetStream subject (evt.bacnet.&lt;id&gt;) を共有。TelemetryFrame にトリガー種別フラグなし。
+    </text>
+    <text x="430" y="115" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">
+      連続 5 回 SubscribeCOV 失敗で COV ループ終了 → そのポイントはポーリング専用にフォールバック。
+    </text>
+  </svg>
+
+  <!-- latency table -->
+  <table style="font-size:12px;margin-bottom:20px;">
+    <thead><tr><th>ステージ</th><th>レイテンシ</th><th>備考</th></tr></thead>
+    <tbody>
+      <tr><td><code>_cov_loop → js.publish()</code></td><td>&lt; 5 ms</td><td>非同期 publish、バッチなし</td></tr>
+      <tr><td>NATS JetStream キューイング</td><td>&lt; 1 ms</td><td>ローカルプロセス間</td></tr>
+      <tr><td>Normalizer pull Fetch</td><td>0–500 ms</td><td><code>maxWait=500ms</code>。負荷時は即時返却</td></tr>
+      <tr><td>S&amp;F Buffer.Write + WriteNotify</td><td>&lt; 2 ms</td><td>SQLite WAL モード</td></tr>
+      <tr><td>Forwarder.drain → grpcSink.Send</td><td>&lt; 5 ms</td><td>WriteNotify で即時起動、送信側バッチなし</td></tr>
+      <tr><td>gRPC client-streaming → BOS</td><td>ネットワーク RTT</td><td>Checkpoint（ACK 収集）は送信をブロックしない</td></tr>
+    </tbody>
+  </table>
+
+  <h3>制御下り経路（Control Downlink）</h3>
+
+  <svg viewBox="0 0 820 100" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;margin-bottom:20px;display:block;">
+    <defs>
+      <marker id="arr5" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="#f0904e"/>
+      </marker>
+    </defs>
+    <rect x="2" y="20" width="110" height="36" rx="5" fill="#1a1d27" stroke="#f0904e"/>
+    <text x="57" y="37" text-anchor="middle" fill="#f0904e" font-size="10" font-family="sans-serif">Building OS</text>
+    <text x="57" y="50" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">GatewayEgress</text>
+    <line x1="114" y1="38" x2="158" y2="38" stroke="#f0904e" stroke-width="1.5" marker-end="url(#arr5)"/>
+    <rect x="160" y="20" width="100" height="36" rx="5" fill="#1a1d27" stroke="#f0904e"/>
+    <text x="210" y="37" text-anchor="middle" fill="#f0904e" font-size="10" font-family="sans-serif">Egress Agent</text>
+    <text x="210" y="50" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">Dispatch</text>
+    <line x1="262" y1="38" x2="306" y2="38" stroke="#f0904e" stroke-width="1.5" marker-end="url(#arr5)"/>
+    <text x="284" y="32" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">core NATS req</text>
+    <rect x="308" y="20" width="100" height="36" rx="5" fill="#1a1d27" stroke="#f0904e"/>
+    <text x="358" y="37" text-anchor="middle" fill="#f0904e" font-size="10" font-family="sans-serif">Connector</text>
+    <text x="358" y="50" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">cmd.&lt;proto&gt;.&lt;id&gt;</text>
+    <line x1="410" y1="38" x2="454" y2="38" stroke="#f0904e" stroke-width="1.5" marker-end="url(#arr5)"/>
+    <rect x="456" y="20" width="100" height="36" rx="5" fill="#1a1d27" stroke="#3ec98d"/>
+    <text x="506" y="37" text-anchor="middle" fill="#3ec98d" font-size="10" font-family="sans-serif">物理設備</text>
+    <text x="506" y="50" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">WriteProperty 等</text>
+    <!-- Labels -->
+    <text x="57" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">ControlCommand</text>
+    <text x="210" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">point_id → local_id</text>
+    <text x="358" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">ControlResult</text>
+    <text x="506" y="70" text-anchor="middle" fill="#7b82a8" font-size="8" font-family="sans-serif">write 実行</text>
+  </svg>
+
+  <h3>コネクタ契約（全プロトコル共通）</h3>
+  <div class="card">
+    <p style="margin-bottom:8px; font-size:13px; color:var(--muted);">
+      コネクタが実装すべき最小インターフェース。Building OS ドメインモデルを持たず、ネイティブアドレスのみ扱う。
+    </p>
+    <pre>
+<span class="cm">// NATS subject: evt.&lt;protocol&gt;.&lt;connector_id&gt;</span>
+<span class="kw">subscribe</span>() → Stream[CommonEvent]   <span class="cm">// poll / COV subscribe</span>
+
+<span class="cm">// NATS subject: cmd.&lt;protocol&gt;.&lt;connector_id&gt; (core NATS, not JetStream)</span>
+<span class="kw">write</span>(cmd: ControlCommand) → ControlResult  <span class="cm">// stale deadline は即時エラー</span>
+</pre>
+    <div style="font-size:12px;color:var(--muted);">出典: <span class="src">README.ja.md §拡張: プロトコルコネクタの追加</span></div>
+  </div>
+
+  <h3>マルチデバイス BACnet 構成</h3>
+  <div class="fact">
+    5 台の仮想 BACnet デバイス（bacnet-01〜05、各 device_id 1001〜1005、UDP 47808〜47812）、
+    各コネクタが 200 ポイントを担当。スケール検証は
+    <code>fixtures/scale/{200,500,1000,2000}/point_list.csv</code> を BOS にインポートして実施。
+    <span class="src">fixtures/scale/gen_fixtures.py, fixtures/scale/connectors/</span>
+  </div>
+
+  <h3>CONNECTOR_MAP（マルチプロトコルプロビジョニング）</h3>
+  <pre>
+<span class="cm"># 環境変数: protocol → connector_id のマッピング</span>
+CONNECTOR_MAP=bacnet:bacnet-01,opcua:opcua-01
+
+<span class="cm"># 複数 BACnet デバイスの場合（今後の拡張として Issue #90/#91 で対応予定）</span>
+CONNECTOR_MAP=bacnet:bacnet-01,bacnet:bacnet-02,opcua:opcua-01</pre>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">cmd/gateway/main.go:parseConnectorMap()</span></div>
+</section>
+
+<!-- ==================== STACK ==================== -->
+<section id="stack">
+  <h2><span class="icon">🛠</span>技術スタック</h2>
+
+  <table>
+    <thead><tr><th>レイヤー</th><th>技術</th><th>バージョン/備考</th></tr></thead>
+    <tbody>
+      <tr><td>Core Agent</td><td>Go</td><td>1.25。<code>cmd/gateway/</code></td></tr>
+      <tr><td>メッセージバス</td><td>NATS JetStream</td><td>2.10-alpine。内部 pub/sub・replay・back-pressure</td></tr>
+      <tr><td>ローカルバッファ</td><td>SQLite (modernc)</td><td>CGO フリー。<code>modernc.org/sqlite v1.52.0</code></td></tr>
+      <tr><td>BACnet</td><td>Python / BACpypes3</td><td>標準準拠 BACnet/IP。<code>connector/bacnet/</code></td></tr>
+      <tr><td>OPC-UA</td><td>Java / Eclipse Milo</td><td>Gradle ビルド。<code>connector/opcua/</code></td></tr>
+      <tr><td>MQTT</td><td>Go / Paho</td><td>MQTT 5.0 対応。<code>connector/mqtt/</code></td></tr>
+      <tr><td>gRPC</td><td>grpc-go + protobuf</td><td><code>google.golang.org/grpc v1.81.1</code>。gatewaybridge proto</td></tr>
+      <tr><td>コンテナ管理</td><td>Docker Engine SDK</td><td><code>github.com/docker/docker v28.3.0</code></td></tr>
+      <tr><td>OCI 署名</td><td>cosign (外部 CLI)</td><td>Connector Catalog 経由。<span class="adr">ADR-0006</span></td></tr>
+      <tr><td>認証（Admin）</td><td>Keycloak / OIDC</td><td>lestrrat-go/jwx v2.1.6。operator/viewer ロール</td></tr>
+      <tr><td>Admin UI</td><td>Next.js (React)</td><td><code>admin-ui/</code>。NextAuth + Keycloak</td></tr>
+      <tr><td>CI</td><td>GitHub Actions</td><td>Go build/test + UI type-check/build。<code>.github/workflows/ci.yml</code></td></tr>
+      <tr><td>ライセンス</td><td>Apache-2.0</td><td>SBCO / Building OS 隣接プロジェクトと統一</td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">go.mod, connector/*/</span></div>
+
+  <h3>外部依存（隣接リポジトリ）</h3>
+  <table>
+    <thead><tr><th>リポジトリ</th><th>役割</th><th>パス</th></tr></thead>
+    <tbody>
+      <tr><td>bacnet-sim-gateway</td><td>BACnet/IP シミュレータ（Python/BACpypes3）。E2E 検証用</td><td><span class="src">../bacnet-sim-gateway/</span></td></tr>
+      <tr><td>opcua-sim-gateway</td><td>OPC-UA サーバーシミュレータ（Python/asyncua）。E2E 検証用</td><td><span class="src">../opcua-sim-gateway/</span></td></tr>
+      <tr><td>gutp-building-os-oss</td><td>Building OS（GatewayIngress/GatewayEgress gRPC、Point List API #224）</td><td><span class="src">../gutp-building-os-oss/</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================== PERFORMANCE ==================== -->
+<section id="performance">
+  <h2><span class="icon">⚡</span>パフォーマンス考慮事項</h2>
+
+  <h3>設計上の非対称性</h3>
+  <div class="card">
+    <table style="margin-bottom:0;">
+      <thead><tr><th>経路</th><th>方針</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>テレメトリ（上り）</td>
+          <td>best-effort、drop-oldest、at-least-once</td>
+          <td>ビル設備は秒〜分粒度。最新状態・復旧継続性が重要</td>
+        </tr>
+        <tr>
+          <td>制御コマンド（下り）</td>
+          <td>real-time-or-fail、永続化なし</td>
+          <td>古い制御指令の遅延適用は安全・快適性・設備保護上の問題</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>評価計画（E1〜E5）</h3>
+  <div class="fact">
+    E1〜E5 の評価テストスキャフォールドが <span class="src">test/e2e/</span> に実装済み（build tag <code>e2e</code>）。
+    E1 は論文必須、E6 以降は任意評価。
+    <span class="src">docs/evaluation-plan.ja.md</span>
+  </div>
+
+  <table>
+    <thead><tr><th>評価</th><th>対象</th><th>主要指標</th><th>目標値</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>E1 スループット</td>
+        <td>ポイント数 × ポーリング間隔マトリックス</td>
+        <td>events/s、NATS lag、SQLite depth、CPU</td>
+        <td>理論値 ±5%。1000pt/1s で CPU コア1つ未満</td>
+      </tr>
+      <tr>
+        <td>E2 レイテンシ</td>
+        <td>機器 → Building OS の段階別レイテンシ</td>
+        <td>T0→T5 の p50/p95/p99/max（ms）</td>
+        <td>p99 全体 &lt; ポーリング間隔 × 2</td>
+      </tr>
+      <tr>
+        <td>E3 S&amp;F 復旧</td>
+        <td>アップリンク停止 1〜60 分</td>
+        <td>max_buffer_depth、dropped_total、recovery_time_s</td>
+        <td>バッファ容量内の停止ではドロップゼロ</td>
+      </tr>
+      <tr>
+        <td>E4 Point List 収束</td>
+        <td>マッピング変更後の同期時間</td>
+        <td>sync_time_s、unresolved_ratio</td>
+        <td>Admin API 強制時 &lt; 5s、ポーリング時 &lt; 10min</td>
+      </tr>
+      <tr>
+        <td>E5 制御安全性</td>
+        <td>期限切れ・重複・型エラー・停止中コマンド</td>
+        <td>4 シナリオ全合格 / latency_ms</td>
+        <td>期限切れ・型エラー → 10s 以内に応答、書込みなし</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">docs/evaluation-plan.ja.md</span></div>
+
+  <h3>BOS リソース管理検証（スケールフィクスチャ）</h3>
+  <div class="fact">
+    シミュレータは常時全量（2000 ポイント）を稼働させ、BOS へのインポート量（200/500/1000/2000）を変えながら
+    BOS 側のリソース管理をテストする設計。マスターリストは BACnet:OPC-UA = 1:1 にインターリーブ。
+    <span class="src">fixtures/scale/gen_fixtures.py</span>
+  </div>
+
+  <pre>
+<span class="cm"># 検証シナリオ</span>
+Simulator (full 2000 pts, always on)
+    ↕  BACnet / OPC-UA
+Connectors (full config — fixtures/scale/connectors/*.json)
+    ↕  NATS
+Gateway  ←→  BOS  ← import fixtures/scale/&lt;N&gt;/point_list.csv</pre>
+
+  <h3>スケール試験結果（実機シミュレータ + 実ビル OS, 2026-06）</h3>
+  <div class="fact">
+    実シミュレータ（BACnet device 1001 / OPC-UA <code>opc.tcp://192.0.2.10:4840</code>）から
+    <strong>実ビル OS（192.0.2.20、ingress 5051 / egress 5052、平文）まで end-to-end</strong> で検証：
+    sim → コネクタ → NATS JetStream（<code>evt.&lt;proto&gt;.&lt;connector&gt;</code>）→ gateway 正規化 → BOS。
+    完全性は BOS 側で受信した distinct <code>point_id</code> 数、スループットは gateway の
+    store-and-forward メトリクス（<code>/metrics</code>）で測定。
+    <span class="src">connector/bacnet, connector/opcua, internal/storefwd</span>
+  </div>
+
+  <table>
+    <thead><tr><th>ティア（BACnet / OPC-UA 設定）</th><th>BACnet 取り込み</th><th>OPC-UA 取り込み</th><th>segmentation エラー</th><th>read タイムアウト</th></tr></thead>
+    <tbody>
+      <tr><td>100 / 100</td><td>100（Good）</td><td>100（Good）</td><td>0</td><td>0</td></tr>
+      <tr><td>250 / 250</td><td>250（Good）</td><td>250（Good）</td><td>0</td><td>0</td></tr>
+      <tr><td>500 / 500</td><td>500（Good）</td><td>500（Good）</td><td>0</td><td>0</td></tr>
+      <tr><td>1000 / 1000</td><td>1000（Good）</td><td>1000（Good）</td><td>0</td><td>0</td></tr>
+    </tbody>
+  </table>
+
+  <div class="fact">
+    <strong>2000 点（BACnet 1000 + OPC-UA 1000）が実ビル OS まで到達することを両側で確認。</strong>
+    BOS 側で <strong>約 2000 distinct point_id を受信</strong>、テレメトリ（ingress 5051）・
+    制御下り（egress 5052、<code>GatewayEgress</code> 接続成立、<code>Unimplemented</code>=0）とも有効。
+    <code>normalizer_unresolved_total</code>=0（全点プロビジョニング済み）。
+  </div>
+
+  <div class="fact">
+    <strong>50 分連続（BACnet 1000 @30s poll + OPC-UA 1000）で持続性を確認。</strong>
+    書込 ~26 frames/s に対し送信 ~31 frames/s（送信が書込を常に上回り backlog 発散なし）、
+    store-and-forward WAL は 1.7–4.7 MB で循環（有界）、gateway メモリ 14–26 MiB（リークなし）。
+    既知の限界：高書込レート（5s poll ≈ 200 writes/s）では store-and-forward SQLite が
+    <code>SQLITE_BUSY（database is locked）</code> でドレイン律速 → busy_timeout / WAL チューニングが必要
+    （<a href="https://github.com/takashikasuya/nexus-gateway/issues/109">#109</a>）。30s poll では 3–4 回/5 分で自己回復し持続可能。
+  </div>
+
+  <div class="fact">
+    本試験で顕在化・修正したスケール課題:
+    ① BACnet <code>ReadPropertyMultiple</code> の APDU 超過 → <code>BACNET_RPM_CHUNK_SIZE</code>（既定 20）でチャンク分割。
+    ② bacpypes3 の read 無タイムアウトによる poll ループのハング → <code>BACNET_READ_TIMEOUT</code>（既定 5s）。
+    ③ 大規模時の COV 購読ストーム回避用に <code>BACNET_COV_ENABLED</code>（既定 true、poll-only 切替）。
+    ④ スケールフィクスチャを<strong>単一デバイス・distinct</strong>へ再生成（5 コネクタが同一 200 アドレスを再利用していた欠陥を解消）。
+    <span class="src">connector/bacnet, fixtures/scale/gen_master.py, docs/connector-spec.md §BACnet env</span>
+  </div>
+
+  <h3>指数バックオフ（BOS 再接続）</h3>
+  <div class="fact">
+    <code>internal/retry/backoff.go</code> に実装。Min=1s, Max=60s, Factor=2.0, ±20% jitter。
+    BOS 障害時の再接続ストームを防ぐ。
+    <span class="src">internal/retry/backoff.go</span>
+  </div>
+</section>
+
+<!-- ==================== QUALITY ==================== -->
+<section id="quality">
+  <h2><span class="icon">🧪</span>品質とテスト</h2>
+
+  <h3>テスト戦略</h3>
+  <table>
+    <thead><tr><th>レイヤー</th><th>手段</th><th>実行方法</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>ユニットテスト</td>
+        <td><code>go test -race ./...</code></td>
+        <td>CI 全 PR で実行。NATS/gRPC 実スタック不要</td>
+      </tr>
+      <tr>
+        <td>統合テスト（S&amp;F）</td>
+        <td><code>integration/TestSF_OutageSurvival</code></td>
+        <td>in-process。ユニットスイートに同梱</td>
+      </tr>
+      <tr>
+        <td>E2E（OPC-UA）</td>
+        <td><code>integration/TestE2E_OpcUATelemetry</code></td>
+        <td><code>E2E_NATS_URL</code> 設定時のみ実行（CI の e2e-opcua job）</td>
+      </tr>
+      <tr>
+        <td>評価テスト</td>
+        <td><code>test/e2e/</code>（build tag <code>e2e</code>）</td>
+        <td>シミュレータ + Building OS モック要。論文評価用</td>
+      </tr>
+      <tr>
+        <td>Admin UI</td>
+        <td>TypeScript 型チェック + Next.js build</td>
+        <td>CI 全 PR。<code>npm run type-check && npm run build</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>テスタビリティ設計（モジュール境界）</h3>
+  <table>
+    <thead><tr><th>モジュール</th><th>シーム（インターフェース）</th><th>責務</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>uplink.Forwarder</code></td>
+        <td><code>FrameSink</code>（Send + Checkpoint）</td>
+        <td>ADR-0002 のチェックポイント/前進/ドリフト/再送ポリシー</td>
+      </tr>
+      <tr>
+        <td><code>lifecycle.HealthMonitor</code></td>
+        <td><code>GatewayMetrics + ConnectorProber</code></td>
+        <td>ホスト統計とコンテナ生存性を分離してテスト</td>
+      </tr>
+      <tr>
+        <td><code>pointlist.Resolver</code></td>
+        <td>順引き + 逆引き</td>
+        <td>Normalizer（順）と制御 Dispatch（逆）の共通ルックアップ</td>
+      </tr>
+      <tr>
+        <td><code>adminapi</code></td>
+        <td><code>NewServer / NewSecureServer</code></td>
+        <td>認証なし/JWT を共通ビルダーで切り替え</td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">docs/backlog/epic/EP-011-architecture-deepening.md, README.ja.md</span></div>
+
+  <h3>Metrics（可観測性）</h3>
+  <table>
+    <thead><tr><th>メトリクス</th><th>種別</th><th>状態</th></tr></thead>
+    <tbody>
+      <tr><td><code>normalizer_unresolved_total</code></td><td>counter</td><td><span class="status status-ok"><span class="dot"></span>実装済み</span></td></tr>
+      <tr><td><code>normalizer_invalid_total</code></td><td>counter</td><td><span class="status status-ok"><span class="dot"></span>実装済み</span></td></tr>
+      <tr><td><code>storefwd_buffer_depth</code></td><td>gauge</td><td><span class="status status-ok"><span class="dot"></span>実装済み</span></td></tr>
+      <tr><td><code>storefwd_written_total</code></td><td>counter</td><td><span class="status status-ok"><span class="dot"></span>実装済み</span></td></tr>
+      <tr><td><code>storefwd_sent_total</code></td><td>counter</td><td><span class="status status-ok"><span class="dot"></span>実装済み</span></td></tr>
+      <tr><td><code>storefwd_dropped_total</code></td><td>counter</td><td><span class="status status-ok"><span class="dot"></span>実装済み</span></td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">MVP_READINESS.md §Required Metrics, 12時間モニタリングログ</span></div>
+</section>
+
+<!-- ==================== SECURITY ==================== -->
+<section id="security">
+  <h2><span class="icon">🔒</span>セキュリティモデル</h2>
+
+  <div class="card-grid">
+    <div class="card-sm">
+      <div class="label">機械間認証</div>
+      <div class="value">mTLS (Traefik エッジ)</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">人間オペレータ認証</div>
+      <div class="value">Keycloak / OIDC</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">コネクタ配布</div>
+      <div class="value">signed OCI + cosign</div>
+    </div>
+    <div class="card-sm">
+      <div class="label">非本番 fallback</div>
+      <div class="value">--bos-insecure (h2c)</div>
+    </div>
+  </div>
+
+  <h3>1. gRPC mTLS（ADR-0007）</h3>
+  <div class="fact">
+    Building OS 側の Traefik エッジが mTLS を終端する（<code>TLSOption: RequireAndVerifyClientCert</code> + <code>passTLSClientCert</code>）。
+    証明書の CN/SAN が <code>gateway_id</code> に対応し、cert-manager が発行。Traefik が <code>X-Gateway-Id</code> ヘッダを注入し、
+    Building OS がフレームの <code>gateway_id</code> と一致強制（BOS #296/#298 で実装済み）。
+    GW 側のコード変更なし。設定追加のみで対応可。
+    <span class="src">docs/adr/0007-transport-security-mtls-at-edge.md §Update 2026-06-16</span>
+  </div>
+
+  <pre>
+<span class="cm"># 本番設定例</span>
+GATEWAY_ID=GW-SOS-001
+BOS_ADDR=bos.example.com:443
+BOS_CA_FILE=/etc/nexus/tls/ca.pem
+BOS_CERT_FILE=/etc/nexus/tls/gateway.crt  <span class="cm"># CN/SAN = GATEWAY_ID</span>
+BOS_KEY_FILE=/etc/nexus/tls/gateway.key</pre>
+
+  <h3>2. コネクタ配布セキュリティ（ADR-0006）</h3>
+  <div class="fact">
+    Core Agent は unsigned image を実行しない / digest 不一致を実行しない / allowlist 外レジストリからプルしない。
+    これは強制されており、設定で緩和できない。GHCR を MVP レジストリとし、Harbor/ECR/ACR も対応予定。
+    <span class="src">docs/adr/0006-connector-distribution-signed-oci.md</span>
+  </div>
+
+  <h3>3. Admin API / UI 認証</h3>
+  <div class="fact">
+    Keycloak OIDC。<code>operator</code>（書き込み）と <code>viewer</code>（読み取り）ロールを分離。
+    JWKS URL 未設定時は認証スキップ（dev/CI 専用）。
+    <span class="src">internal/adminapi/, SECURITY.md</span>
+  </div>
+
+  <h3>スコープ外（脆弱性対象外）</h3>
+  <ul class="styled">
+    <li>compose スタックの dev 認証情報（<code>operator/operator</code> 等）— 明示的なプレースホルダー</li>
+    <li><code>--bos-insecure</code> h2c — dev/CI の意図的な設定。本番デプロイでの使用は設定ミス</li>
+    <li>Building OS・Keycloak・NATS・Docker 自体の脆弱性 — それぞれの upstream へ</li>
+    <li>ホスト root 権限取得後の攻撃</li>
+  </ul>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">SECURITY.md</span></div>
+</section>
+
+<!-- ==================== SETUP ==================== -->
+<section id="setup">
+  <h2><span class="icon">🚀</span>セットアップと使い方</h2>
+
+  <h3>クイックスタート</h3>
+  <pre>
+<span class="cm"># フルスタック: NATS + mock Building OS + gateway + Keycloak + Admin UI</span>
+docker compose up --build
+
+<span class="cm"># OPC-UA E2E（シミュレータ付き）</span>
+docker compose -f docker-compose.yml \
+               -f docker-compose.integration.yml \
+               --profile opcua up
+
+<span class="cm"># バイナリ直接実行（設備不要の in-process sim）</span>
+go run ./cmd/gateway --dev-sim</pre>
+
+  <h3>エンドポイント</h3>
+  <table>
+    <thead><tr><th>サービス</th><th>ホストポート</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td>Admin UI</td><td><code>:13000</code></td><td>operator: <code>operator/operator</code>、viewer: <code>viewer/viewer</code></td></tr>
+      <tr><td>Gateway Admin API</td><td><code>:18080</code></td><td><code>/health</code> <code>/metrics</code> <code>/connectors</code> <code>/devices</code></td></tr>
+      <tr><td>NATS client</td><td><code>:14222</code></td><td>コネクタ接続</td></tr>
+      <tr><td>NATS monitor</td><td><code>:18222</code></td><td>JetStream 状態確認</td></tr>
+      <tr><td>Keycloak</td><td><code>:18090</code></td><td>管理者: <code>admin/admin</code></td></tr>
+      <tr><td>mock-bos gRPC</td><td><code>:15051</code></td><td>開発用 Building OS スタブ</td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">docker-compose.yml</span></div>
+
+  <h3>主要な設定変数</h3>
+  <table>
+    <thead><tr><th>環境変数</th><th>既定値</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>GATEWAY_ID</code></td><td><code>gw-001</code></td><td>ゲートウェイ ID（mTLS cert CN/SAN と対応）</td></tr>
+      <tr><td><code>NATS_URL</code></td><td><code>nats://localhost:4222</code></td><td>NATS JetStream URL</td></tr>
+      <tr><td><code>BOS_ADDR</code></td><td><code>localhost:50051</code></td><td>Building OS gRPC アドレス（Ingress/Egress 共通 fallback）</td></tr>
+      <tr><td><code>BOS_INGRESS_ADDR</code></td><td>（BOS_ADDR）</td><td>GatewayIngress 専用アドレス（別ポート BOS 向け）</td></tr>
+      <tr><td><code>BOS_EGRESS_ADDR</code></td><td>（BOS_ADDR）</td><td>GatewayEgress 専用アドレス（別ポート BOS 向け）</td></tr>
+      <tr><td><code>BOS_INSECURE</code></td><td><code>false</code></td><td>dev/CI のみ。本番では必ず <code>false</code></td></tr>
+      <tr><td><code>CONNECTOR_MAP</code></td><td>（なし）</td><td><code>bacnet:bacnet-01,opcua:opcua-01</code> 形式</td></tr>
+      <tr><td><code>POINT_LIST_FILE</code></td><td>（なし）</td><td>file/CSV bootstrap 用 Point List パス</td></tr>
+      <tr><td><code>KEYCLOAK_JWKS_URL</code></td><td>（なし）</td><td>Admin API 認証。未設定 = 認証スキップ（dev のみ）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>スケール検証ワークフロー</h3>
+  <pre>
+<span class="cm"># マスターから全スケールフィクスチャを生成</span>
+python3 fixtures/scale/gen_fixtures.py
+
+<span class="cm"># ドライランで分布確認</span>
+python3 fixtures/scale/gen_fixtures.py --dry-run
+
+<span class="cm"># コネクタへのポイント設定（例: BACnet-01）</span>
+BACNET_POINTS=$(cat fixtures/scale/connectors/bacnet-01.json)
+
+<span class="cm"># BOS に 200pt インポートして同期確認</span>
+<span class="cm"># → fixtures/scale/200/point_list.csv を BOS 管理画面へ投入</span></pre>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">fixtures/scale/gen_fixtures.py</span></div>
+</section>
+
+<!-- ==================== RISKS ==================== -->
+<section id="risks">
+  <h2><span class="icon">⚠️</span>リスクと提言</h2>
+
+  <h3>リスクマトリックス</h3>
+  <table>
+    <thead><tr><th>リスク</th><th>深刻度</th><th>状態</th><th>提言</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Point List provisioning API（BOS #224）が未実装</strong><br>
+          <small>Building OS が Point List の正本（ADR-0003）だが、GW 向け専用 API が存在しない。現在は file/CSV bootstrap で代替</small></td>
+        <td><span class="risk-high">高</span></td>
+        <td><span class="status status-warn"><span class="dot"></span>外部依存</span></td>
+        <td>Building OS 側とロードマップを合わせて API 実装を優先依頼</td>
+      </tr>
+      <tr>
+        <td><strong>BACnet コネクタが BACNET_POINTS に依存</strong><br>
+          <small>Issue #90：起動時にポイントを事前設定必要。BOS 主導のポイント管理と摩擦</small></td>
+        <td><span class="risk-med">中</span></td>
+        <td><span class="status status-tbd"><span class="dot"></span>Issue #90</span></td>
+        <td>Who-Is + object-list auto-discovery を実装（bacnet-sim-gateway 側は既に対応済み）</td>
+      </tr>
+      <tr>
+        <td><strong>OPC-UA コネクタが OPCUA_POINTS に依存</strong><br>
+          <small>Issue #91：Browse は呼ばれているが結果を捨てている</small></td>
+        <td><span class="risk-med">中</span></td>
+        <td><span class="status status-tbd"><span class="dot"></span>Issue #91</span></td>
+        <td>Connector.java の browse 結果を nodeIds に変換（小変更で対応可）</td>
+      </tr>
+      <tr>
+        <td><strong>Connector Catalog が新たなロックイン点になる可能性</strong><br>
+          <small>manifest schema / 署名ポリシーが非公開のままだと外部ベンダがコネクタを書けない</small></td>
+        <td><span class="risk-med">中</span></td>
+        <td><span class="status status-warn"><span class="dot"></span>設計課題</span></td>
+        <td>Connector SDK・manifest schema・conformance test を公開仕様として整備</td>
+      </tr>
+      <tr>
+        <td><strong>mTLS が本番で未検証</strong><br>
+          <small>Building OS 側 Traefik 設定は実装済み（BOS #296/#298）だが、GW↔BOS の mTLS E2E 通信を CI で検証していない</small></td>
+        <td><span class="risk-med">中</span></td>
+        <td><span class="status status-warn"><span class="dot"></span>MVP+1</span></td>
+        <td>ci に mTLS 設定例の smoke test を追加</td>
+      </tr>
+      <tr>
+        <td><strong>BACnet host networking が CI ゲート外</strong><br>
+          <small>Who-Is/I-Am ブロードキャストが UDP ポートを必要とするため、OPC-UA のみが MVP baseline</small></td>
+        <td><span class="risk-low">低</span></td>
+        <td><span class="status status-warn"><span class="dot"></span>MVP+1</span></td>
+        <td>host network が使える CI runner で BACnet E2E テストをゲートに追加</td>
+      </tr>
+      <tr>
+        <td><strong>コネクタがクラッシュした場合の制御コマンド損失</strong><br>
+          <small>ADR-0004 で意図的設計。stale write 禁止のため制御は永続化しない。Core クラッシュ時 → BOS タイムアウト → オペレータが新 control_id で再送</small></td>
+        <td><span class="risk-low">低（設計上許容）</span></td>
+        <td><span class="status status-ok"><span class="dot"></span>許容リスク</span></td>
+        <td>オペレータ向けドキュメントに再送手順を明記</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>アーキテクチャ提言</h3>
+  <ol class="styled">
+    <li>
+      <strong>Point List provisioning API を最優先外部依頼事項とする</strong>
+      — ADR-0003 の「Building OS が正本」という設計は、この API なしには file/CSV に依存し続ける。
+      BOS #224 のデリバリーリスクを独立してトラッキング。
+    </li>
+    <li>
+      <strong>BACnet / OPC-UA auto-discovery を早期に実装する（Issue #90, #91）</strong>
+      — BOS 主導のポイント管理を実現するために必須。bacnet-sim-gateway 側は <code>bows/acquire.py</code> に実装済み、OPC-UA connector 側は Browse 結果の転用で完成。
+    </li>
+    <li>
+      <strong>Connector SDK / manifest schema / conformance test を公開仕様化する</strong>
+      — Connector Catalog が新たな中央集権的ロックインにならないよう、外部ベンダがコネクタを書けるエコシステムを整備。
+    </li>
+    <li>
+      <strong>Control command の E5 シナリオを CI の必須ゲートに組み込む</strong>
+      — stale write 禁止の保証は評価テスト E5 で検証予定だが、リグレッション防止のために CI に常時走らせることを推奨。
+    </li>
+    <li>
+      <strong>BOS との gRPC 契約の互換性ポリシーを明文化する</strong>
+      — gatewaybridge proto の breaking change policy がないと、BOS アップグレード時にすべての GW が一斉に壊れるリスクがある。
+    </li>
+  </ol>
+
+  <h3>既知の限界事項</h3>
+  <div class="assume">
+    以下は現時点で確認されている実装上の制約であり、設計の失敗ではなく既知の MVP スコープ判断。
+  </div>
+  <ul class="styled">
+    <li>BACnet host networking は Docker Compose の制約上 CI ゲート外（ローカル実行では動作）</li>
+    <li>cosign 本番検証は MVP+1。現 MVP は dev/file catalog モード</li>
+    <li>Grafana ダッシュボード等の完全 observability スタックは MVP+1。<code>/metrics</code> テキストで代替</li>
+    <li>マルチゲートウェイ連携（サイトをまたいだフェデレーション）は現在の設計スコープ外</li>
+  </ul>
+  <div style="font-size:12px;color:var(--muted);">出典: <span class="src">MVP_READINESS.md §Known Limitations</span></div>
+
+  <footer>
+    <p>このレポートは nexus-gateway リポジトリ（<span class="src">master</span>、2026-06-20）のソースファイルと設計ドキュメントから生成されました。</p>
+    <p style="margin-top:6px;">
+      <span style="color:var(--green);">✓ 確認済み</span> = ソースコードまたは ADR から直接確認可能な事実。
+      <span style="color:var(--yellow);">⚠ 推測・未確認</span> = コードから推定される事実または外部依存の状態。
+    </p>
+  </footer>
+</section>
+
+</main>
+</div>
+
+<script>
+// Highlight active nav link on scroll
+(function() {
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('nav ul li a');
+  function onScroll() {
+    let cur = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 60) cur = s.id;
+    });
+    links.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive: true});
+  onScroll();
+})();
+</script>
+</body>
+</html>

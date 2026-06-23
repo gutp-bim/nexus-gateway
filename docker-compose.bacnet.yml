@@ -1,0 +1,51 @@
+# BACnet integration stack: connects the bacnet connector to a physical B-BC on the LAN.
+# The B-BC at BACNET_ADDRESS must be running bacnet-sim-gateway with config/simulator.yaml
+# (device_id=1001, 8 objects PT001..PT008).
+#
+# Run with:
+#   docker compose -f docker-compose.yml -f docker-compose.bacnet.yml up -d
+#
+# E2E test:
+#   E2E_NATS_URL=nats://localhost:14222 go test ./integration/... -run TestE2E_BacnetTelemetry -v -timeout 120s
+#
+# For a fully local (CI-friendly) run without a physical device, use docker-compose.integration.yml
+# with the bacnet profile instead (builds bbc-sim from ../bacnet-sim-gateway):
+#   docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile bacnet up -d
+
+version: "3.9"
+
+services:
+  bacnet-connector:
+    build:
+      context: connector/bacnet
+    environment:
+      - CONNECTOR_ID=bacnet-01
+      - NATS_URL=nats://localhost:14222 # host networking: NATS exposed on host port 14222
+      - BACNET_ADDRESS=192.0.2.10
+      - BACNET_DEVICE_ID=1001 # bbc-sim device_id (config/simulator.yaml)
+      - BACNET_LOCAL_ADDRESS=0.0.0.0:47809
+      - BACNET_POLL_INTERVAL=5
+      # Read points in chunks so large point lists don't overflow the device APDU
+      # (devices without segmentation reject big reads with "segmentation-not-supported").
+      - BACNET_RPM_CHUNK_SIZE=20
+      # Per-read deadline; prevents a slow/unresponsive device from hanging the poll loop.
+      - BACNET_READ_TIMEOUT=5
+      # COV subscriptions on top of polling. Set false (poll-only) for large point counts.
+      - BACNET_COV_ENABLED=true
+      # Object type,instance pairs match bbc-sim's objects and fixtures/integration/point_list.json.
+      - |
+        BACNET_POINTS=[
+          {"local_id":"analogInput,1001","device_ref":"ahu-01","unit":"degC"},
+          {"local_id":"analogInput,1","device_ref":"ahu-01","unit":"%RH"},
+          {"local_id":"binaryInput,1","device_ref":"ahu-01","unit":""},
+          {"local_id":"binaryOutput,2001","device_ref":"ahu-01","unit":"","writable":true},
+          {"local_id":"multiStateInput,1","device_ref":"ahu-01","unit":""},
+          {"local_id":"analogValue,1002","device_ref":"ahu-01","unit":"degC","writable":true},
+          {"local_id":"multiStateValue,3001","device_ref":"ahu-01","unit":"","writable":true},
+          {"local_id":"analogInput,1003","device_ref":"ahu-01","unit":"ppm"}
+        ]
+    network_mode: host # BACnet/IP requires host networking for UDP Who-Is
+    depends_on:
+      nats:
+        condition: service_healthy
+    restart: unless-stopped

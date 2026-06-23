@@ -1,0 +1,45 @@
+{
+  "realm": "nexus-gateway",
+  "enabled": true,
+  "displayName": "nexus-gateway",
+  "accessTokenLifespan": 300,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      { "name": "gateway-operator", "description": "Can perform lifecycle actions on connectors" },
+      { "name": "gateway-viewer",   "description": "Read-only access to gateway state" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "admin-ui",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "admin-ui-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "defaultClientScopes": ["openid", "profile", "email", "roles"]
+    }
+  ],
+  "users": [
+    {
+      "username": "operator",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "operator@example.com",
+      "credentials": [{ "type": "password", "value": "operator", "temporary": false }],
+      "realmRoles": ["gateway-operator", "gateway-viewer"]
+    },
+    {
+      "username": "viewer",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "viewer@example.com",
+      "credentials": [{ "type": "password", "value": "viewer", "temporary": false }],
+      "realmRoles": ["gateway-viewer"]
+    }
+  ]
+}

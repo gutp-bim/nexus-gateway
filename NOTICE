@@ -1,0 +1,92 @@
+nexus-gateway
+Copyright 2026 nexus-gateway contributors
+
+This product includes software developed by the following projects.
+Each project retains its own copyright and is licensed under the
+terms stated below.
+
+--------------------------------------------------------------------------------
+NATS.go — Go client for NATS
+https://github.com/nats-io/nats.go
+Copyright 2012-2023 The NATS Authors
+License: Apache-2.0
+
+NATS Server
+https://github.com/nats-io/nats-server
+Copyright 2012-2023 The NATS Authors
+License: Apache-2.0
+
+--------------------------------------------------------------------------------
+BACpypes3 — BACnet/IP protocol library for Python
+https://github.com/JoelBender/BACpypes3
+Copyright 2022 Joel W. Bender
+License: MIT
+
+nats-py — Python client for NATS
+https://github.com/nats-io/nats.py
+Copyright 2021-2023 The NATS Authors
+License: Apache-2.0
+
+--------------------------------------------------------------------------------
+Eclipse Milo — OPC UA implementation for Java (sdk-client, stack-client)
+https://github.com/eclipse/milo
+Copyright 2016-2024 Eclipse Foundation
+License: Eclipse Public License 2.0 (with Secondary License Apache-2.0)
+
+jnats — Java client for NATS
+https://github.com/nats-io/nats.java
+Copyright 2015-2023 The NATS Authors
+License: Apache-2.0
+
+Jackson Databind — JSON library for Java
+https://github.com/FasterXML/jackson-databind
+Copyright 2012-2024 FasterXML
+License: Apache-2.0
+
+SLF4J API
+https://www.slf4j.org
+Copyright 1999-2022 QOS.ch
+License: MIT
+
+Logback Classic
+https://logback.qos.ch
+Copyright 1999-2024 QOS.ch
+License: EPL-1.0 / LGPL-2.1
+
+--------------------------------------------------------------------------------
+Eclipse Paho MQTT Go Client
+https://github.com/eclipse/paho.golang
+Copyright 2021 Eclipse Foundation
+License: Eclipse Public License 2.0 (with Secondary License Apache-2.0)
+
+modernc.org/sqlite — Pure-Go SQLite
+https://gitlab.com/cznic/sqlite
+Copyright 2017-2024 The modernc.org/sqlite Authors
+License: BSD-3-Clause / SQLite Public Domain
+
+lestrrat-go/jwx — JWK/JWT library for Go
+https://github.com/lestrrat-go/jwx
+Copyright 2015-2022 Daisuke Maki
+License: MIT
+
+Docker SDK for Go
+https://github.com/docker/docker
+Copyright 2013-2024 Docker, Inc.
+License: Apache-2.0
+
+google.golang.org/grpc — gRPC for Go
+https://github.com/grpc/grpc-go
+Copyright 2014-2024 gRPC authors
+License: Apache-2.0
+
+google.golang.org/protobuf — Protocol Buffers for Go
+https://github.com/protocolbuffers/protobuf-go
+Copyright 2018-2024 The Go Authors
+License: BSD-3-Clause
+
+--------------------------------------------------------------------------------
+Note on Eclipse Public License 2.0 (EPL-2.0) / Apache-2.0 compatibility:
+EPL-2.0 libraries (Eclipse Milo, Eclipse Paho) are distributed with the
+"Secondary License" option, which explicitly permits combination with
+Apache-2.0 licensed works.  See https://www.eclipse.org/legal/epl-2.0/
+for details.
