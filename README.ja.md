@@ -7,7 +7,7 @@
 
 *[English](README.md) / 日本語*
 
-> **用語:** **SBCO** (Smart Building Common Objects) は本ゲートウェイが消費するポイントリストのスキーマ定義標準です。**Building OS** はプロビジョニングとテレメトリの System of Record となるクラウドサイドプラットフォームです。両者は **GUTP** (Green Utilization Technology Platform) 研究プロジェクトの一部です。
+> **用語:** **SBCO** (Smart Building Co-creation Organization / スマートビルディング共創機構) は本ゲートウェイが消費する Point List のスキーマを [`smartbuilding_datamodel_builder`](https://github.com/smartbuilding-co-creation-organization/smartbuilding_datamodel_builder) として定義する組織です。**Building OS** はプロビジョニングとテレメトリの System of Record となるクラウドサイドプラットフォームです。両者は **GUTP** (Green University of Tokyo Project / グリーン東大ICTプロジェクト) の一部です。
 
 設備データを収集し、制御を中継し、プロトコル差異を吸収して、すべてを Building OS
 の共通データモデルへ正規化します。Building OS が **System of Record(記録の正本)**

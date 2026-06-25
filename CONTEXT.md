@@ -52,7 +52,7 @@ A single readable/writable signal (e.g. supply_air_temp), addressed by `point_id
 _Avoid_: tag, variable, datapoint
 
 **Point List**:
-The shared data model (per `smartbuilding_datamodel_builder`, 1 row = 1 Point) mapping `point_id` to native addressing (`local_id`), `unit`, writeability, control schema, device grouping, and spatial context. **Source of truth is the Building OS twin** (OxiGraph `sbco:PointExt`); the Gateway holds a synced copy and converges by **diffing** against the authoritative snapshot. Drift between the two surfaces as `accepted < sent` on the Ingress Uplink.
+The shared data model (per [`smartbuilding_datamodel_builder`](https://github.com/smartbuilding-co-creation-organization/smartbuilding_datamodel_builder), 1 row = 1 Point) mapping `point_id` to native addressing (`local_id`), `unit`, writeability, control schema, device grouping, and spatial context. **Source of truth is the Building OS twin** (OxiGraph `sbco:PointExt`); the Gateway holds a synced copy and converges by **diffing** against the authoritative snapshot. Drift between the two surfaces as `accepted < sent` on the Ingress Uplink.
 _Avoid_: registry, config, mapping table
 
 **local_id**:

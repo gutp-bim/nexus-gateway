@@ -270,10 +270,8 @@ buf generate --template buf.gen.doc.yaml
 
 README.md・README.ja.md の冒頭に、これらの用語の初出を説明する一文を追加する。
 
-- **SBCO** (Smart Building Common Objects): SBCO データモデルビルダーのこと。  
-  Point List のスキーマ定義元。
-- **GUTP**: このプロジェクトが属する GitHub ユーザー/グループ名（`takashikasuya` の namespacing）。  
-  外部向けには visible でないため、README では `gutp-building-os-oss` のリンクに説明を付ける。
+- **SBCO** (Smart Building Co-creation Organization / スマートビルディング共創機構): Point List のスキーマを [`smartbuilding_datamodel_builder`](https://github.com/smartbuilding-co-creation-organization/smartbuilding_datamodel_builder) として定義する組織。
+- **GUTP** (Green University of Tokyo Project / グリーン東大ICTプロジェクト): nexus-gateway・Building OS が属する研究プロジェクト。
 
 ---
 

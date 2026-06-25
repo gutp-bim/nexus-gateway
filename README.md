@@ -7,7 +7,7 @@
 
 *English / [日本語](README.ja.md)*
 
-> **Glossary:** **SBCO** (Smart Building Common Objects) is the data model standard that defines the point-list schema this gateway consumes. **Building OS** is the cloud-side platform that acts as System of Record for provisioning and telemetry. Both are part of the **GUTP** (Green Utilization Technology Platform) research project.
+> **Glossary:** **SBCO** (Smart Building Co-creation Organization / スマートビルディング共創機構) defines the Point List schema this gateway consumes via [`smartbuilding_datamodel_builder`](https://github.com/smartbuilding-co-creation-organization/smartbuilding_datamodel_builder). **Building OS** is the cloud-side platform that acts as System of Record for provisioning and telemetry. Both are part of the **GUTP** (Green University of Tokyo Project / グリーン東大ICTプロジェクト).
 
 It collects equipment data, relays control, absorbs protocol differences, and
 normalizes everything into Building OS's common data model. Building OS is the
