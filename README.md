@@ -320,6 +320,18 @@ request/reply, container env vars, Point List format, Connector Catalog manifest
 and idempotency rules — see
 **[`docs/connector-spec.md`](docs/connector-spec.md)**.
 
+## Extending: add a Northbound destination
+
+Normalised `TelemetryFrame`s reach the Northbound transport through the
+`uplink.FrameSink` interface (`Send` + `Checkpoint`).  The Building OS gRPC
+stream (`grpcSink`) is the reference adapter; to send frames to an additional
+destination — an MQTT broker, a REST endpoint, or a secondary BOS — implement
+`FrameSink` and inject it into `uplink.NewForwarder`.
+
+For the full contract, the `grpcSink` walkthrough, the fan-out pattern, and
+wiring instructions — see
+**[`docs/forwarder-extension.md`](docs/forwarder-extension.md)**.
+
 ---
 
 ## Development
