@@ -266,6 +266,18 @@ NATS トピック体系・Common Event JSON スキーマ・write command の req
 冪等性ルールの完全な仕様は
 **[`docs/connector-spec.md`](docs/connector-spec.md)** を参照してください。
 
+## 拡張: Northbound 発信先の追加
+
+正規化済みの `TelemetryFrame` は `uplink.FrameSink` インターフェース
+(`Send` + `Checkpoint`)を通じて Northbound 宛先に届きます。
+Building OS gRPC ストリーム(`grpcSink`)がリファレンス実装です。
+MQTT ブローカー・REST エンドポイント・別の BOS など追加の宛先へ発信するには、
+`FrameSink` を実装して `uplink.NewForwarder` に渡します。
+
+インターフェース契約・`grpcSink` の実装解説・fan-out パターン・
+`main.go` への組み込み方法は
+**[`docs/forwarder-extension.md`](docs/forwarder-extension.md)** を参照してください。
+
 ---
 
 ## 開発
