@@ -179,6 +179,22 @@ See [`fixtures/integration/`](../fixtures/integration/README.md) and, for the
 control path (Building OS → gateway → connector), the
 [E2E test overview](e2e-test-overview.md).
 
+### MQTT
+
+The MQTT connector connects to any MQTT 5.0 broker. It requires an external broker
+(e.g. [Mosquitto](https://mosquitto.org/)); no bundled simulator is provided.
+
+```bash
+MQTT_BROKER_URL=mqtt://your-broker:1883 \
+MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"}]' \
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+```
+
+See [`connector/mqtt/connector.go`](../connector/mqtt/connector.go) for the full
+`MQTT_POINTS` schema (fields: `topic`, `device_ref`, `unit`, `writable`,
+`command_topic`, `payload_template`). Writable points also need `command_topic` set to
+the broker topic the connector should publish writes to.
+
 ---
 
 ## 8. Where to go next

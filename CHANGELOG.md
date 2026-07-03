@@ -10,6 +10,9 @@ surface may change between minor versions until a `1.0.0` release.
 
 ## [Unreleased]
 
+### Added
+- MQTT connector entrypoint (`cmd/mqtt-connector/main.go`) and `connector/mqtt/Dockerfile`; deploy with `docker-compose.mqtt.yml`.
+
 ## [0.1.0] - 2026-06-21
 
 First public preview (pre-MVP). MVP baseline is OPC-UA telemetry/control +
