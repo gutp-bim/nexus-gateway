@@ -139,6 +139,8 @@ All fields are required. Published as UTF-8 JSON, no envelope or framing.
 | OPC-UA | `"ns=2;s=Temperature"` |
 | MQTT | `"sensors/floor3/temp"` |
 
+**MQTT:** `local_id` is the exact MQTT topic path configured in `MQTT_POINTS[].topic`. The connector subscribes to and matches topics by exact string equality — MQTT wildcard characters (`+`, `#`) are not supported. Messages arriving on a topic not present in the point list are acknowledged immediately and discarded. The gateway Normalizer looks up this topic string in the Point List to resolve the canonical `point_id`; the connector never performs this resolution.
+
 ### 3.3 `quality` semantics
 
 | Value | Meaning |
@@ -196,10 +198,43 @@ top of* this floor; the periodic poll is the guarantee that still holds when val
 - **sim** — fixed ticker. Standalone `cmd/sim-connector`: `--interval` / `SIM_POLL_INTERVAL`
   (default **60 s**). In-process `--dev-sim`: `--dev-sim-interval` flag (default **60 s**;
   lower it for fast local feedback). A non-positive interval is clamped to the 60 s default.
-- **MQTT** — push-based: it emits when a broker message arrives and has no poll. The chosen
-  freshness-floor policy is a connector-side re-publish of each point's last-known value once
-  per interval; this is **planned, not yet implemented** (the MQTT connector has no runnable
-  entrypoint yet).
+- **MQTT** — push-based: it emits when a broker message arrives and has no poll. A
+  freshness-floor re-publish of each point's last-known value once per interval is
+  **planned, not yet implemented**.
+
+### 3.7 MQTT telemetry payload formats
+
+The MQTT connector accepts two payload formats on subscribed topics. Non-numeric or otherwise unparseable payloads are acknowledged to the broker and silently discarded (a `WARN` log is emitted).
+
+**Format 1 — plain numeric string**
+
+The entire payload is a UTF-8 decimal or floating-point number (whitespace is trimmed).
+
+```
+22.5
+```
+
+```
+42
+```
+
+**Format 2 — JSON object with a numeric field**
+
+A JSON object containing one of the keys `"value"`, `"Value"`, or `"v"` (checked in that order). The field value may be a JSON number or a quoted numeric string.
+
+```json
+{"value": 22.5}
+```
+
+```json
+{"Value": "22.5", "unit": "Cel"}
+```
+
+```json
+{"v": 42}
+```
+
+The extracted number becomes the `value` field of the emitted Common Event. Quality is always `"Good"` for successfully parsed messages; the connector has no device-level quality signal from MQTT.
 
 ---
 
@@ -298,6 +333,18 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `OPCUA_DEVICE_REF` | `opcua-server` | Device reference echoed in emitted events. |
 | `OPCUA_WRITE_TIMEOUT` | `10` | Device write timeout in seconds. |
 
+**MQTT connector:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MQTT_BROKER_URL` | `mqtt://localhost:1883` | MQTT broker URL. Supported schemes: `mqtt://` (plain TCP), `mqtts://` (TLS). |
+| `MQTT_CLIENT_ID` | value of `CONNECTOR_ID` | MQTT client identifier presented to the broker. Must be unique per broker. |
+| `MQTT_USERNAME` | _(empty)_ | Broker authentication username. Omit if broker allows anonymous connections. |
+| `MQTT_PASSWORD` | _(empty)_ | Broker authentication password. |
+| `MQTT_KEEPALIVE` | `30` | MQTT KeepAlive interval in seconds. |
+| `MQTT_SESSION_EXPIRY` | `0` | MQTT 5.0 session expiry interval in seconds. `0` = session ends on disconnect (clean session behaviour). |
+| `MQTT_POINTS` | `[]` | JSON array of point configs (see §6.3). |
+
 ### 5.3 CONNECTOR_MAP
 
 The gateway `CONNECTOR_MAP` env var maps `protocol → connector_id`:
@@ -374,7 +421,29 @@ The point list tells a connector which data points to poll and how to address th
 
 `local_id` is the OPC-UA NodeId string as returned by the Browse service.
 
-### 6.3 Connector responsibilities
+### 6.3 MQTT point config (per element of `MQTT_POINTS`)
+
+```json
+{
+  "topic":            "sensors/floor3/temp",
+  "device_ref":       "mqtt://floor3",
+  "unit":             "Cel",
+  "writable":         false,
+  "command_topic":    "",
+  "payload_template": ""
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `topic` | string | **Yes** | MQTT topic to subscribe to. Becomes the `local_id` in emitted events. Exact match only — wildcards (`+`, `#`) are not supported (§3.2). |
+| `device_ref` | string | **Yes** | Opaque device reference echoed in all events. |
+| `unit` | string | **Yes** | Engineering unit echoed in events. May be empty (`""`). |
+| `writable` | boolean | No | `true` if the gateway may send write commands for this point. Default `false`. |
+| `command_topic` | string | Conditional | MQTT topic the connector publishes writes to. Required when `writable` is `true`; may differ from `topic`. |
+| `payload_template` | string | No | `fmt.Sprintf` template for the outbound write payload. The single argument is the `value` (float64); use `%g` for a compact decimal. Examples: `"%g"` → `"22.5"`, `{"setpoint":%g}` → `{"setpoint":22.5}`. When empty, the connector writes a plain float string. An invalid verb falls back silently to a plain float string. |
+
+### 6.4 Connector responsibilities
 
 - Only poll points whose `local_id` is in the point list.
 - Set `writable: false` points as read-only; reply `"not_writable"` to any write command for them.
@@ -425,6 +494,74 @@ When `signature_required: true`:
 
 - **Keyed**: set `COSIGN_KEY_FILE` on the gateway. The image signature must match the public key.
 - **Keyless (Sigstore)**: set `COSIGN_IDENTITY` and `COSIGN_OIDC_ISSUER`. The certificate chain is verified against the Sigstore transparency log.
+
+### 7.4 Catalog Server HTTP API
+
+The gateway polls a catalog server for manifests. Any HTTP server that implements the following two endpoints is a conforming catalog server.
+
+| Method | Path | Response | Description |
+|--------|------|----------|-------------|
+| `GET` | `/connectors` | `[]Manifest` | List all available manifests. |
+| `GET` | `/connectors/{name}` | `Manifest` | Fetch a single manifest by `name`. Returns `404` if not found. |
+
+Both responses are `application/json`. The gateway's auto-updater (`Updater`) calls `GET /connectors/{name}` once per installed connector per poll cycle; `GET /connectors` is called only by `GET /catalog` on the Admin API.
+
+**Gateway configuration:**
+
+| Flag | Env var | Default | Description |
+|------|---------|---------|-------------|
+| `--catalog-url` | `CATALOG_URL` | _(unset)_ | Remote catalog server base URL. When set, overrides `--catalog-file`. |
+| `--catalog-file` | `CATALOG_FILE` | _(unset)_ | Path to a local JSON `[]Manifest` file. For dev / docker-compose environments without a catalog server. |
+| `--catalog-allowlist` | `CATALOG_ALLOWLIST` | `ghcr.io` | Comma-separated list of OCI registry prefixes the gateway will pull from. Images outside this list are rejected before pull. |
+| `--catalog-poll-interval` | — | `10m` | How often the auto-updater polls the catalog for new connector versions. |
+| `--cosign-key` | `COSIGN_KEY_FILE` | _(unset)_ | Path to cosign public key. Empty = keyless verification. |
+| `--cosign-identity` | `COSIGN_IDENTITY` | _(unset)_ | Expected certificate identity for keyless cosign. |
+| `--cosign-oidc-issuer` | `COSIGN_OIDC_ISSUER` | _(unset)_ | Expected OIDC issuer for keyless cosign. |
+
+### 7.5 Gateway-side install and update operations
+
+#### Install
+
+Triggered by `POST /connectors/{name}/install` on the Admin API (requires `gateway-operator` role). The gateway executes the following sequence atomically per connector:
+
+1. Fetch manifest from the catalog by `{name}`.
+2. Validate: digest format, registry allowlist, `min_gateway_version`.
+3. Pull the digest-pinned image reference (`image@sha256:…`). Registry is never contacted if validation fails.
+4. If `signature_required: true`: verify cosign signature. Container is never created if verification fails.
+5. Register the connector spec and start the container with the declared `permissions` only.
+
+An unsigned image, a digest mismatch, or a registry outside the allowlist causes the install to fail — **the container is never started**.
+
+#### Catalog-driven update (auto-update)
+
+The gateway runs a background `Updater` that polls the catalog at `--catalog-poll-interval` (default **10 min**) and applies updates to all **running** connectors:
+
+1. `GET /connectors/{id}` → compare digest; **skip if unchanged**.
+2. Pull new digest-pinned image.
+3. Cosign verify (if required).
+4. Stop old container.
+5. Start new container with updated permissions.
+6. **Health soak** (default **30 s**): poll `ContainerInspect` every 50 ms. If the container exits before the soak window elapses → automatic rollback (step 7).
+7. **Rollback**: start the previous image (already local — no pull needed). The failed update is logged as an error; the previous version keeps running.
+
+Manual catalog-driven update: `POST /connectors/{id}/update` (Admin API).
+
+#### Rollback
+
+`POST /connectors/{id}/rollback` (Admin API) restores the connector to its previous pinned digest without a pull. The gateway retains exactly one previous image (`PrevImage`), so a maximum of one step back is supported. A second rollback call swaps current ↔ prev again.
+
+#### Dev-only ad-hoc upgrade
+
+`POST /connectors/{id}/upgrade?image=<ref>` swaps the image without using the catalog. Disabled by default; enable with `--allow-adhoc-upgrade` / `ALLOW_ADHOC_UPGRADE=true`. Not for production use (ADR-0006).
+
+### 7.6 Admin API catalog endpoints (summary)
+
+| Method | Path | Auth role | Requires | Description |
+|--------|------|-----------|----------|-------------|
+| `GET` | `/catalog` | viewer | `CATALOG_URL` or `CATALOG_FILE` | List all manifests from the configured catalog. |
+| `POST` | `/connectors/{name}/install` | operator | same | Fetch manifest by name, verify, and install. |
+| `POST` | `/connectors/{id}/update` | operator | same | Catalog-driven update for one connector (same flow as auto-update). |
+| `POST` | `/connectors/{id}/rollback` | operator | — | Restore previous pinned image without a catalog call. |
 
 ---
 

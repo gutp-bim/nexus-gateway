@@ -1,0 +1,33 @@
+# MQTT connector stack.
+# Requires an external MQTT 5.0 broker (e.g. Mosquitto). No bundled simulator is provided.
+#
+# Run with: docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+#
+# Set MQTT_BROKER_URL and MQTT_POINTS before starting:
+#   MQTT_BROKER_URL=mqtt://<host>:1883 \
+#   MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"}]' \
+#   docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+#
+# NOTE: The default MQTT_BROKER_URL (mqtt://localhost:1883) resolves to the
+# container's own loopback interface, NOT the host machine. Always set
+# MQTT_BROKER_URL explicitly to the broker's reachable address.
+
+services:
+  mqtt-connector:
+    build:
+      context: .
+      dockerfile: connector/mqtt/Dockerfile
+    environment:
+      - CONNECTOR_ID=mqtt-01
+      - NATS_URL=nats://nats:4222
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-mqtt://localhost:1883}
+      - MQTT_CLIENT_ID=${MQTT_CLIENT_ID:-mqtt-01}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - MQTT_KEEPALIVE=${MQTT_KEEPALIVE:-30}
+      - MQTT_SESSION_EXPIRY=${MQTT_SESSION_EXPIRY:-0}
+      - MQTT_POINTS=${MQTT_POINTS:-[]}
+    depends_on:
+      nats:
+        condition: service_healthy
+    restart: unless-stopped
