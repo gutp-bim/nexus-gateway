@@ -25,6 +25,8 @@ Connectors are independent per-protocol containers that talk to field equipment 
 - [ ] FEAT-007: BACnet connector (telemetry)
 - [ ] FEAT-008: OPC-UA connector (telemetry)
 - [ ] FEAT-009: MQTT connector (Go)
+  <!-- Entrypoint (cmd/mqtt-connector/main.go) and Dockerfile added; run with docker-compose.mqtt.yml.
+       Remaining: freshness-floor re-publish (connector-spec §3.4). -->
 - [ ] FEAT-010: Modbus connector (Go, post-MVP)
 
 ## Dependencies

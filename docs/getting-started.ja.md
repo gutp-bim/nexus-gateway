@@ -174,6 +174,22 @@ docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile
 (Building OS → ゲートウェイ → コネクタ)は
 [E2E テスト概要](e2e-test-overview.md)を参照してください。
 
+### MQTT
+
+MQTT コネクタは任意の MQTT 5.0 ブローカーに接続します。外部ブローカー
+([Mosquitto](https://mosquitto.org/) など)が必要です。バンドルされたシミュレータはありません。
+
+```bash
+MQTT_BROKER_URL=mqtt://your-broker:1883 \
+MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"}]' \
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+```
+
+`MQTT_POINTS` の完全なスキーマ(フィールド: `topic`, `device_ref`, `unit`, `writable`,
+`command_topic`, `payload_template`)は
+[`connector/mqtt/connector.go`](../connector/mqtt/connector.go) を参照してください。
+書き込み可能なポイントには `writable: true` に加えて `command_topic` の設定が必要です。
+
 ---
 
 ## 8. 次のステップ

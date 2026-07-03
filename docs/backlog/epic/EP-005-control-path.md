@@ -16,6 +16,8 @@ Deliver the downlink: Building OS pushes Control Commands to physical equipment 
 - [ ] BACnet connector executes writes via WriteProperty/WritePropertyMultiple honoring BACnet write `priority`.
 - [ ] OPC-UA connector executes writes via Write / Method Call.
 - [ ] MQTT connector publishes write payloads per point control schema.
+  <!-- Write handler implemented in connector/mqtt/connector.go (handleWrite).
+       Remaining: end-to-end validation against the Point List control schema (FEAT-024). -->
 - [ ] Writeability is validated against the Point List before dispatch (`not_writable` without touching the device).
 
 ## Child Features
