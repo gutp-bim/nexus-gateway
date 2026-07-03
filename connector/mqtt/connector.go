@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -128,7 +129,11 @@ func (c *Connector) Run(ctx context.Context) {
 		OnConnectionUp: func(cm *autopaho.ConnectionManager, _ *paho.Connack) {
 			if len(subs) > 0 {
 				if _, err := cm.Subscribe(ctx, &paho.Subscribe{Subscriptions: subs}); err != nil {
-					slog.Error("mqtt: subscribe failed", "err", err)
+					slog.Error("mqtt: subscribe failed — disconnecting to trigger retry", "err", err)
+					// Disconnect from a new goroutine: calling Disconnect from within
+					// OnConnectionUp (which runs on autopaho's internal goroutine) risks
+					// a deadlock. The reconnect loop will call OnConnectionUp again.
+					go func() { _ = cm.Disconnect(ctx) }()
 					return
 				}
 			}
@@ -268,9 +273,14 @@ func formatPayload(tmpl string, value float64) []byte {
 
 // extractValue extracts a float64 from a raw MQTT payload.
 // Supports: plain number ("22.5", "42"), JSON object with a "value" key ({"value": 22.5}).
+// NaN and Inf are rejected: json.Marshal cannot encode them, so passing them
+// through would cause a silent data-loss bug (marshal error → ack without publish).
 func extractValue(payload []byte) (float64, bool) {
 	s := strings.TrimSpace(string(payload))
 	if v, err := strconv.ParseFloat(s, 64); err == nil {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return 0, false
+		}
 		return v, true
 	}
 	var obj map[string]any
@@ -281,9 +291,13 @@ func extractValue(payload []byte) (float64, bool) {
 		if v, ok := obj[key]; ok {
 			switch n := v.(type) {
 			case float64:
+				// JSON numbers are finite by spec; no NaN/Inf check needed here.
 				return n, true
 			case string:
 				if f, err := strconv.ParseFloat(n, 64); err == nil {
+					if math.IsNaN(f) || math.IsInf(f, 0) {
+						return 0, false
+					}
 					return f, true
 				}
 			}

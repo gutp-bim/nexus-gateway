@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"math"
 	"os"
 	"os/signal"
 	"strconv"
@@ -30,6 +31,12 @@ type pointEnv struct {
 }
 
 func main() {
+	// Register signal handler before starting goroutines so a SIGTERM that
+	// arrives during the startup window is captured, not handled by Go's
+	// default handler (which exits immediately, skipping deferred cleanup).
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
 	natsURL := envOrDefault("NATS_URL", nats.DefaultURL)
 	connID := envOrDefault("CONNECTOR_ID", "mqtt-01")
 	brokerURL := envOrDefault("MQTT_BROKER_URL", "mqtt://localhost:1883")
@@ -39,13 +46,34 @@ func main() {
 	if len(password) == 0 {
 		password = nil
 	}
-	keepAlive := uint16(envUint("MQTT_KEEPALIVE", 30))
+
+	// Reject values that would silently truncate to an unintended uint16:
+	// e.g. MQTT_KEEPALIVE=65536 → 0, disabling keepalive entirely.
+	keepAliveRaw := envUint("MQTT_KEEPALIVE", 30)
+	if keepAliveRaw > math.MaxUint16 {
+		slog.Error("MQTT_KEEPALIVE exceeds maximum allowed value (65535)", "value", keepAliveRaw)
+		os.Exit(1)
+	}
+	keepAlive := uint16(keepAliveRaw)
 	sessionExpiry := uint32(envUint("MQTT_SESSION_EXPIRY", 0))
 
 	var envPoints []pointEnv
 	if raw := envOrDefault("MQTT_POINTS", "[]"); raw != "[]" {
 		if err := json.Unmarshal([]byte(raw), &envPoints); err != nil {
 			slog.Error("MQTT_POINTS: invalid JSON", "err", err)
+			os.Exit(1)
+		}
+	}
+
+	// Validate every point at startup to surface misconfiguration immediately
+	// rather than silently misbehaving at runtime.
+	for i, p := range envPoints {
+		if p.Topic == "" {
+			slog.Error("MQTT_POINTS: topic must not be empty", "index", i)
+			os.Exit(1)
+		}
+		if p.Writable && p.CommandTopic == "" {
+			slog.Error("MQTT_POINTS: writable point requires command_topic", "index", i, "topic", p.Topic)
 			os.Exit(1)
 		}
 	}
@@ -71,11 +99,11 @@ func main() {
 		slog.Error("NATS connect failed", "err", err)
 		os.Exit(1)
 	}
-	defer nc.Close()
 
 	js, err := jetstream.New(nc)
 	if err != nil {
 		slog.Error("JetStream init failed", "err", err)
+		nc.Close()
 		os.Exit(1)
 	}
 
@@ -91,17 +119,36 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	connector := mqttconn.New(cfg, nc, js)
-	go connector.Run(ctx)
+	// Track the Run goroutine so an unexpected exit (e.g. broker URL parse
+	// error, NATS subscribe failure) causes the process to exit rather than
+	// silently becoming a zombie that Docker never restarts.
+	done := make(chan struct{})
+	go func() {
+		connector.Run(ctx)
+		close(done)
+	}()
 
 	slog.Info("mqtt-connector started", "connector_id", connID, "nats", natsURL, "broker", brokerURL, "points", len(points))
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-	<-stop
-	slog.Info("mqtt-connector shutting down")
+	select {
+	case <-stop:
+		slog.Info("mqtt-connector shutting down")
+	case <-done:
+		slog.Error("mqtt-connector Run exited unexpectedly")
+		cancel()
+		nc.Close()
+		os.Exit(1)
+	}
+
+	// Cancel the context first so autopaho disconnects cleanly and the Run
+	// goroutine drains any in-flight PUBACK acknowledgements.  Only then close
+	// the NATS connection — closing it before Run returns would cut off
+	// pending JetStream publishes and trigger broker redeliver (double-count).
+	cancel()
+	<-done
+	nc.Close()
 }
 
 func envOrDefault(key, def string) string {

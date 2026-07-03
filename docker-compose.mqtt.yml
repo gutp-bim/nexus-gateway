@@ -7,6 +7,10 @@
 #   MQTT_BROKER_URL=mqtt://<host>:1883 \
 #   MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"}]' \
 #   docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+#
+# NOTE: The default MQTT_BROKER_URL (mqtt://localhost:1883) resolves to the
+# container's own loopback interface, NOT the host machine. Always set
+# MQTT_BROKER_URL explicitly to the broker's reachable address.
 
 services:
   mqtt-connector:
