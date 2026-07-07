@@ -29,8 +29,13 @@ services:
       - KEYCLOAK_JWKS_URL=${KC_BASE}/realms/${KC_REALM}/protocol/openid-connect/certs
       - KEYCLOAK_ISSUER=${KC_BASE}/realms/${KC_REALM}
       - KEYCLOAK_AUDIENCE=${KC_AUDIENCE:-nexus-gateway-admin-api}
-    # Remove the dependency on the (now-disabled) keycloak service.
-    depends_on:
+    # `depends_on` merges by key across compose files (it's a mapping, not a
+    # replaced list), so without `!override` this would still inherit the base
+    # file's `keycloak: ...` entry and fail with "depends on undefined
+    # service" once the disabled-profile keycloak service above isn't active.
+    # (`!reset` looked like the right tag but discards the replacement value
+    # too, leaving no depends_on at all — verified with `docker compose config`.)
+    depends_on: !override
       nats:
         condition: service_healthy
       mock-bos:
@@ -51,6 +56,7 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - ADMIN_API_URL=${ADMIN_API_URL:-http://gateway:8080}
-    depends_on:
+    # See gateway's depends_on above — same override-vs-merge reasoning.
+    depends_on: !override
       gateway:
         condition: service_started

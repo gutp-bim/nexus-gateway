@@ -112,6 +112,11 @@ services:
         condition: service_healthy
       mock-bos:
         condition: service_healthy
+      # keycloak still starts by default (see below) even though this service
+      # doesn't require it; waiting for it here means uncommenting the
+      # KEYCLOAK_* lines above later doesn't race a not-yet-healthy Keycloak.
+      keycloak:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health | grep -q '\"status\":\"ok\"' || exit 1"]
       interval: 10s
@@ -146,6 +151,10 @@ services:
     depends_on:
       gateway:
         condition: service_started
+      # See gateway's depends_on above: keycloak still starts by default, so
+      # waiting for it here avoids a race if AUTH_PROVIDER=keycloak is enabled.
+      keycloak:
+        condition: service_healthy
 
 volumes:
   nats-data:
