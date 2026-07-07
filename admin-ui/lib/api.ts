@@ -52,12 +52,12 @@ export async function getHealth(token?: string): Promise<GatewayHealth> {
   return res.json();
 }
 
-export async function listConnectors(token: string): Promise<ConnectorItem[]> {
+export async function listConnectors(token?: string): Promise<ConnectorItem[]> {
   const res = await adminFetch("/connectors", token);
   return res.json();
 }
 
-export async function listCatalog(token: string): Promise<CatalogEntry[]> {
+export async function listCatalog(token?: string): Promise<CatalogEntry[]> {
   const res = await adminFetch("/catalog", token);
   return res.json();
 }
@@ -82,24 +82,24 @@ export type ConnectorLogs = {
   lines: string[];
 };
 
-export async function listDevices(token: string): Promise<PointEntry[]> {
+export async function listDevices(token?: string): Promise<PointEntry[]> {
   const res = await adminFetch("/devices", token);
   return res.json();
 }
 
-export async function getTelemetry(token: string): Promise<TelemetryStats> {
+export async function getTelemetry(token?: string): Promise<TelemetryStats> {
   const res = await adminFetch("/telemetry", token);
   return res.json();
 }
 
-export async function getConnectorLogs(token: string, id: string, tail = 100): Promise<ConnectorLogs> {
+export async function getConnectorLogs(token: string | undefined, id: string, tail = 100): Promise<ConnectorLogs> {
   const res = await adminFetch(`/logs/${encodeURIComponent(id)}?tail=${tail}`, token);
   return res.json();
 }
 
 
 export async function connectorAction(
-  token: string,
+  token: string | undefined,
   id: string,
   action: string,
   image?: string

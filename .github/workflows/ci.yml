@@ -26,21 +26,36 @@ jobs:
 
   e2e-opcua:
     name: E2E — OPC-UA telemetry (#39)
+    # Requires the sibling opcua-sim-gateway repo and a docker-compose stack;
+    # slow and only exercises the OPC-UA path already covered by unit tests,
+    # so it is not an automatic PR/push gate. Run on demand only.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nexus-gateway
     steps:
+      # actions/checkout@v7 refuses a `path` that resolves outside
+      # GITHUB_WORKSPACE, so both repos are checked out as subdirectories of
+      # the workspace (siblings of each other) instead of nexus-gateway at
+      # the workspace root — this matches the `../opcua-sim-gateway` relative
+      # path docker-compose.integration.yml and local dev already expect.
       - name: Checkout nexus-gateway
         uses: actions/checkout@v7
+        with:
+          path: nexus-gateway
 
       - name: Checkout opcua-sim-gateway (sibling)
         uses: actions/checkout@v7
         with:
           repository: takashikasuya/opcua-sim-gateway
-          path: ../opcua-sim-gateway
+          path: opcua-sim-gateway
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: nexus-gateway/go.mod
           cache: true
+          cache-dependency-path: nexus-gateway/go.sum
 
       - name: Build integration stack (opcua profile)
         run: |
@@ -96,20 +111,29 @@ jobs:
     # flaky on hosted runners), so it is NOT an MVP gate. Run on demand only.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nexus-gateway
     steps:
+      # See e2e-opcua above: actions/checkout@v7 requires `path` to stay
+      # under GITHUB_WORKSPACE, so both repos are checked out as sibling
+      # subdirectories of it rather than nexus-gateway at the workspace root.
       - name: Checkout nexus-gateway
         uses: actions/checkout@v7
+        with:
+          path: nexus-gateway
 
       - name: Checkout bacnet-sim-gateway (sibling)
         uses: actions/checkout@v7
         with:
           repository: takashikasuya/bacnet-sim-gateway
-          path: ../bacnet-sim-gateway
+          path: bacnet-sim-gateway
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: nexus-gateway/go.mod
           cache: true
+          cache-dependency-path: nexus-gateway/go.sum
 
       - name: Build integration stack (bacnet profile)
         run: |
@@ -157,7 +181,7 @@ jobs:
             down -v
 
   admin-ui:
-    name: Admin UI type-check & build
+    name: Admin UI type-check, test & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -171,4 +195,5 @@ jobs:
           cache-dependency-path: admin-ui/package-lock.json
       - run: npm ci
       - run: npm run type-check
+      - run: npm test
       - run: npm run build

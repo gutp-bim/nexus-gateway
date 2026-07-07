@@ -36,9 +36,9 @@ This starts five services:
 
 | Service | Port | What it is |
 |---------|------|------------|
-| `admin-ui` | http://localhost:13000 | Next.js operator console (OIDC-protected) |
+| `admin-ui` | http://localhost:13000 | Next.js operator console (Basic-auth login by default) |
 | `gateway` | http://localhost:18080 | the Core Agent + Admin API |
-| `keycloak` | http://localhost:18090 | OIDC for human operators (realm `nexus-gateway`) |
+| `keycloak` | http://localhost:18090 | OIDC for human operators (realm `nexus-gateway`) — starts, but unused unless you opt in (§4) |
 | `mock-bos` | `localhost:15051` | a stand-in for Building OS's gRPC ingress |
 | `nats` | `localhost:14222` | NATS + JetStream message bus |
 
@@ -68,10 +68,34 @@ curl -s http://localhost:18080/metrics
 
 ---
 
-## 4. Get an operator token
+## 4. Sign in to the Admin UI (and, optionally, get an operator token)
 
-The interesting endpoints are role-protected (operator/viewer). In the compose
-stack, tokens come from Keycloak. Grab one with the dev `operator` user:
+By default this is a single local install, so there's no external identity
+provider to stand up: `docker-compose.yml` leaves the gateway's
+`KEYCLOAK_JWKS_URL` unset, which means the Admin API's `/connectors`,
+`/devices`, etc. are unauthenticated on the Docker network — same trust
+boundary as `/health`/`/metrics` above — and the Admin UI itself is the one
+place a human logs in:
+
+> Open http://localhost:13000 and sign in with the dev default
+> `admin`/`admin` (`ADMIN_USERNAME`/`ADMIN_PASSWORD` in `docker-compose.yml`).
+> **Change `ADMIN_PASSWORD` before anything beyond a lab** — see
+> [SECURITY.md](../SECURITY.md).
+
+Curling the Admin API directly needs no token in this mode:
+
+```bash
+curl -s http://localhost:18080/connectors | jq
+```
+
+### Optional: Keycloak SSO instead
+
+For multi-site/SSO deployments, set `AUTH_PROVIDER=keycloak` on `admin-ui`
+and uncomment the `KEYCLOAK_*` lines on both `gateway` and `admin-ui` in
+`docker-compose.yml` (see the comments there), then `docker compose up
+--build` again. Once running that way, the Admin API endpoints are
+role-protected (operator/viewer) and tokens come from Keycloak. Grab one with
+the dev `operator` user:
 
 ```bash
 TOKEN=$(curl -s http://localhost:18090/realms/nexus-gateway/protocol/openid-connect/token \
@@ -86,12 +110,14 @@ Dev credentials (seeded in `fixtures/keycloak/`): `operator`/`operator` (full
 control) and `viewer`/`viewer` (read-only). **Change these before any non-lab
 deployment** — see [SECURITY.md](../SECURITY.md).
 
-> Prefer a browser? Open http://localhost:13000 and sign in as `operator`. The
-> Admin UI calls these same endpoints for you.
-
 ---
 
 ## 5. Watch telemetry and drive a connector
+
+The `-H "Authorization: Bearer $TOKEN"` header below is only meaningful if
+you opted into Keycloak in §4; in the default (Basic-auth) mode `$TOKEN` is
+unset and the Admin API ignores the header (it isn't checking tokens at all),
+so the same commands work either way.
 
 ### See the Point List (devices & points)
 
@@ -215,8 +241,9 @@ the broker topic the connector should publish writes to.
 
 | Symptom | Likely cause |
 |---------|--------------|
-| `401 Unauthorized` on `/connectors`, `/devices`, … | Missing/expired token. Re-run §4; Keycloak tokens are short-lived. |
-| `403 Forbidden` on a `POST` action | Token is a `viewer`, not an `operator`. |
+| `401 Unauthorized` in the Admin UI | Wrong `ADMIN_USERNAME`/`ADMIN_PASSWORD` (Basic-auth mode), or an expired/missing token if you opted into Keycloak — re-run §4. |
+| `401 Unauthorized` on `/connectors`, `/devices`, … | Only possible in Keycloak mode (default mode leaves these open). Missing/expired token — re-run §4; Keycloak tokens are short-lived. |
+| `403 Forbidden` on a `POST` action | Keycloak mode only: token is a `viewer`, not an `operator`. |
 | Token request fails | Keycloak not healthy yet — `docker compose ps` and retry once it's up. |
 | `/telemetry` `buffer_depth` keeps growing | The uplink to Building OS is down; frames are buffering (expected during a `mock-bos` restart). |
 | Gateway can't manage connectors | The container needs the host Docker socket mounted (`/var/run/docker.sock`); see `docker-compose.yml`. |
