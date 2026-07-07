@@ -141,6 +141,30 @@ func TestInstall_PermissionContract(t *testing.T) {
 	assert.Len(t, hostCfg.Binds, 2, "container must have exactly the declared mounts")
 }
 
+// TestInstall_UsesLocalImageWhenAvailable verifies that when the image already
+// exists locally (ImageInspect succeeds), the registry pull is skipped and the
+// container is created using the tag-based reference instead of the
+// digest-pinned one.  This is the dev workflow path for locally-built images.
+func TestInstall_UsesLocalImageWhenAvailable(t *testing.T) {
+	ctx := context.Background()
+	mock := newCapturingMockDocker("ctr-01")
+	mock.localImageAvailable = true // simulate image present locally
+	reg := lifecycle.NewRegistry()
+	mgr := lifecycle.NewManager(mock, reg)
+
+	m := testManifest()
+	m.Digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000" // placeholder
+	err := mgr.Install(ctx, m, catalog.NoopVerifier{}, []string{testAllowedRegistry}, testGatewayVersion)
+	require.NoError(t, err)
+
+	assert.Equal(t, 0, mock.calls("pull"), "pull must be skipped when image is available locally")
+	assert.Equal(t, 1, mock.calls("create"))
+	assert.Equal(t, 1, mock.calls("start"))
+
+	// Container should use the tag-based ref (no digest suffix)
+	assert.Equal(t, m.Image, mock.lastCreateImage())
+}
+
 // ── test helpers ─────────────────────────────────────────────────────────────
 
 // capturingMockDocker extends mockDocker to record ContainerCreate arguments.

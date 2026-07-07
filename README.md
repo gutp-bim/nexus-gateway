@@ -125,10 +125,11 @@ with the proven per-protocol OSS stacks underneath: **Eclipse Milo** (OPC-UA),
 - **Resilience**: bounded Store-and-Forward rides out Building OS outages; the
   Normalizer drops-and-meters poison / point-list-miss events
   (`normalizer_invalid_total`, `normalizer_unresolved_total`).
-- **Security**: config-driven **TLS/mTLS** to Building OS; **Keycloak/OIDC**
-  protects the Admin API & UI (operator/viewer roles).
+- **Security**: config-driven **TLS/mTLS** to Building OS; the Admin UI uses
+  **Basic auth** by default (single-install, no IdP required); **Keycloak/OIDC**
+  is opt-in for multi-site/SSO deployments (operator/viewer roles).
 - **Admin UI** (Next.js) — dashboard + connector lifecycle (start/stop/restart/
-  upgrade), behind OIDC.
+  upgrade), behind Basic auth (default) or OIDC (opt-in).
 - **Lifecycle management** via the Docker Engine API; **signed-OCI** connector
   distribution through the Connector Catalog (digest-pinned, cosign-verified,
   stop→replace→health→rollback).
@@ -152,9 +153,9 @@ docker compose ps
 
 | Endpoint | URL | Notes |
 |----------|-----|-------|
-| Admin UI | http://localhost:13000 | Keycloak realm `nexus-gateway`; users `operator`/`operator`, `viewer`/`viewer` |
+| Admin UI | http://localhost:13000 | Basic auth: `admin`/`admin` (default); Keycloak opt-in via `AUTH_PROVIDER=keycloak` |
 | Gateway Admin API | http://localhost:18080 | `/health`, `/metrics`, `/connectors` |
-| Keycloak | http://localhost:18090 | Admin: `admin`/`admin` |
+| Keycloak | http://localhost:18090 | Starts by default but unused unless `AUTH_PROVIDER=keycloak`; admin `admin`/`admin` |
 | mock Building OS (gRPC) | `localhost:15051` | `GatewayIngressService` stub for dev |
 | NATS | `localhost:14222` | NATS client port; monitoring at `:18222` |
 
@@ -281,14 +282,22 @@ go run ./cmd/gateway
 For the full E2E test suite against Building OS, see
 **[`docs/e2e-test-overview.md`](docs/e2e-test-overview.md)**.
 
-#### Keycloak: local dev only — use Building OS IdP in production
+#### Admin UI auth: Basic auth (default) or Keycloak (opt-in)
 
-The Keycloak service in `docker-compose.yml` is **local dev / E2E / demo only**
-(`admin`/`admin` credentials, `start-dev` mode). Two distinct auth concerns exist:
+By default (`AUTH_PROVIDER=basic`), the Admin UI authenticates with a local
+admin account (`ADMIN_USERNAME`/`ADMIN_PASSWORD` in `docker-compose.yml`).
+No external IdP is needed for a single local install.
+**Change `ADMIN_PASSWORD` before anything beyond a lab** — see [SECURITY.md](SECURITY.md).
+
+For multi-site/SSO deployments, set `AUTH_PROVIDER=keycloak` and uncomment the
+`KEYCLOAK_*` lines in `docker-compose.yml` (see the comments there). The bundled
+Keycloak service (`admin`/`admin` credentials, `start-dev` mode) is **local dev /
+E2E / demo only**. Two distinct auth concerns exist:
 
 | Concern | Mechanism |
 |---------|-----------|
-| Human operators (Admin UI / Admin API) | Keycloak / OIDC — Bearer JWT, `realm_access.roles` |
+| Human operators (Admin UI) | Basic auth (default) or Keycloak/OIDC — `AUTH_PROVIDER` in `docker-compose.yml` |
+| Admin API (gateway backend) | Unauthenticated by default; JWT (Keycloak) when `KEYCLOAK_JWKS_URL` is set |
 | Gateway ↔ Building OS machine auth | **mTLS** — Keycloak is not involved |
 
 In production, point both the gateway and Admin UI at the **Building OS Keycloak**

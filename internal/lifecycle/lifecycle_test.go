@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	dockerclient "github.com/docker/docker/client"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	dockernetwork "github.com/docker/docker/api/types/network"
@@ -245,13 +247,14 @@ func TestGatewayMetrics_SampleReportsUptime(t *testing.T) {
 // ── mock Docker client ────────────────────────────────────────────────────────
 
 type mockDocker struct {
-	mu             sync.Mutex
-	nextID         string
-	inspectRunning bool
-	lockRunning    bool // when true, ContainerStart does NOT set inspectRunning=true
-	callCount      map[string]int
-	pullErr        error
-	logLines       []string
+	mu                  sync.Mutex
+	nextID              string
+	inspectRunning      bool
+	lockRunning         bool // when true, ContainerStart does NOT set inspectRunning=true
+	localImageAvailable bool // when true, ImageInspect returns success (local image exists)
+	callCount           map[string]int
+	pullErr             error
+	logLines            []string
 }
 
 func newMockDocker(initialID string) *mockDocker {
@@ -341,6 +344,17 @@ func (m *mockDocker) ImagePull(_ context.Context, _ string, _ image.PullOptions)
 		return nil, m.pullErr
 	}
 	return io.NopCloser(strings.NewReader("")), nil
+}
+
+func (m *mockDocker) ImageInspect(_ context.Context, _ string, _ ...dockerclient.ImageInspectOption) (image.InspectResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// By default, pretend no local image is available so pull is attempted.
+	// Tests that need a local image can override via setLocalImage.
+	if m.localImageAvailable {
+		return image.InspectResponse{}, nil
+	}
+	return image.InspectResponse{}, errors.New("no such image")
 }
 
 func (m *mockDocker) ContainerLogs(_ context.Context, _ string, _ container.LogsOptions) (io.ReadCloser, error) {

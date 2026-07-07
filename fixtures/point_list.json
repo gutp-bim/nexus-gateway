@@ -14,5 +14,21 @@
     "point_id": "fan_run",
     "unit": "",
     "writable": true
+  },
+  {
+    "connector_id": "mqtt-01",
+    "protocol": "mqtt",
+    "local_id": "sensors/room1/temp",
+    "point_id": "room1_temperature",
+    "unit": "Cel",
+    "writable": false
+  },
+  {
+    "connector_id": "mqtt-01",
+    "protocol": "mqtt",
+    "local_id": "sensors/room1/humidity",
+    "point_id": "room1_humidity",
+    "unit": "%RH",
+    "writable": false
   }
 ]

@@ -1,5 +1,3 @@
-version: "3.9"
-
 # Host-port mapping: shifted to 1xxxx range to coexist with building-os
 # (which occupies 4222/NATS, 8080/API, 3000/Grafana, etc.).
 # Internal Docker networking is unchanged — services talk to each other via
@@ -91,6 +89,9 @@ services:
       # Connector Catalog (ADR-0006): file-backed for dev; replace with CATALOG_URL in production.
       - CATALOG_FILE=/fixtures/catalog.json
       - CATALOG_ALLOWLIST=ghcr.io
+      # CONNECTOR_NETWORK tells the gateway which Docker network to attach managed
+      # connector containers to so they can reach NATS and other stack services.
+      - CONNECTOR_NETWORK=nexus-gateway_default
       # When KEYCLOAK_JWKS_URL is set, tokens are validated; omit for auth-free
       # dev (default here — single local install, Admin UI gates human access
       # via its own Basic auth login instead, see admin-ui's AUTH_PROVIDER).

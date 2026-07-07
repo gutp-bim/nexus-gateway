@@ -76,6 +76,7 @@ type ServerOptions struct {
 	Catalog   CatalogSource
 	PointList PointListSource
 	Telemetry TelemetrySource
+	Recent    *RecentStore
 	Logger    ConnectorLogger
 	// AllowAdhocUpgrade enables the dev-only POST /connectors/{id}/upgrade?image=<ref>
 	// action. The MVP update path is catalog-driven (ADR-0006); when false (default)
@@ -108,6 +109,7 @@ type Server struct {
 	catalog   CatalogSource      // nil if catalog browsing/update is not configured
 	devices   PointListSource    // nil if point list is not configured
 	telemetry TelemetrySource    // nil if S&F telemetry is not configured
+	recent    *RecentStore       // nil if recent-value tracking is not configured
 	logger    ConnectorLogger    // nil if log streaming is not configured
 	monitor   HealthSnapshotter
 	shutdown  context.CancelFunc // stops the JWKS cache refresh goroutine
@@ -151,6 +153,7 @@ func buildServer(mgr ConnectorManager, monitor HealthSnapshotter, opts ServerOpt
 		catalog:   opts.Catalog,
 		devices:   opts.PointList,
 		telemetry: opts.Telemetry,
+		recent:    opts.Recent,
 		logger:    opts.Logger,
 		monitor:   monitor,
 
@@ -185,6 +188,9 @@ func (s *Server) registerRoutes(authenticated bool) {
 	if s.telemetry != nil {
 		s.mux.HandleFunc("GET /telemetry", require(RoleViewer, s.handleTelemetry))
 	}
+	if s.recent != nil {
+		s.mux.HandleFunc("GET /recent", require(RoleViewer, s.handleRecent))
+	}
 	if s.logger != nil {
 		s.mux.HandleFunc("GET /logs/{id}", require(RoleViewer, s.handleLogs))
 	}
@@ -192,6 +198,14 @@ func (s *Server) registerRoutes(authenticated bool) {
 
 func (s *Server) handleListDevices(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, s.devices.Snapshot())
+}
+
+type recentResponse struct {
+	Values []RecentEntry `json:"values"`
+}
+
+func (s *Server) handleRecent(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, recentResponse{Values: s.recent.Snapshot()})
 }
 
 type logResponse struct {
