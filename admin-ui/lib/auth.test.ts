@@ -2,7 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
-import { buildProviders, resolveAuthProvider, verifyBasicCredentials } from "./auth";
+import { authOptions, buildProviders, resolveAuthProvider, verifyBasicCredentials } from "./auth";
+
+/** Builds a fake JWT string (header.payload.signature) carrying the given realm roles. */
+function fakeAccessToken(roles: string[]): string {
+  const payload = Buffer.from(JSON.stringify({ realm_access: { roles } })).toString("base64url");
+  return `header.${payload}.signature`;
+}
 
 describe("resolveAuthProvider", () => {
   it("defaults to basic when AUTH_PROVIDER is unset", () => {
@@ -92,5 +98,61 @@ describe("buildProviders", () => {
     });
     expect(providers).toHaveLength(1);
     expect(providers[0].id).toBe("keycloak");
+  });
+});
+
+describe("authOptions.callbacks.jwt", () => {
+  const jwt = authOptions.callbacks!.jwt!;
+  // Only the fields the callback actually reads are supplied; the rest of
+  // each param's real shape isn't relevant to this callback's behavior.
+  const call = (args: Record<string, unknown>) => jwt(args as Parameters<typeof jwt>[0]);
+
+  it("Keycloak sign-in: persists the access/id token and derives roles from it", async () => {
+    const accessToken = fakeAccessToken(["gateway-operator"]);
+    const token = await call({
+      token: {},
+      account: { access_token: accessToken, id_token: "id-tok" },
+      user: { id: "u1" },
+    });
+    expect(token.accessToken).toBe(accessToken);
+    expect(token.idToken).toBe("id-tok");
+    expect(token.realmRoles).toEqual(["gateway-operator"]);
+  });
+
+  it("Keycloak refresh (no account/user, only the persisted token): still re-derives roles from token.accessToken", async () => {
+    // Regression test: an earlier refactor accidentally nested role
+    // re-derivation inside `if (account?.access_token)`, so it only ran on
+    // the initial sign-in and went stale on every later call — NextAuth only
+    // passes `account`/`user` on that first call, not on subsequent ones.
+    const updatedToken = fakeAccessToken(["gateway-operator", "viewer"]);
+    const token = await call({
+      // realmRoles carries a stale value; accessToken carries the "current"
+      // one — asserting against the latter proves re-derivation happened
+      // rather than the stale value simply passing through untouched.
+      token: { accessToken: updatedToken, realmRoles: ["viewer"] },
+      account: undefined,
+      user: undefined,
+    });
+    expect(token.realmRoles).toEqual(["gateway-operator", "viewer"]);
+  });
+
+  it("Basic auth sign-in: takes roles from the authorize() result, sets no accessToken", async () => {
+    const token = await call({
+      token: {},
+      account: undefined,
+      user: { id: "admin", name: "admin", realmRoles: ["gateway-operator"] },
+    });
+    expect(token.accessToken).toBeUndefined();
+    expect(token.realmRoles).toEqual(["gateway-operator"]);
+  });
+
+  it("Basic auth subsequent call: leaves the persisted roles untouched (no accessToken to re-derive from)", async () => {
+    const token = await call({
+      token: { realmRoles: ["gateway-operator"] },
+      account: undefined,
+      user: undefined,
+    });
+    expect(token.accessToken).toBeUndefined();
+    expect(token.realmRoles).toEqual(["gateway-operator"]);
   });
 });

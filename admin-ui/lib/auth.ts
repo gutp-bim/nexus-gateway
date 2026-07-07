@@ -102,16 +102,22 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, user }) {
       if (account?.access_token) {
         // OIDC (Keycloak): persist the access_token so API routes can forward
-        // it to the Admin API, and always re-derive realm roles from the
-        // current access token so a refresh picks up role changes without re-login.
+        // it to the Admin API.
         token.accessToken = account.access_token;
         token.idToken = account.id_token;
-        token.realmRoles = decodeRealmRoles(token.accessToken as string);
       } else if (user) {
         // Credentials (Basic auth): there is no OIDC token to forward — the
         // Admin API runs open in this mode (no KEYCLOAK_JWKS_URL) — so roles
         // come straight from what authorize() already resolved.
         token.realmRoles = user.realmRoles ?? [];
+      }
+      // `account`/`user` are only populated on the initial sign-in call, not on
+      // every subsequent jwt() invocation — so re-deriving Keycloak roles has
+      // to live outside the `account` branch above to actually run on every
+      // call (picking up role changes on refresh) rather than only once.
+      // token.accessToken is unset in Basic-auth mode, so this is a no-op there.
+      if (token.accessToken) {
+        token.realmRoles = decodeRealmRoles(token.accessToken as string);
       }
       return token;
     },
