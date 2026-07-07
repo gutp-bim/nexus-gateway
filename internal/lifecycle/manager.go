@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	dockerclient "github.com/docker/docker/client"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	dockernetwork "github.com/docker/docker/api/types/network"
@@ -26,6 +28,20 @@ type ContainerClient interface {
 	ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
 	ContainerLogs(ctx context.Context, containerID string, options container.LogsOptions) (io.ReadCloser, error)
 	ImagePull(ctx context.Context, refStr string, options image.PullOptions) (io.ReadCloser, error)
+	// ImageInspect returns image metadata for a locally available image reference.
+	// An error means the image is not available locally (registry pull required).
+	ImageInspect(ctx context.Context, imageRef string, opts ...dockerclient.ImageInspectOption) (image.InspectResponse, error)
+}
+
+// ManagerConfig holds optional runtime configuration for connector containers.
+type ManagerConfig struct {
+	// NATSUrl is injected as NATS_URL env var into every managed connector
+	// container so it can reach the JetStream bus without manual wiring.
+	NATSURL string
+	// ConnectorNetwork is the Docker network name that connector containers are
+	// attached to (e.g. "nexus-gateway_default"). Leave empty to use Docker's
+	// default bridge (fine for local single-network setups).
+	ConnectorNetwork string
 }
 
 // Manager orchestrates connector container lifecycle via the Docker Engine API.
@@ -35,6 +51,7 @@ type ContainerClient interface {
 type Manager struct {
 	docker   ContainerClient
 	registry *Registry
+	cfg      ManagerConfig
 	mu       sync.Mutex              // guards connLock map
 	connLock map[string]*sync.Mutex  // per-connector serialisation lock
 }
@@ -43,6 +60,17 @@ func NewManager(docker ContainerClient, registry *Registry) *Manager {
 	return &Manager{
 		docker:   docker,
 		registry: registry,
+		connLock: make(map[string]*sync.Mutex),
+	}
+}
+
+// NewManagerWithConfig creates a Manager with optional runtime configuration for
+// connector containers (NATS URL injection, Docker network attachment).
+func NewManagerWithConfig(docker ContainerClient, registry *Registry, cfg ManagerConfig) *Manager {
+	return &Manager{
+		docker:   docker,
+		registry: registry,
+		cfg:      cfg,
 		connLock: make(map[string]*sync.Mutex),
 	}
 }
@@ -225,13 +253,44 @@ func (m *Manager) create(ctx context.Context, spec ConnectorSpec) (string, error
 		hc.Binds = append(hc.Binds, mount+":"+mount+":ro")
 	}
 
+	// Build env: start from spec.Env, then inject runtime bindings that every
+	// connector needs (NATS_URL, CONNECTOR_ID) unless already present.
+	env := make([]string, len(spec.Env))
+	copy(env, spec.Env)
+	hasNATS, hasID := false, false
+	for _, e := range env {
+		if len(e) >= 8 && e[:8] == "NATS_URL" {
+			hasNATS = true
+		}
+		if len(e) >= 12 && e[:12] == "CONNECTOR_ID" {
+			hasID = true
+		}
+	}
+	if !hasNATS && m.cfg.NATSURL != "" {
+		env = append(env, "NATS_URL="+m.cfg.NATSURL)
+	}
+	if !hasID {
+		env = append(env, "CONNECTOR_ID="+spec.ID)
+	}
+
+	// Attach to the configured Docker network (e.g. the compose stack network)
+	// so the connector can reach NATS and other services by hostname.
+	var netCfg *dockernetwork.NetworkingConfig
+	if m.cfg.ConnectorNetwork != "" {
+		netCfg = &dockernetwork.NetworkingConfig{
+			EndpointsConfig: map[string]*dockernetwork.EndpointSettings{
+				m.cfg.ConnectorNetwork: {},
+			},
+		}
+	}
+
 	resp, err := m.docker.ContainerCreate(ctx,
 		&container.Config{
 			Image: spec.Image,
-			Env:   spec.Env,
+			Env:   env,
 		},
 		hc,
-		nil, nil,
+		netCfg, nil,
 		"nexus-"+spec.ID,
 	)
 	if err != nil {

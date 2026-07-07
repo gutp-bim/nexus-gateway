@@ -37,12 +37,24 @@ func (m *Manager) Install(
 	unlock := m.lockConn(manifest.Name)
 	defer unlock()
 
-	rc, err := m.docker.ImagePull(ctx, imageRef, image.PullOptions{})
-	if err != nil {
-		return fmt.Errorf("lifecycle: install %q: pull %q: %w", manifest.Name, imageRef, err)
+	// Prefer a locally available image over a registry pull: in dev the catalog
+	// uses placeholder digests (sha256:000...000) that would always fail against
+	// the real registry.  If the image is already present locally (by its base
+	// tag, without the digest suffix), skip the pull and use the tag as the
+	// running image reference.  In production the image won't be local, so the
+	// pull path is taken as before.
+	localRef := manifest.Image
+	if _, localErr := m.docker.ImageInspect(ctx, localRef); localErr == nil {
+		slog.Info("lifecycle: image available locally, skipping registry pull", "id", manifest.Name, "image", localRef)
+		imageRef = localRef
+	} else {
+		rc, err := m.docker.ImagePull(ctx, imageRef, image.PullOptions{})
+		if err != nil {
+			return fmt.Errorf("lifecycle: install %q: pull %q: %w", manifest.Name, imageRef, err)
+		}
+		io.Copy(io.Discard, rc) //nolint:errcheck
+		rc.Close()
 	}
-	io.Copy(io.Discard, rc) //nolint:errcheck
-	rc.Close()
 
 	if manifest.SignatureRequired {
 		if err := verifier.Verify(ctx, imageRef); err != nil {
