@@ -38,6 +38,9 @@ services:
 
   admin-ui:
     environment:
+      # Base docker-compose.yml defaults AUTH_PROVIDER to "basic"; override it
+      # here or this overlay's KEYCLOAK_* vars below are set but never used.
+      - AUTH_PROVIDER=keycloak
       - KEYCLOAK_ID=${KEYCLOAK_ID}
       - KEYCLOAK_SECRET=${KEYCLOAK_SECRET}
       # Browser-facing issuer (must match the iss claim in tokens).

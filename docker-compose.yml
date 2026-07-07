@@ -91,11 +91,15 @@ services:
       # Connector Catalog (ADR-0006): file-backed for dev; replace with CATALOG_URL in production.
       - CATALOG_FILE=/fixtures/catalog.json
       - CATALOG_ALLOWLIST=ghcr.io
-      # When KEYCLOAK_JWKS_URL is set, tokens are validated; omit for auth-free dev.
-      - KEYCLOAK_JWKS_URL=http://keycloak:8090/realms/nexus-gateway/protocol/openid-connect/certs
+      # When KEYCLOAK_JWKS_URL is set, tokens are validated; omit for auth-free
+      # dev (default here — single local install, Admin UI gates human access
+      # via its own Basic auth login instead, see admin-ui's AUTH_PROVIDER).
+      # Uncomment these three (and admin-ui's KEYCLOAK_* below) to require
+      # Keycloak-issued tokens instead.
+      #- KEYCLOAK_JWKS_URL=http://keycloak:8090/realms/nexus-gateway/protocol/openid-connect/certs
       # Issuer must match the iss claim in tokens (uses external hostname seen by browser).
-      - KEYCLOAK_ISSUER=http://localhost:18090/realms/nexus-gateway
-      - KEYCLOAK_AUDIENCE=account
+      #- KEYCLOAK_ISSUER=http://localhost:18090/realms/nexus-gateway
+      #- KEYCLOAK_AUDIENCE=account
       - BOS_INSECURE=true
     ports:
       - "18080:8080"
@@ -107,8 +111,6 @@ services:
       nats:
         condition: service_healthy
       mock-bos:
-        condition: service_healthy
-      keycloak:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health | grep -q '\"status\":\"ok\"' || exit 1"]
@@ -126,16 +128,22 @@ services:
     environment:
       - NEXTAUTH_URL=http://localhost:13000
       - NEXTAUTH_SECRET=dev-secret-change-in-production
-      - KEYCLOAK_ID=admin-ui
-      - KEYCLOAK_SECRET=admin-ui-secret
+      # Basic auth is the default (see FEAT-046) — no external IdP needed for
+      # a single local install. admin/admin is a dev-only default; change
+      # ADMIN_PASSWORD before anything beyond a lab.
+      - AUTH_PROVIDER=basic
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+      # Set AUTH_PROVIDER=keycloak and uncomment these (plus gateway's
+      # KEYCLOAK_* above) to use Keycloak SSO instead.
+      #- KEYCLOAK_ID=admin-ui
+      #- KEYCLOAK_SECRET=admin-ui-secret
       # Browser-facing issuer (must match iss claim in tokens, which KC_HOSTNAME_URL controls).
-      - KEYCLOAK_ISSUER=http://localhost:18090/realms/nexus-gateway
+      #- KEYCLOAK_ISSUER=http://localhost:18090/realms/nexus-gateway
       # Internal Docker hostname for NextAuth server-side OIDC discovery (code exchange, token refresh).
-      - KEYCLOAK_INTERNAL_ISSUER=http://keycloak:8090/realms/nexus-gateway
+      #- KEYCLOAK_INTERNAL_ISSUER=http://keycloak:8090/realms/nexus-gateway
       - ADMIN_API_URL=http://gateway:8080
     depends_on:
-      keycloak:
-        condition: service_healthy
       gateway:
         condition: service_started
 
