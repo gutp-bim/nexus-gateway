@@ -1,7 +1,7 @@
 // Copyright 2026 nexus-gateway contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { timingSafeEqual } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import KeycloakProvider from "next-auth/providers/keycloak";
@@ -22,12 +22,16 @@ function decodeRealmRoles(rawToken: string): string[] {
 // catalog/connectors pages) behaves identically regardless of auth provider.
 const BASIC_AUTH_ROLE = "gateway-operator";
 
-/** Constant-time string compare so a wrong password doesn't leak length/prefix via timing. */
+/**
+ * Constant-time string compare so a wrong password doesn't leak length or
+ * prefix via timing. Hashing first means both inputs to timingSafeEqual are
+ * always the same (digest) length, so there's no early-return-on-length-
+ * mismatch branch that would itself leak the real password's length.
+ */
 function timingSafeStringEqual(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) return false;
-  return timingSafeEqual(aBuf, bBuf);
+  const aHash = createHash("sha256").update(a).digest();
+  const bHash = createHash("sha256").update(b).digest();
+  return timingSafeEqual(aHash, bHash);
 }
 
 type BasicAuthUser = { id: string; name: string; realmRoles: string[] };
@@ -107,7 +111,7 @@ export const authOptions: NextAuthOptions = {
         // Credentials (Basic auth): there is no OIDC token to forward — the
         // Admin API runs open in this mode (no KEYCLOAK_JWKS_URL) — so roles
         // come straight from what authorize() already resolved.
-        token.realmRoles = (user as Partial<BasicAuthUser>).realmRoles ?? [];
+        token.realmRoles = user.realmRoles ?? [];
       }
       return token;
     },

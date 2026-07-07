@@ -56,9 +56,16 @@ Reports are most useful when framed against the intended model:
   cosign signature verification is the intended model and is tracked as MVP+1**
   — it is not yet enforced by default. The registry allowlist and digest-pinned
   references apply on the catalog path today.
-- **Human operator access — Keycloak/OIDC.** The Admin API & UI are protected by
-  OIDC with `operator`/`viewer` roles. JWTs are validated against the configured
-  JWKS with audience + issuer enforcement.
+- **Human operator access — pluggable, default Basic auth (FEAT-046).** The
+  Admin UI authenticates the operator itself (`AUTH_PROVIDER=basic` by
+  default: `ADMIN_USERNAME`/`ADMIN_PASSWORD`, no external IdP). In this mode
+  the Admin API runs with `KEYCLOAK_JWKS_URL` unset — auth-disabled on the
+  Docker network, the same trust boundary as `/health`/`/metrics` — so it
+  **must not** be exposed beyond the host it runs on (see Hardening below).
+  Setting `AUTH_PROVIDER=keycloak` (and the matching gateway
+  `KEYCLOAK_JWKS_URL`) switches both the Admin UI and Admin API to OIDC with
+  `operator`/`viewer` roles: JWTs are validated against the configured JWKS
+  with audience + issuer enforcement.
 
 A report showing any of these guarantees can be bypassed — a non-allowlisted or
 tag-mutated (non-digest-pinned) image running, a token/role check evaded, an mTLS/identity
@@ -68,12 +75,13 @@ credentials or equipment access — is high-value.
 ## Out of scope / not vulnerabilities
 
 - **Dev credentials and secrets in the compose stack.** The `docker-compose.yml`
-  / `fixtures/keycloak/` values — `operator`/`operator`, `viewer`/`viewer`,
-  `admin-ui-secret`, `NEXTAUTH_SECRET=dev-secret-change-in-production` — are
-  intentionally weak placeholders for local development. They are documented as
-  "change before any non-lab deployment" and are not a vulnerability in
-  themselves. Reports that real deployments must replace them are welcome as
-  documentation issues, not security reports.
+  / `fixtures/keycloak/` values — `admin`/`admin` (default Basic auth),
+  `operator`/`operator`, `viewer`/`viewer` (Keycloak opt-in), `admin-ui-secret`,
+  `NEXTAUTH_SECRET=dev-secret-change-in-production` — are intentionally weak
+  placeholders for local development. They are documented as "change before any
+  non-lab deployment" and are not a vulnerability in themselves. Reports that
+  real deployments must replace them are welcome as documentation issues, not
+  security reports.
 - **`--bos-insecure` plaintext h2c.** This is a deliberate dev/CI affordance for
   environments with no edge proxy; it is off by default. Running it in
   production is a deployment misconfiguration, not a gateway flaw.
@@ -84,7 +92,9 @@ credentials or equipment access — is high-value.
 
 ## Hardening for deployment
 
-Operators should, at minimum: replace all dev credentials and secrets; set
-`KEYCLOAK_JWKS_URL` (never expose the Admin API auth-disabled); provision real
-mTLS material (`--bos-ca`/`--bos-cert`/`--bos-key`) and leave `--bos-insecure`
-off; and restrict the allowlist to the registries you trust.
+Operators should, at minimum: replace all dev credentials and secrets
+(`ADMIN_PASSWORD` included); either keep the Admin API bound to a host-only
+port (default Basic-auth mode) or set `KEYCLOAK_JWKS_URL` — never expose the
+Admin API beyond the host with auth left disabled; provision real mTLS
+material (`--bos-ca`/`--bos-cert`/`--bos-key`) and leave `--bos-insecure` off;
+and restrict the allowlist to the registries you trust.
