@@ -11,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string; action: string }> }
 ) {
   const session = await getServerSession(authOptions);
-  if (!session?.accessToken) {
+  if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const { id, action } = await params;

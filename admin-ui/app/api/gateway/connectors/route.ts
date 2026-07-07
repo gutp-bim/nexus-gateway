@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.accessToken) {
+  if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {

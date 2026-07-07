@@ -181,7 +181,7 @@ jobs:
             down -v
 
   admin-ui:
-    name: Admin UI type-check & build
+    name: Admin UI type-check, test & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -195,4 +195,5 @@ jobs:
           cache-dependency-path: admin-ui/package-lock.json
       - run: npm ci
       - run: npm run type-check
+      - run: npm test
       - run: npm run build

@@ -12,6 +12,10 @@ surface may change between minor versions until a `1.0.0` release.
 
 ### Added
 - MQTT connector entrypoint (`cmd/mqtt-connector/main.go`) and `connector/mqtt/Dockerfile`; deploy with `docker-compose.mqtt.yml`.
+- Admin UI: Basic auth is now the default sign-in method (`AUTH_PROVIDER=basic`, `ADMIN_USERNAME`/`ADMIN_PASSWORD`), for single-site/local installs that don't want to run an external IdP. Keycloak remains available as an opt-in (`AUTH_PROVIDER=keycloak`) for multi-site/SSO deployments (FEAT-046).
+
+### Changed
+- `docker-compose.yml`: the default stack no longer requires Keycloak — the gateway's `KEYCLOAK_JWKS_URL` and the Admin UI's Keycloak env vars are commented out by default (uncomment to opt back in). `docker-compose.external-keycloak.yml` now sets `AUTH_PROVIDER=keycloak` explicitly so that overlay keeps working.
 
 ## [0.1.0] - 2026-06-21
 
