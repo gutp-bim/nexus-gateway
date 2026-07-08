@@ -11,6 +11,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import type { ConnectorItem } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/apiClient";
 
 const col = createColumnHelper<ConnectorItem>();
 
@@ -32,14 +33,10 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
         const url = image
           ? `/api/gateway/connectors/${encodeURIComponent(id)}/${action}?image=${encodeURIComponent(image)}`
           : `/api/gateway/connectors/${encodeURIComponent(id)}/${action}`;
-        const res = await fetch(url, { method: "POST" });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || `${res.status} ${res.statusText}`);
-        }
+        await apiFetch(url, { method: "POST" });
         onRefresh();
       } catch (e) {
-        setError(String(e));
+        setError(e instanceof ApiError ? e.message : String(e));
       } finally {
         setBusy(null);
       }

@@ -96,34 +96,105 @@ export function buildProviders(env: EnvLike = process.env) {
   ];
 }
 
+// Refresh a bit early so a request in flight doesn't race the literal expiry
+// instant.
+const REFRESH_SKEW_SECONDS = 30;
+
+/**
+ * Exchanges token.refreshToken for a new access token against Keycloak's
+ * token endpoint (grant_type=refresh_token). On success returns the token
+ * with refreshed accessToken/refreshToken/expiresAt and no error; on any
+ * failure (non-2xx response, network error) returns the token stamped with
+ * `error: "RefreshAccessTokenError"` so callers can redirect to sign-in.
+ * Exported standalone so it is unit-testable without going through NextAuth's
+ * request pipeline (fake clock + mocked fetch).
+ */
+export async function refreshAccessToken(
+  token: Record<string, unknown>,
+  env: EnvLike = process.env
+): Promise<Record<string, unknown>> {
+  try {
+    const issuer = env.KEYCLOAK_INTERNAL_ISSUER || env.KEYCLOAK_ISSUER;
+    const res = await fetch(`${issuer}/protocol/openid-connect/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        client_id: env.KEYCLOAK_ID ?? "",
+        client_secret: env.KEYCLOAK_SECRET ?? "",
+        refresh_token: String(token.refreshToken ?? ""),
+      }),
+    });
+    if (!res.ok) throw new Error(`refresh failed: ${res.status}`);
+    const refreshed = await res.json();
+    return {
+      ...token,
+      accessToken: refreshed.access_token,
+      // Keycloak rotates refresh tokens by default; keep the old one only
+      // if the response omits a new one.
+      refreshToken: refreshed.refresh_token ?? token.refreshToken,
+      idToken: refreshed.id_token ?? token.idToken,
+      expiresAt: Math.floor(Date.now() / 1000) + refreshed.expires_in,
+      error: undefined,
+    };
+  } catch {
+    return { ...token, error: "RefreshAccessTokenError" as const };
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: buildProviders(),
+  pages: { signIn: "/auth/signin" },
   callbacks: {
     async jwt({ token, account, user }) {
       if (account?.access_token) {
         // OIDC (Keycloak): persist the access_token so API routes can forward
-        // it to the Admin API.
+        // it to the Admin API, plus what's needed to refresh it later.
         token.accessToken = account.access_token;
         token.idToken = account.id_token;
+        token.refreshToken = account.refresh_token;
+        token.expiresAt = account.expires_at; // epoch seconds, set by next-auth's OAuth client from expires_in
       } else if (user) {
         // Credentials (Basic auth): there is no OIDC token to forward — the
         // Admin API runs open in this mode (no KEYCLOAK_JWKS_URL) — so roles
         // come straight from what authorize() already resolved.
         token.realmRoles = user.realmRoles ?? [];
       }
-      // `account`/`user` are only populated on the initial sign-in call, not on
-      // every subsequent jwt() invocation — so re-deriving Keycloak roles has
-      // to live outside the `account` branch above to actually run on every
-      // call (picking up role changes on refresh) rather than only once.
-      // token.accessToken is unset in Basic-auth mode, so this is a no-op there.
-      if (token.accessToken) {
+
+      if (!token.accessToken) return token; // Basic auth: nothing to refresh
+
+      // NOTE: getServerSession() re-invokes this callback on every call for
+      // JWT-strategy sessions (an API route calling it is itself a refresh
+      // trigger), but next-auth/middleware's getToken() reads the JWT cookie
+      // directly and does NOT re-invoke jwt() — middleware is a defensive
+      // second layer, not where the refresh actually happens.
+      //
+      // expiresAt unset (unknown) is treated as still-valid rather than
+      // forcing an unwanted refresh with no signal to act on.
+      const stillValid =
+        typeof token.expiresAt !== "number" ||
+        Date.now() < (token.expiresAt - REFRESH_SKEW_SECONDS) * 1000;
+
+      if (stillValid) {
         token.realmRoles = decodeRealmRoles(token.accessToken as string);
+        return token;
       }
-      return token;
+
+      if (!token.refreshToken) {
+        return { ...token, error: "RefreshAccessTokenError" as const };
+      }
+
+      const refreshed = await refreshAccessToken(token);
+      refreshed.realmRoles = refreshed.accessToken
+        ? decodeRealmRoles(refreshed.accessToken as string)
+        : token.realmRoles;
+      return refreshed;
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string | undefined;
+      session.idToken = token.idToken as string | undefined;
       session.realmRoles = (token.realmRoles ?? []) as string[];
+      session.error = token.error as string | undefined;
       return session;
     },
   },
@@ -132,9 +203,22 @@ export const authOptions: NextAuthOptions = {
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
+    idToken?: string;
     realmRoles: string[];
+    error?: string;
   }
   interface User {
     realmRoles?: string[];
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    accessToken?: string;
+    idToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
+    realmRoles?: string[];
+    error?: string;
   }
 }

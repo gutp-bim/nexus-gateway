@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PointEntry } from "@/lib/api";
+import { apiFetch, ApiError, isArrayOf } from "@/lib/apiClient";
 
 type Group = { connectorID: string; protocol: string; entries: PointEntry[] };
 
@@ -28,13 +29,11 @@ export default function DevicesPage() {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const res = await fetch("/api/gateway/devices");
-      if (!res.ok) throw new Error(`devices: ${res.status}`);
-      const entries: PointEntry[] = await res.json();
+      const entries = await apiFetch<PointEntry[]>("/api/gateway/devices", undefined, isArrayOf());
       setGroups(groupByConnector(entries));
       setError(null);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setLoading(false);
       fetchingRef.current = false;

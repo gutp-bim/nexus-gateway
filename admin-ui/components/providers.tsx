@@ -4,7 +4,17 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { SessionWatcher } from "@/components/session-watcher";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  // Periodic client-side session refetch, well under a typical Keycloak
+  // access-token TTL of a few minutes — this is what keeps SessionWatcher's
+  // view of session.error timely for screens that poll their own data but
+  // never call useSession() themselves (dashboard, telemetry, devices, logs).
+  return (
+    <SessionProvider refetchInterval={60}>
+      <SessionWatcher />
+      {children}
+    </SessionProvider>
+  );
 }

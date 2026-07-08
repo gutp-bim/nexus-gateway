@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TelemetryStats } from "@/lib/api";
+import { apiFetch, ApiError, isRecord } from "@/lib/apiClient";
 
 export default function TelemetryPage() {
   const [stats, setStats] = useState<TelemetryStats | null>(null);
@@ -16,12 +17,10 @@ export default function TelemetryPage() {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const res = await fetch("/api/gateway/telemetry");
-      if (!res.ok) throw new Error(`telemetry: ${res.status}`);
-      setStats(await res.json());
+      setStats(await apiFetch<TelemetryStats>("/api/gateway/telemetry", undefined, isRecord));
       setError(null);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setLoading(false);
       fetchingRef.current = false;

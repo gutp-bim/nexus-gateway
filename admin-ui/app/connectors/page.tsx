@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ConnectorTable } from "@/components/connector-table";
 import type { ConnectorItem } from "@/lib/api";
+import { apiFetch, ApiError, isArrayOf } from "@/lib/apiClient";
 
 export default function ConnectorsPage() {
   const { data: session } = useSession();
@@ -16,12 +17,10 @@ export default function ConnectorsPage() {
 
   const fetchConnectors = useCallback(async () => {
     try {
-      const res = await fetch("/api/gateway/connectors");
-      if (!res.ok) throw new Error(`${res.status}`);
-      setConnectors(await res.json());
+      setConnectors(await apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf()));
       setError(null);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setLoading(false);
     }

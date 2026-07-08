@@ -1,8 +1,14 @@
 // Copyright 2026 nexus-gateway contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, expect, it } from "vitest";
-import { authOptions, buildProviders, resolveAuthProvider, verifyBasicCredentials } from "./auth";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  authOptions,
+  buildProviders,
+  refreshAccessToken,
+  resolveAuthProvider,
+  verifyBasicCredentials,
+} from "./auth";
 
 /** Builds a fake JWT string (header.payload.signature) carrying the given realm roles. */
 function fakeAccessToken(roles: string[]): string {
@@ -154,5 +160,132 @@ describe("authOptions.callbacks.jwt", () => {
     });
     expect(token.accessToken).toBeUndefined();
     expect(token.realmRoles).toEqual(["gateway-operator"]);
+  });
+
+  it("propagates a persisted refresh error through to the token", async () => {
+    const token = await call({
+      token: { accessToken: fakeAccessToken(["gateway-operator"]), error: "RefreshAccessTokenError" },
+      account: undefined,
+      user: undefined,
+    });
+    expect(token.error).toBe("RefreshAccessTokenError");
+  });
+
+  it("a stale token (past expiry) with a valid refresh token yields a refreshed accessToken and no error", async () => {
+    const oldToken = fakeAccessToken(["gateway-operator"]);
+    const newToken = fakeAccessToken(["gateway-operator", "gateway-viewer"]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ access_token: newToken, expires_in: 300 }),
+      })
+    );
+    try {
+      const token = await call({
+        token: {
+          accessToken: oldToken,
+          refreshToken: "refresh-1",
+          expiresAt: Math.floor(Date.now() / 1000) - 10, // already expired
+        },
+        account: undefined,
+        user: undefined,
+      });
+      expect(token.accessToken).toBe(newToken);
+      expect(token.error).toBeUndefined();
+      expect(token.realmRoles).toEqual(["gateway-operator", "gateway-viewer"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("refreshAccessToken", () => {
+  const env = {
+    KEYCLOAK_ISSUER: "http://localhost:8090/realms/nexus-gateway",
+    KEYCLOAK_ID: "admin-ui",
+    KEYCLOAK_SECRET: "admin-ui-secret",
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts grant_type=refresh_token with the persisted refresh token to the Keycloak token endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ access_token: "new-access", expires_in: 300 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await refreshAccessToken({ refreshToken: "refresh-1" }, env);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://localhost:8090/realms/nexus-gateway/protocol/openid-connect/token");
+    const body = init.body as URLSearchParams;
+    expect(body.get("grant_type")).toBe("refresh_token");
+    expect(body.get("refresh_token")).toBe("refresh-1");
+    expect(body.get("client_id")).toBe("admin-ui");
+  });
+
+  it("on success: sets a new accessToken/expiresAt and clears any prior error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ access_token: "new-access", expires_in: 300 }),
+      })
+    );
+
+    const before = Math.floor(Date.now() / 1000);
+    const result = await refreshAccessToken(
+      { refreshToken: "refresh-1", error: "RefreshAccessTokenError" },
+      env
+    );
+
+    expect(result.accessToken).toBe("new-access");
+    expect(result.error).toBeUndefined();
+    expect(result.expiresAt as number).toBeGreaterThanOrEqual(before + 300);
+  });
+
+  it("rotates the refresh token when the response includes a new one", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ access_token: "new-access", refresh_token: "refresh-2", expires_in: 300 }),
+      })
+    );
+
+    const result = await refreshAccessToken({ refreshToken: "refresh-1" }, env);
+    expect(result.refreshToken).toBe("refresh-2");
+  });
+
+  it("keeps the old refresh token when the response omits a new one", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ access_token: "new-access", expires_in: 300 }),
+      })
+    );
+
+    const result = await refreshAccessToken({ refreshToken: "refresh-1" }, env);
+    expect(result.refreshToken).toBe("refresh-1");
+  });
+
+  it("marks the token errored when the token endpoint responds non-2xx", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 400 }));
+
+    const result = await refreshAccessToken({ refreshToken: "refresh-1" }, env);
+    expect(result.error).toBe("RefreshAccessTokenError");
+  });
+
+  it("marks the token errored when fetch itself throws (network failure)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    const result = await refreshAccessToken({ refreshToken: "refresh-1" }, env);
+    expect(result.error).toBe("RefreshAccessTokenError");
   });
 });
