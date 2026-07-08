@@ -4,17 +4,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getHealth } from "@/lib/api";
-import { NextResponse } from "next/server";
+import { withAdminApi } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  try {
-    const health = await getHealth(session.accessToken);
-    return NextResponse.json(health);
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 502 });
-  }
+  return withAdminApi(session, () => getHealth(session?.accessToken));
 }
