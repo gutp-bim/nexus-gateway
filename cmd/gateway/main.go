@@ -398,7 +398,12 @@ func parseConnectorMap(s string) (map[string]string, error) {
 	m := make(map[string]string)
 	for _, pair := range splitComma(s) { // splitComma handles empty entries and outer whitespace
 		k, v, ok := strings.Cut(pair, ":")
-		k = strings.TrimSpace(k)
+		// Lowercased: pointlist.LoadCSV always looks protocols up in lowercase
+		// (its own inferred/normalized "bacnet"/"opcua"/"mqtt" values), so a
+		// CONNECTOR_MAP entry typed with different casing (a natural env-var
+		// convention, e.g. "OPCUA:opcua-01") must still resolve rather than
+		// silently missing and falling back to the generic default.
+		k = strings.ToLower(strings.TrimSpace(k))
 		v = strings.TrimSpace(v)
 		if !ok || k == "" || v == "" {
 			return nil, fmt.Errorf("invalid connector-map entry %q: must be protocol:connectorID", pair)

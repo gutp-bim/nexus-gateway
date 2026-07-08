@@ -43,11 +43,23 @@ function classify(status: number): ApiErrorKind {
 
 // Module-level dedupe guard: several apiFetch calls can 401 around the same
 // time (e.g. a screen firing two GETs in parallel) — only trigger sign-in once.
+// NOTE: this path calls next-auth's signIn() directly, so — unlike
+// SessionWatcher's redirect to /auth/signin?reason=expired — it doesn't carry
+// the "your session expired" explanation (signIn()'s API only exposes
+// `callbackUrl`, not arbitrary extra query params on the redirect). Known,
+// accepted gap: the user still lands on the sign-in page, just without that
+// one banner on this specific path.
 let signingIn = false;
 function triggerSignIn() {
   if (signingIn) return;
   signingIn = true;
-  import("next-auth/react").then(({ signIn }) => signIn(undefined, { callbackUrl: window.location.href }));
+  import("next-auth/react")
+    .then(({ signIn }) => signIn(undefined, { callbackUrl: window.location.href }))
+    .catch(() => {
+      // A failed redirect (chunk-load error, offline) must not leave 401
+      // handling permanently disabled for the rest of the tab's life.
+      signingIn = false;
+    });
 }
 
 /** Type guard builder: array of T, optionally validating each element with itemGuard. */

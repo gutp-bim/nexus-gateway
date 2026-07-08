@@ -19,9 +19,24 @@ const (
 )
 
 // protocolPatterns infers a row's protocol from its local_id when no explicit
-// "protocol" column is present. Order matters: first match wins. Extending to
-// a future protocol (e.g. Modbus) is a one-line addition once that connector
-// defines a self-describing local_id convention — see the Modbus note below.
+// "protocol" column is present. Order matters: first match wins. This is a
+// heuristic over local_id's SHAPE, not a documented CSV contract — known,
+// accepted false-negative/false-positive edges (both fail toward "unknown" +
+// a logged warning for OPC-UA, but NOT for MQTT — see below):
+//   - OPC-UA: requires an explicit "ns=<n>;" prefix. A namespace-0 NodeId
+//     written without it (e.g. "i=2258", legal per the OPC-UA spec) is NOT
+//     matched and falls through to "unknown" (safe: logged, generic default).
+//     Every real fixture/example in this codebase does use the ns= form.
+//   - MQTT: matches ANY local_id containing "/", since MQTT topics have no
+//     other reserved/distinguishing token to anchor on. A local_id for some
+//     other, non-self-describing protocol that happens to contain "/" is
+//     silently misclassified as mqtt (not caught by the "unknown" fallback,
+//     since this pattern still matches) — this is the deliberately-accepted
+//     risk of an unanchored heuristic; there's no shape signal available to
+//     narrow it further without also risking new collisions.
+// Extending to a future protocol (e.g. Modbus) is a one-line addition once
+// that connector defines a self-describing local_id convention — see the
+// Modbus note below.
 var protocolPatterns = []struct {
 	protocol string
 	re       *regexp.Regexp
@@ -31,7 +46,9 @@ var protocolPatterns = []struct {
 	// Modbus: no established local_id convention exists yet in this codebase
 	// (no connector implementation, no fixture, no spec). When it is built,
 	// give it a self-describing prefix (e.g. "holding:100", "coil:5") and add
-	// its pattern here. Do NOT use bare numeric registers — they have no
+	// its pattern here — BEFORE the MQTT entry, so a colon-prefixed Modbus
+	// local_id can't first be swallowed by a coincidental "/" elsewhere in
+	// the string. Do NOT use bare numeric registers — they have no
 	// distinguishing token and would be unclassifiable by this inference.
 }
 
