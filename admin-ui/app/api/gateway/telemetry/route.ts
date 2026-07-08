@@ -4,17 +4,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getTelemetry } from "@/lib/api";
-import { NextResponse } from "next/server";
+import { withAdminApi } from "@/lib/route-helpers";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  try {
-    const stats = await getTelemetry(session.accessToken);
-    return NextResponse.json(stats);
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 502 });
-  }
+  return withAdminApi(session, () => getTelemetry(session?.accessToken));
 }

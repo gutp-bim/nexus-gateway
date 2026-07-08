@@ -39,11 +39,31 @@ export type CatalogEntry = {
   mounts?: string[];
 };
 
+/** Thrown by adminFetch on a non-2xx response, carrying the real status code
+ * so callers (route-helpers.ts) can pass 401/403 through instead of
+ * collapsing every failure into a generic 502. */
+export class AdminApiError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    path: string,
+    public body?: string
+  ) {
+    super(`Admin API ${path}: ${status} ${statusText}`);
+    this.name = "AdminApiError";
+  }
+}
+
 async function adminFetch(path: string, token: string | undefined, init?: RequestInit) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${BASE}${path}`, { ...init, headers });
-  if (!res.ok) throw new Error(`Admin API ${path}: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    // The Go Admin API's auth middleware writes plain-text bodies
+    // (http.Error), so capture with text(), not json().
+    const body = await res.text().catch(() => undefined);
+    throw new AdminApiError(res.status, res.statusText, path, body);
+  }
   return res;
 }
 

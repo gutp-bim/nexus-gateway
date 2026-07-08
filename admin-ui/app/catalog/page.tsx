@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import type { CatalogEntry, ConnectorItem } from "@/lib/api";
+import { apiFetch, ApiError, isArrayOf } from "@/lib/apiClient";
 
 export default function CatalogPage() {
   const { data: session } = useSession();
@@ -21,19 +22,15 @@ export default function CatalogPage() {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     try {
-      const [catRes, connRes] = await Promise.all([
-        fetch("/api/gateway/catalog"),
-        fetch("/api/gateway/connectors"),
+      const [catData, connData] = await Promise.all([
+        apiFetch<CatalogEntry[]>("/api/gateway/catalog", undefined, isArrayOf()),
+        apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf()),
       ]);
-      if (!catRes.ok) throw new Error(`catalog: ${catRes.status}`);
-      if (!connRes.ok) throw new Error(`connectors: ${connRes.status}`);
-      // Parse both atomically to avoid partial state from a throw on the second await.
-      const [catData, connData] = await Promise.all([catRes.json(), connRes.json()]);
       setCatalog(catData);
       setInstalled(connData);
       setError(null);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setLoading(false);
       fetchingRef.current = false;
@@ -54,17 +51,10 @@ export default function CatalogPage() {
     setBusy(name);
     setActionError(null);
     try {
-      const res = await fetch(
-        `/api/gateway/connectors/${encodeURIComponent(name)}/install`,
-        { method: "POST" }
-      );
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `${res.status}`);
-      }
+      await apiFetch(`/api/gateway/connectors/${encodeURIComponent(name)}/install`, { method: "POST" });
       await fetchData();
     } catch (e) {
-      setActionError(String(e));
+      setActionError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setBusy(null);
     }
@@ -74,17 +64,10 @@ export default function CatalogPage() {
     setBusy(`update:${name}`);
     setActionError(null);
     try {
-      const res = await fetch(
-        `/api/gateway/connectors/${encodeURIComponent(name)}/update`,
-        { method: "POST" }
-      );
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `${res.status}`);
-      }
+      await apiFetch(`/api/gateway/connectors/${encodeURIComponent(name)}/update`, { method: "POST" });
       await fetchData();
     } catch (e) {
-      setActionError(String(e));
+      setActionError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setBusy(null);
     }
