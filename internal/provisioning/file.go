@@ -25,15 +25,21 @@ import (
 // FileClient always returns a full result; diffs are not supported for files.
 // The ETag is the SHA-256 content hash, so Fetch returns nil when the file is unchanged.
 type FileClient struct {
-	path        string
-	connectorID string // used to stamp BACnet CSV entries
+	path         string
+	connectorID  string            // fallback connector_id for CSV entries whose protocol has no ConnectorMap entry
+	connectorMap map[string]string // protocol -> connector_id for CSV entries without an explicit connector_id column
 }
 
 // NewFileClient serves the Point List from path. A .csv file is parsed via
 // LoadCSV (BACnet native-address projection); a .json file is parsed as a JSON
 // array of pointlist.Entry. Any other extension is rejected.
-func NewFileClient(path, connectorID string) *FileClient {
-	return &FileClient{path: path, connectorID: connectorID}
+//
+// connectorID is the fallback connector_id for CSV rows without an explicit
+// connector_id column whose protocol is absent from connectorMap (or when
+// connectorMap is empty). connectorMap resolves protocol -> connector_id for
+// such rows, shared with the HTTP provisioning path's CONNECTOR_MAP.
+func NewFileClient(path, connectorID string, connectorMap map[string]string) *FileClient {
+	return &FileClient{path: path, connectorID: connectorID, connectorMap: connectorMap}
 }
 
 // Fetch implements Client. Returns nil when knownETag matches the file's content hash (304).
@@ -60,7 +66,10 @@ func (c *FileClient) parse(data []byte) ([]pointlist.Entry, error) {
 	lower := strings.ToLower(c.path)
 	switch {
 	case strings.HasSuffix(lower, ".csv"):
-		return pointlist.LoadCSV(strings.NewReader(string(data)), c.connectorID)
+		return pointlist.LoadCSV(strings.NewReader(string(data)), pointlist.CSVOptions{
+			ConnectorID:  c.connectorID,
+			ConnectorMap: c.connectorMap,
+		})
 	case strings.HasSuffix(lower, ".json"):
 		var entries []pointlist.Entry
 		if err := json.Unmarshal(data, &entries); err != nil {
