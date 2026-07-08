@@ -55,8 +55,11 @@ func main() {
 	provFile := flag.String("provisioning-file", envOrDefault("PROVISIONING_FILE", ""), "File-backed Point List provisioning source (.csv or .json); overridden by --provisioning-url")
 	provConnID := flag.String("provisioning-connector-id", envOrDefault("PROVISIONING_CONNECTOR_ID", "bacnet-01"), "Connector id stamped on entries loaded from a provisioning CSV")
 	connectorMapStr := flag.String("connector-map", envOrDefault("CONNECTOR_MAP", ""),
-		`Comma-separated protocol:connectorID pairs for the provisioning HTTP API
-(e.g. "bacnet:bacnet-01,opcua:opcua-01"). When empty, falls back to bacnet:<provisioning-connector-id>.`)
+		`Comma-separated protocol:connectorID pairs, shared by both the HTTP and
+file provisioning paths (e.g. "bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01").
+A row/point whose protocol has no entry here falls back to
+--provisioning-connector-id. When empty entirely, falls back to
+bacnet:<provisioning-connector-id>.`)
 	sfDB := flag.String("sf-db", envOrDefault("SF_DB", "data/storeforward.db"), "Store-and-Forward SQLite database path")
 	sfCap := flag.Int("sf-cap", 100_000, "Store-and-Forward ring buffer capacity (frames)")
 	devSim := flag.Bool("dev-sim", envOrDefault("DEV_SIM", "") == "true", "Run an in-process sim connector (dev/smoke only, non-production; ADR-0001)")
@@ -79,8 +82,9 @@ func main() {
 	*bosIngressAddr = resolveBOSAddr(*bosAddr, *bosIngressAddr)
 	*bosEgressAddr = resolveBOSAddr(*bosAddr, *bosEgressAddr)
 
-	// Resolve the protocol→connectorID map for the HTTP provisioning path.
-	// Falls back to {"bacnet": provConnID} when CONNECTOR_MAP is unset for backward compatibility.
+	// Resolve the protocol→connectorID map, shared by both the HTTP and file
+	// provisioning paths. Falls back to {"bacnet": provConnID} when
+	// CONNECTOR_MAP is unset for backward compatibility.
 	cmap, err := parseConnectorMap(*connectorMapStr)
 	if err != nil {
 		slog.Error("invalid --connector-map / CONNECTOR_MAP", "err", err)
@@ -160,7 +164,7 @@ func main() {
 			slog.Error("provisioning file is not a regular file", "path", *provFile)
 			os.Exit(1)
 		}
-		provClient = provisioning.NewFileClient(*provFile, *provConnID)
+		provClient = provisioning.NewFileClient(*provFile, *provConnID, cmap)
 	}
 	// Ensure the persist directory exists before the sync loop tries to write.
 	if *plPersist != "" {

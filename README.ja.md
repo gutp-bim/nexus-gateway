@@ -163,6 +163,8 @@ go run ./cmd/gateway --dev-sim   # 設備不要の smoke 実行用に in-process
 | `--bos-ca` / `--bos-cert` / `--bos-key` | `BOS_CA_FILE` / … | – | TLS/mTLS 資材 |
 | `--provisioning-url` | `PROVISIONING_URL` | – | Building OS の Point List provisioning API |
 | `--provisioning-file` | `PROVISIONING_FILE` | – | file/CSV ベースの Point List(dev/E2E) |
+| `--provisioning-connector-id` | `PROVISIONING_CONNECTOR_ID` | `bacnet-01` | `--connector-map` にエントリのないプロトコルの行に付与するフォールバック connector ID |
+| `--connector-map` | `CONNECTOR_MAP` | – | `protocol:connectorID` のカンマ区切りペア。file/HTTP 両方の provisioning 経路で共通利用(例: `bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01`)。エントリのないプロトコルは `--provisioning-connector-id` にフォールバック |
 | `--point-sync-interval` | – | `10m` | 初回同期後の Point List ポーリング間隔 |
 | `--admin-jwks-url` | `KEYCLOAK_JWKS_URL` | – | Keycloak JWKS(空 = Admin API 認証無効) |
 | `--dev-sim` | `DEV_SIM` | `false` | in-process sim コネクタを起動(非本番) |
