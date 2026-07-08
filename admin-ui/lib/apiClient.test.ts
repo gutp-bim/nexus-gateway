@@ -89,6 +89,22 @@ describe("apiFetch — 401 sign-in trigger", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(signInMock).toHaveBeenCalledTimes(1);
   });
+
+  it("resets the dedupe guard when signIn() itself rejects, so a later 401 can retry", async () => {
+    // Regression guard: a failed redirect (chunk-load error, offline) must
+    // not leave 401 handling permanently disabled for the rest of the tab.
+    signInMock.mockRejectedValueOnce(new Error("chunk load failed"));
+    mockFetchOnce({ ok: false, status: 401 });
+    const fresh = await import("./apiClient");
+
+    await expect(fresh.apiFetch("/x")).rejects.toBeInstanceOf(fresh.ApiError);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(signInMock).toHaveBeenCalledTimes(1);
+
+    await expect(fresh.apiFetch("/y")).rejects.toBeInstanceOf(fresh.ApiError);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(signInMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("apiFetch — response handling", () => {

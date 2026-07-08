@@ -137,6 +137,19 @@ func TestParseConnectorMap_InvalidEmptyKey(t *testing.T) {
 	}
 }
 
+func TestParseConnectorMap_KeyCaseNormalizedToLowercase(t *testing.T) {
+	// pointlist.LoadCSV always looks protocols up in lowercase (its own
+	// inferred/normalized values) — a mixed-case CONNECTOR_MAP key (a natural
+	// env-var authoring convention) must still resolve, not silently miss.
+	m, err := parseConnectorMap("OPCUA:opcua-01,MqTT:mqtt-01")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if m["opcua"] != "opcua-01" || m["mqtt"] != "mqtt-01" {
+		t.Fatalf("want lowercased keys opcua/mqtt, got %v", m)
+	}
+}
+
 func TestResolveBOSAddr_FallsBackToBosAddr(t *testing.T) {
 	got := resolveBOSAddr("host:5051", "")
 	if got != "host:5051" {

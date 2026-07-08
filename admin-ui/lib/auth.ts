@@ -100,18 +100,42 @@ export function buildProviders(env: EnvLike = process.env) {
 // instant.
 const REFRESH_SKEW_SECONDS = 30;
 
+// In-flight refresh requests keyed by refresh token, so concurrent
+// getServerSession()/API calls that race the same expiring token share one
+// Keycloak round-trip instead of each redeeming it — Keycloak rotates
+// refresh tokens by default, so a second concurrent redeem of the
+// already-consumed token would fail and wrongly stamp the session with
+// RefreshAccessTokenError even though the first request succeeded.
+const inFlightRefreshes = new Map<string, Promise<Record<string, unknown>>>();
+
 /**
  * Exchanges token.refreshToken for a new access token against Keycloak's
  * token endpoint (grant_type=refresh_token). On success returns the token
  * with refreshed accessToken/refreshToken/expiresAt and no error; on any
- * failure (non-2xx response, network error) returns the token stamped with
- * `error: "RefreshAccessTokenError"` so callers can redirect to sign-in.
- * Exported standalone so it is unit-testable without going through NextAuth's
- * request pipeline (fake clock + mocked fetch).
+ * failure (non-2xx response, network error, malformed response body) returns
+ * the token stamped with `error: "RefreshAccessTokenError"` so callers can
+ * redirect to sign-in. Exported standalone so it is unit-testable without
+ * going through NextAuth's request pipeline (fake clock + mocked fetch).
  */
 export async function refreshAccessToken(
   token: Record<string, unknown>,
   env: EnvLike = process.env
+): Promise<Record<string, unknown>> {
+  const refreshToken = String(token.refreshToken ?? "");
+  const inFlight = inFlightRefreshes.get(refreshToken);
+  if (inFlight) return inFlight;
+
+  const promise = doRefreshAccessToken(token, refreshToken, env).finally(() => {
+    inFlightRefreshes.delete(refreshToken);
+  });
+  inFlightRefreshes.set(refreshToken, promise);
+  return promise;
+}
+
+async function doRefreshAccessToken(
+  token: Record<string, unknown>,
+  refreshToken: string,
+  env: EnvLike
 ): Promise<Record<string, unknown>> {
   try {
     const issuer = env.KEYCLOAK_INTERNAL_ISSUER || env.KEYCLOAK_ISSUER;
@@ -122,11 +146,16 @@ export async function refreshAccessToken(
         grant_type: "refresh_token",
         client_id: env.KEYCLOAK_ID ?? "",
         client_secret: env.KEYCLOAK_SECRET ?? "",
-        refresh_token: String(token.refreshToken ?? ""),
+        refresh_token: refreshToken,
       }),
     });
     if (!res.ok) throw new Error(`refresh failed: ${res.status}`);
     const refreshed = await res.json();
+    // A 200 with no access_token is malformed, not success — treat it the
+    // same as a network/HTTP failure rather than caching an empty token.
+    if (typeof refreshed.access_token !== "string" || !refreshed.access_token) {
+      throw new Error("refresh response missing access_token");
+    }
     return {
       ...token,
       accessToken: refreshed.access_token,
@@ -154,6 +183,13 @@ export const authOptions: NextAuthOptions = {
         token.idToken = account.id_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at; // epoch seconds, set by next-auth's OAuth client from expires_in
+        // A fresh sign-in supersedes any error left over from a prior
+        // refresh failure — without this, a user who re-authenticates after
+        // being redirected to /auth/signin?reason=expired would still carry
+        // error: "RefreshAccessTokenError" on the new token, and
+        // middleware's `authorized` check would immediately bounce them
+        // back to sign-in again (an inescapable loop).
+        token.error = undefined;
       } else if (user) {
         // Credentials (Basic auth): there is no OIDC token to forward — the
         // Admin API runs open in this mode (no KEYCLOAK_JWKS_URL) — so roles
@@ -192,7 +228,12 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string | undefined;
-      session.idToken = token.idToken as string | undefined;
+      // idToken is deliberately NOT copied onto the client-visible session —
+      // it's only needed server-side to build the Keycloak RP-initiated
+      // logout URL (see app/api/auth/logout-url/route.ts, which reads it via
+      // next-auth/jwt's getToken() instead). Exposing a raw OIDC ID token to
+      // arbitrary client-side JS via useSession() has no legitimate consumer
+      // in this app and only widens the token's exposure surface.
       session.realmRoles = (token.realmRoles ?? []) as string[];
       session.error = token.error as string | undefined;
       return session;
@@ -203,7 +244,6 @@ export const authOptions: NextAuthOptions = {
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
-    idToken?: string;
     realmRoles: string[];
     error?: string;
   }

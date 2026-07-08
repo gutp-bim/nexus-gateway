@@ -171,6 +171,16 @@ describe("authOptions.callbacks.jwt", () => {
     expect(token.error).toBe("RefreshAccessTokenError");
   });
 
+  it("Keycloak sign-in clears a prior refresh error, so re-authenticating after being bounced to /auth/signin?reason=expired doesn't loop", async () => {
+    const accessToken = fakeAccessToken(["gateway-operator"]);
+    const token = await call({
+      token: { error: "RefreshAccessTokenError" },
+      account: { access_token: accessToken, id_token: "id-tok" },
+      user: { id: "u1" },
+    });
+    expect(token.error).toBeUndefined();
+  });
+
   it("a stale token (past expiry) with a valid refresh token yields a refreshed accessToken and no error", async () => {
     const oldToken = fakeAccessToken(["gateway-operator"]);
     const newToken = fakeAccessToken(["gateway-operator", "gateway-viewer"]);
@@ -287,5 +297,53 @@ describe("refreshAccessToken", () => {
 
     const result = await refreshAccessToken({ refreshToken: "refresh-1" }, env);
     expect(result.error).toBe("RefreshAccessTokenError");
+  });
+
+  it("marks the token errored when a 2xx response omits access_token (malformed body treated as failure, not cached as success)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ expires_in: 300 }) })
+    );
+
+    const result = await refreshAccessToken({ refreshToken: "refresh-1" }, env);
+    expect(result.error).toBe("RefreshAccessTokenError");
+  });
+
+  it("single-flights concurrent refreshes of the same refresh token into one Keycloak request", async () => {
+    // Keycloak rotates refresh tokens by default: two concurrent redeems of
+    // the same not-yet-rotated token would otherwise race, and the second to
+    // reach Keycloak would fail against an already-consumed token.
+    let resolveFetch!: (v: unknown) => void;
+    const fetchMock = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const p1 = refreshAccessToken({ refreshToken: "refresh-shared" }, env);
+    const p2 = refreshAccessToken({ refreshToken: "refresh-shared" }, env);
+
+    resolveFetch({ ok: true, json: async () => ({ access_token: "new-access", expires_in: 300 }) });
+    const [r1, r2] = await Promise.all([p1, p2]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(r1.accessToken).toBe("new-access");
+    expect(r2.accessToken).toBe("new-access");
+  });
+
+  it("does not single-flight refreshes for different refresh tokens", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ access_token: "new-access", expires_in: 300 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await Promise.all([
+      refreshAccessToken({ refreshToken: "refresh-a" }, env),
+      refreshAccessToken({ refreshToken: "refresh-b" }, env),
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
