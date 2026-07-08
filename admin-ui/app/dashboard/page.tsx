@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import type { GatewayHealth } from "@/lib/api";
+import { apiFetch, ApiError, isRecord } from "@/lib/apiClient";
 
 function fmt(n: number, decimals = 1) {
   return n.toFixed(decimals);
@@ -36,14 +37,12 @@ export default function DashboardPage() {
 
   const fetchHealth = async () => {
     try {
-      const res = await fetch("/api/gateway/health");
-      if (!res.ok) throw new Error(`${res.status}`);
-      const data: GatewayHealth = await res.json();
+      const data = await apiFetch<GatewayHealth>("/api/gateway/health", undefined, isRecord);
       setHealth(data);
       setLastUpdated(new Date());
       setError(null);
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError ? e.message : String(e));
     }
   };
 

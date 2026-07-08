@@ -7,6 +7,17 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Ends the Keycloak SSO session too (RP-initiated logout), not just the local
+// NextAuth session — otherwise the next Login on a shared terminal silently
+// re-authenticates as the previous operator. In Basic-auth mode there's no
+// idToken, so signOut() alone (its default callbackUrl "/") is sufficient.
+function handleLogout(idToken: string | undefined) {
+  const callbackUrl = idToken
+    ? `/api/auth/federated-logout?id_token=${encodeURIComponent(idToken)}`
+    : "/";
+  signOut({ callbackUrl });
+}
+
 export function Nav() {
   const { data: session } = useSession();
   const path = usePathname();
@@ -21,7 +32,7 @@ export function Nav() {
       <Link href="/telemetry" style={{ fontWeight: path === "/telemetry" ? 700 : 400 }}>Telemetry</Link>
       <Link href="/logs" style={{ fontWeight: path === "/logs" ? 700 : 400 }}>Logs</Link>
       <span style={{ marginLeft: "auto", fontSize: "0.875rem", color: "#6b7280" }}>{session?.user?.email}</span>
-      <button onClick={() => signOut()} style={{ cursor: "pointer" }}>Logout</button>
+      <button onClick={() => handleLogout(session?.idToken)} style={{ cursor: "pointer" }}>Logout</button>
     </nav>
   );
 }

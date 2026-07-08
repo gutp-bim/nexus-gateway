@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConnectorItem, ConnectorLogs } from "@/lib/api";
+import { apiFetch, ApiError, isArrayOf, isRecord } from "@/lib/apiClient";
 
 export default function LogsPage() {
   const [connectors, setConnectors] = useState<ConnectorItem[]>([]);
@@ -16,13 +17,12 @@ export default function LogsPage() {
 
   // Load connector list once on mount
   useEffect(() => {
-    fetch("/api/gateway/connectors")
-      .then((r) => r.json())
-      .then((items: ConnectorItem[]) => {
+    apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf())
+      .then((items) => {
         setConnectors(items);
         if (items.length > 0) setSelectedID(items[0].id);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(e instanceof ApiError ? e.message : String(e)));
   }, []);
 
   const fetchLogs = useCallback(async (id: string) => {
@@ -31,11 +31,9 @@ export default function LogsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/gateway/logs/${encodeURIComponent(id)}?tail=200`);
-      if (!res.ok) throw new Error(`logs: ${res.status}`);
-      setLogs(await res.json());
+      setLogs(await apiFetch<ConnectorLogs>(`/api/gateway/logs/${encodeURIComponent(id)}?tail=200`, undefined, isRecord));
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setLoading(false);
       fetchingRef.current = false;
