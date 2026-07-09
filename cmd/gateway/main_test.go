@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/lifecycle"
+	"nexus-gateway/internal/version"
 )
 
 // startDevSim is gated behind --dev-sim (off by default), so the default build
@@ -147,6 +150,47 @@ func TestParseConnectorMap_KeyCaseNormalizedToLowercase(t *testing.T) {
 	}
 	if m["opcua"] != "opcua-01" || m["mqtt"] != "mqtt-01" {
 		t.Fatalf("want lowercased keys opcua/mqtt, got %v", m)
+	}
+}
+
+// The Connector Catalog install gate must read the gateway version from the
+// single-source version package (#22), and that value must be a valid semver so
+// a fresh (uninjected) build still satisfies a manifest's min_gateway_version —
+// the exact regression a bare "dev"/empty version would introduce.
+func TestGatewayInstaller_UsesSingleSourceVersion(t *testing.T) {
+	gi := &gatewayInstaller{gwVersion: version.String()}
+	if gi.gwVersion != version.String() {
+		t.Fatalf("installer gwVersion = %q, want single-source %q", gi.gwVersion, version.String())
+	}
+
+	m := catalog.Manifest{
+		Image:             "ghcr.io/x/y",
+		Digest:            "sha256:" + strings.Repeat("a", 64),
+		MinGatewayVersion: version.String(),
+	}
+	if err := m.Validate([]string{"ghcr.io"}, gi.gwVersion); err != nil {
+		t.Fatalf("single-source version %q failed its own min_gateway_version gate: %v", gi.gwVersion, err)
+	}
+}
+
+func TestWantsVersion(t *testing.T) {
+	cases := []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"--version"}, true},
+		{[]string{"-version"}, true},
+		{[]string{"--nats", "x", "--version"}, true},
+		{[]string{"--version", "--nats", "x"}, true},
+		{nil, false},
+		{[]string{"--nats", "x"}, false},
+		{[]string{"--", "--version"}, false}, // after terminator: not a flag
+		{[]string{"--versionx"}, false},      // not an exact match
+	}
+	for _, c := range cases {
+		if got := wantsVersion(c.args); got != c.want {
+			t.Errorf("wantsVersion(%v) = %v, want %v", c.args, got, c.want)
+		}
 	}
 }
 

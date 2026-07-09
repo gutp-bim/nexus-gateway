@@ -57,6 +57,12 @@ type Buffer struct {
 // containing URI metacharacters like '#', '?', '%', or ':memory:' would be
 // misparsed as a URI).
 func Open(path string, capacity int) (*Buffer, error) {
+	// A non-positive capacity makes every Write insert-then-evict in the same
+	// transaction — 100% silent telemetry loss with a green process (#26).
+	// Reject it here so a misconfiguration fails fast instead of dropping data.
+	if capacity <= 0 {
+		return nil, fmt.Errorf("storeforward: capacity must be positive, got %d", capacity)
+	}
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite %s: %w", path, err)

@@ -15,6 +15,7 @@ import (
 	"nexus-gateway/internal/lifecycle"
 	"nexus-gateway/internal/metrics"
 	"nexus-gateway/internal/pointlist"
+	"nexus-gateway/internal/version"
 )
 
 const (
@@ -241,6 +242,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	// If the handler is responding, the gateway process is live. The container
 	// healthcheck (docker-compose.yml) greps the body for `"status":"ok"`.
 	h.Status = "ok"
+	h.Version = version.String()
 	writeJSON(w, h)
 }
 
@@ -366,6 +368,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, "# HELP gateway_build_info Gateway build information; value is always 1, version carried as a label.\n")
+	fmt.Fprintf(w, "# TYPE gateway_build_info gauge\n")
+	fmt.Fprintf(w, "gateway_build_info{version=%q} 1\n", version.String())
 	fmt.Fprintf(w, "gateway_uptime_seconds %g\n", h.UptimeSeconds)
 	fmt.Fprintf(w, "gateway_goroutines %d\n", h.GoRoutines)
 	fmt.Fprintf(w, "gateway_mem_alloc_mb %g\n", h.MemAllocMB)

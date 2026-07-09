@@ -19,7 +19,11 @@ func Pump(ctx context.Context, src <-chan *pb.TelemetryFrame, buf *Buffer) {
 				return
 			}
 			if err := buf.Write(f); err != nil {
-				slog.Warn("storeforward: buffer write error", "err", err)
+				// Attribute the loss to a specific point/gateway (matching the
+				// Normalizer's attribution style) so a persistent write failure is
+				// diagnosable, not just a bare error (#25).
+				slog.Warn("storeforward: buffer write error",
+					"err", err, "point_id", f.PointId, "gateway_id", f.GatewayId)
 			}
 		case <-ctx.Done():
 			return
