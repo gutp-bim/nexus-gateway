@@ -40,7 +40,7 @@ Read in this order — it mirrors how the project reasons about changes:
 ## Development setup
 
 ```bash
-git clone https://github.com/takashikasuya/nexus-gateway
+git clone https://github.com/gutp-bim/nexus-gateway
 cd nexus-gateway
 
 # Go toolchain ≥ 1.25 required.

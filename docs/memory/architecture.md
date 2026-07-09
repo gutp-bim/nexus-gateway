@@ -39,7 +39,7 @@ metadata:
 │      ├── BACnet (Python)           │
 │      ├── OPC-UA (Java)             │
 │      ├── MQTT (Go/Python)          │
-│      ├── Modbus (Go/Python)        │
+│      ├── Modbus (planned)          │
 │      └── Future Extensions         │
 │                                    │
 │  SQLite Buffer (store & forward)   │
@@ -72,7 +72,7 @@ metadata:
 - **API definition:** Protocol Buffers, managed with Buf (schema mgmt, codegen, breaking-change detection).
 - **Messaging:** NATS JetStream.
 - **Local buffer:** SQLite.
-- **Connectors:** BACnet (Python — BACpypes3, BAC0), OPC-UA (Java — Eclipse Milo), MQTT (Go/Python, MQTT 5.0), Modbus (Go/Python, Modbus TCP).
+- **Connectors:** BACnet (Python — BACpypes3, BAC0), OPC-UA (Java — Eclipse Milo), MQTT (Go, MQTT 5.0). Modbus (Go, Modbus TCP) is **planned, not yet implemented**.
 - **Admin UI:** React, Next.js, shadcn/ui, TanStack Table.
 - **Auth:** Keycloak (OIDC/OAuth2) for Admin UI, Admin API, Building OS connection.
 - **Observability:** OpenTelemetry → OTLP, Prometheus.

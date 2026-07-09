@@ -1,11 +1,13 @@
 # nexus-gateway
 
-[![CI](https://github.com/takashikasuya/nexus-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/takashikasuya/nexus-gateway/actions/workflows/ci.yml)
+[![CI](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**ビル設備(BMS・IoT・フィールドプロトコル)を [Building OS](https://github.com/takashikasuya/gutp-building-os-oss) に接続するエッジ統合ゲートウェイ。**
+**ビル設備(BMS・IoT・フィールドプロトコル)を [Building OS](https://github.com/gutp-bim/gutp-building-os-oss) に接続するエッジ統合ゲートウェイ。**
 
 *[English](README.md) / 日本語*
+
+> このファイルは英語の [README.md](README.md) を追従する翻訳です。設定表・エンドポイント表などの正本は英語版で、差異が生じた場合は英語版が優先されます。
 
 > **用語:** **SBCO** (Smart Building Co-creation Organization / スマートビルディング共創機構) は本ゲートウェイが消費する Point List のスキーマを [`smartbuilding_datamodel_builder`](https://github.com/smartbuilding-co-creation-organization/smartbuilding_datamodel_builder) として定義する組織です。**Building OS** はプロビジョニングとテレメトリの System of Record となるクラウドサイドプラットフォームです。両者は **GUTP** (Green University of Tokyo Project / グリーン東大ICTプロジェクト) の一部です。
 
@@ -141,34 +143,67 @@ write(cmd)  → Result
 docker compose up --build
 ```
 
-- Admin UI: http://localhost:13000(Keycloak realm `nexus-gateway`、ユーザ
-  `operator`/`operator`、`viewer`/`viewer`)
-- Gateway Admin API: http://localhost:18080(`/health`、`/metrics`、`/connectors`)
-- Keycloak: http://localhost:18090(管理者 `admin`/`admin`)
+| エンドポイント | URL | 備考 |
+|----------------|-----|------|
+| Admin UI | http://localhost:13000 | Keycloak realm `nexus-gateway`、ユーザ `operator`/`operator`、`viewer`/`viewer` |
+| Gateway Admin API | http://localhost:18080 | `/health`、`/metrics`、`/connectors` |
+| Keycloak | http://localhost:18090 | 管理者 `admin`/`admin` |
+| mock Building OS (gRPC) | `localhost:15051` | dev 用 `GatewayIngressService` スタブ |
+| NATS | `localhost:14222` | NATS クライアントポート。監視は `:18222` |
 
 ゲートウェイバイナリを直接実行:
 
 ```bash
-go run ./cmd/gateway --dev-sim   # 設備不要の smoke 実行用に in-process sim コネクタを起動
+# 前提: JetStream 有効な NATS ブローカーが起動済みであること(ゲートウェイは起動時に
+# EVENTS ストリームを作成し、接続できなければ終了する)。単体で起動するか、compose の
+# 公開ポート 14222 を再利用する:
+docker run --rm -p 4222:4222 nats:2.10-alpine -js        # 単体 JetStream ブローカー
+go run ./cmd/gateway --dev-sim                            # 設備不要の smoke 実行(in-process sim)
+
+# compose スタックの NATS(ホストポート 14222)を再利用する場合:
+NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 ```
 
 ### 設定(フラグ / 環境変数)
 
 | フラグ | 環境変数 | 既定値 | 用途 |
 |--------|----------|--------|------|
+| `--version` | – | – | ゲートウェイのバージョンを表示して終了(フラグのみ) |
 | `--nats` | `NATS_URL` | `nats://localhost:4222` | NATS URL |
-| `--bos` | `BOS_ADDR` | `localhost:50051` | Building OS の gRPC アドレス |
+| `--bos` | `BOS_ADDR` | `localhost:50051` | Building OS の gRPC アドレス — ingress/egress **両方**の既定値。下の2つで個別に上書き |
+| `--bos-ingress-addr` | `BOS_INGRESS_ADDR` | – | Building OS **GatewayIngress** アドレス(テレメトリ)。ingress リンクで `--bos` を上書き |
+| `--bos-egress-addr` | `BOS_EGRESS_ADDR` | – | Building OS **GatewayEgress** アドレス(制御プレーン)。egress リンクで `--bos` を上書き。egress は ingress と**別ポート**で終端されるため、制御パスのアドレスが異なる場合は設定しないと Control Command が接続できない |
 | `--gateway-id` | `GATEWAY_ID` | `gw-001` | ゲートウェイ ID(mTLS 証明書の CN/SAN にも対応) |
-| `--bos-insecure` | `BOS_INSECURE` | `false` | Building OS へ平文 h2c — dev/CI のみ(ADR-0007) |
-| `--bos-ca` / `--bos-cert` / `--bos-key` | `BOS_CA_FILE` / … | – | TLS/mTLS 資材 |
+| `--admin-addr` | `ADMIN_ADDR` | `:8080` | Admin API のリッスンアドレス |
+| `--admin-jwks-url` | `KEYCLOAK_JWKS_URL` | – | Keycloak JWKS(空 = Admin API 認証無効) |
+| `--admin-audience` | `KEYCLOAK_AUDIENCE` | `account` | 期待する JWT audience |
+| `--admin-issuer` | `KEYCLOAK_ISSUER` | – | 期待する JWT issuer |
+| `--point-list` | `POINT_LIST_FILE` | `fixtures/point_list.json` | ブートストラップ用フィクスチャ(provisioning ソース未設定時) |
+| `--point-list-persist` | `POINT_LIST_PERSIST` | `data/point_list.json` | 同期済み Point List の永続化パス(再起動をまたぐ) |
 | `--provisioning-url` | `PROVISIONING_URL` | – | Building OS の Point List provisioning API |
 | `--provisioning-file` | `PROVISIONING_FILE` | – | file/CSV ベースの Point List(dev/E2E) |
 | `--provisioning-connector-id` | `PROVISIONING_CONNECTOR_ID` | `bacnet-01` | `--connector-map` にエントリのないプロトコルの行に付与するフォールバック connector ID |
 | `--connector-map` | `CONNECTOR_MAP` | – | `protocol:connectorID` のカンマ区切りペア。file/HTTP 両方の provisioning 経路で共通利用(例: `bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01`)。エントリのないプロトコルは `--provisioning-connector-id` にフォールバック |
 | `--point-sync-interval` | – | `10m` | 初回同期後の Point List ポーリング間隔 |
-| `--admin-jwks-url` | `KEYCLOAK_JWKS_URL` | – | Keycloak JWKS(空 = Admin API 認証無効) |
-| `--dev-sim` | `DEV_SIM` | `false` | in-process sim コネクタを起動(非本番) |
+| `--sf-db` | `SF_DB` | `data/storeforward.db` | Store-and-Forward の SQLite データベースパス |
+| `--sf-cap` | `SF_CAP` | `100000` | Store-and-Forward リングバッファ容量(フレーム数)。正の値必須(それ以外は起動時に拒否) |
+| `--bos-insecure` | `BOS_INSECURE` | `false` | Building OS へ平文 h2c — dev/CI のみ(ADR-0007) |
+| `--bos-ca` | `BOS_CA_FILE` | – | Building OS サーバ証明書を検証する PEM CA バンドル |
+| `--bos-cert` | `BOS_CERT_FILE` | – | Building OS への mTLS 用クライアント証明書 |
+| `--bos-key` | `BOS_KEY_FILE` | – | Building OS への mTLS 用クライアント秘密鍵 |
+| `--bos-servername` | `BOS_SERVER_NAME` | – | Building OS 証明書検証時のサーバ名を上書き |
+| `--dev-sim` | `DEV_SIM` | `false` | in-process sim コネクタを起動(非本番、ADR-0001) |
 | `--dev-sim-interval` | – | `60s` | `--dev-sim` の発行間隔。ローカルで素早く確認したい場合は `5s` 等に下げる |
+| `--catalog-file` | `CATALOG_FILE` | – | file ベースの Connector Catalog(JSON `[]Manifest`)。`POST /connectors/{name}/install` を有効化 |
+| `--catalog-url` | `CATALOG_URL` | – | リモート Connector Catalog のベース URL(`--catalog-file` を上書き) |
+| `--catalog-poll-interval` | – | `10m` | Updater が新しいコネクタバージョンをカタログにポーリングする間隔(ADR-0006) |
+| `--allow-adhoc-upgrade` | `ALLOW_ADHOC_UPGRADE` | `false` | dev 専用 `POST /connectors/{id}/upgrade?image=` を有効化。MVP の更新経路はカタログ駆動(ADR-0006) |
+| `--catalog-allowlist` | `CATALOG_ALLOWLIST` | `ghcr.io` | 許可する OCI レジストリのカンマ区切りリスト(ADR-0006) |
+| `--cosign-key` | `COSIGN_KEY_FILE` | – | コネクタイメージ署名検証用の cosign 公開鍵パス(ADR-0006)。空 = keyless |
+| `--cosign-identity` | `COSIGN_IDENTITY` | – | **keyless** cosign 検証で期待する証明書 identity(ADR-0006) |
+| `--cosign-oidc-issuer` | `COSIGN_OIDC_ISSUER` | – | keyless cosign 検証で期待する OIDC issuer(ADR-0006) |
+
+> **本番(ADR-0006):** cosign フラグ(`--cosign-key`、または keyless の場合 `--cosign-identity` + `--cosign-oidc-issuer`)を設定し、コネクタイメージを install/update 前に署名検証する。未設定だと検証は無効になり起動時に警告ログが出る(ローカル/dev のみ許容)。
 
 ### 本番: Building OS への TLS/mTLS(ADR-0007)
 

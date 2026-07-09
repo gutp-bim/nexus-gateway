@@ -1,9 +1,9 @@
 # nexus-gateway
 
-[![CI](https://github.com/takashikasuya/nexus-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/takashikasuya/nexus-gateway/actions/workflows/ci.yml)
+[![CI](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**An edge integration gateway that connects building equipment (BMS, IoT, field protocols) to [Building OS](https://github.com/takashikasuya/gutp-building-os-oss).**
+**An edge integration gateway that connects building equipment (BMS, IoT, field protocols) to [Building OS](https://github.com/gutp-bim/gutp-building-os-oss).**
 
 *English / [日本語](README.ja.md)*
 
@@ -161,15 +161,26 @@ docker compose ps
 Run the gateway binary directly (no Docker):
 
 ```bash
-go run ./cmd/gateway --dev-sim   # in-process sim connector for a no-equipment smoke run
+# Prerequisite: a JetStream-enabled NATS broker must already be running — the
+# gateway provisions the EVENTS stream on startup and exits if it can't connect.
+# Start one (or reuse the compose-published broker on host port 14222):
+docker run --rm -p 4222:4222 nats:2.10-alpine -js        # standalone JetStream broker
+# …then, pointing at that broker (default nats://localhost:4222):
+go run ./cmd/gateway --dev-sim                            # in-process sim connector, no equipment
+
+# Reusing the compose stack's NATS instead (host port 14222):
+NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 ```
 
 ### Configuration (flags / env)
 
 | Flag | Env | Default | Purpose |
 |------|-----|---------|---------|
+| `--version` | – | – | Print the gateway version and exit (flag-only) |
 | `--nats` | `NATS_URL` | `nats://localhost:4222` | NATS URL |
-| `--bos` | `BOS_ADDR` | `localhost:50051` | Building OS gRPC address |
+| `--bos` | `BOS_ADDR` | `localhost:50051` | Building OS gRPC address — default for **both** the ingress and egress links; overridden per-link by the two flags below |
+| `--bos-ingress-addr` | `BOS_INGRESS_ADDR` | – | Building OS **GatewayIngress** address (telemetry); overrides `--bos` for the ingress link |
+| `--bos-egress-addr` | `BOS_EGRESS_ADDR` | – | Building OS **GatewayEgress** address (control plane); overrides `--bos` for the egress link. Egress terminates on a **distinct port** from ingress, so set this when the control path uses a different address or Control Commands never connect |
 | `--gateway-id` | `GATEWAY_ID` | `gw-001` | Gateway identity (also the mTLS cert CN/SAN) |
 | `--admin-addr` | `ADMIN_ADDR` | `:8080` | Admin API listen address |
 | `--admin-jwks-url` | `KEYCLOAK_JWKS_URL` | – | Keycloak JWKS URL (empty = auth disabled) |
@@ -183,7 +194,7 @@ go run ./cmd/gateway --dev-sim   # in-process sim connector for a no-equipment s
 | `--connector-map` | `CONNECTOR_MAP` | – | Comma-separated `protocol:connectorID` pairs, shared by the file and HTTP provisioning paths (e.g. `bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01`); falls back to `--provisioning-connector-id` for any protocol with no entry |
 | `--point-sync-interval` | – | `10m` | Point List poll interval after initial sync |
 | `--sf-db` | `SF_DB` | `data/storeforward.db` | Store-and-Forward SQLite database path |
-| `--sf-cap` | – | `100000` | Store-and-Forward ring buffer capacity (frames) |
+| `--sf-cap` | `SF_CAP` | `100000` | Store-and-Forward ring buffer capacity (frames); must be positive (rejected at startup otherwise) |
 | `--bos-insecure` | `BOS_INSECURE` | `false` | Plaintext h2c to Building OS — dev/CI only (ADR-0007) |
 | `--bos-ca` | `BOS_CA_FILE` | – | PEM CA bundle to verify the Building OS server cert |
 | `--bos-cert` | `BOS_CERT_FILE` | – | Client certificate for mTLS to Building OS |
@@ -193,8 +204,16 @@ go run ./cmd/gateway --dev-sim   # in-process sim connector for a no-equipment s
 | `--dev-sim-interval` | – | `60s` | Publish interval for `--dev-sim`; lower it (e.g. `5s`) for fast local feedback |
 | `--catalog-file` | `CATALOG_FILE` | – | File-backed Connector Catalog (JSON `[]Manifest`); enables `POST /connectors/{name}/install` |
 | `--catalog-url` | `CATALOG_URL` | – | Remote Connector Catalog base URL (overrides `--catalog-file`) |
+| `--catalog-poll-interval` | – | `10m` | How often the Updater polls the catalog for new connector versions (ADR-0006) |
 | `--allow-adhoc-upgrade` | `ALLOW_ADHOC_UPGRADE` | `false` | Enable dev-only `POST /connectors/{id}/upgrade?image=`; MVP update path is catalog-driven (ADR-0006) |
 | `--catalog-allowlist` | `CATALOG_ALLOWLIST` | `ghcr.io` | Comma-separated list of allowed OCI registries (ADR-0006) |
+| `--cosign-key` | `COSIGN_KEY_FILE` | – | Path to the cosign public key for connector-image signature verification (ADR-0006); empty = keyless |
+| `--cosign-identity` | `COSIGN_IDENTITY` | – | Expected certificate identity for **keyless** cosign verification (ADR-0006) |
+| `--cosign-oidc-issuer` | `COSIGN_OIDC_ISSUER` | – | Expected OIDC issuer for keyless cosign verification (ADR-0006) |
+
+> **Production (ADR-0006):** set the cosign flags (`--cosign-key`, or `--cosign-identity` + `--cosign-oidc-issuer` for keyless) so connector images are signature-verified before install/update. With none set, verification is disabled and the gateway logs a warning at startup — acceptable for local/dev only.
+
+> `SF_CAP` and `--version` are new in the observability quick-wins change; the `--sf-cap` env fallback mirrors `SF_DB`.
 
 ### Simulator integration (no equipment)
 
@@ -215,12 +234,15 @@ docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile
 Point the gateway at the real Building OS stack instead of mock-bos:
 
 ```bash
-# Building OS OSS stack (see github.com/takashikasuya/gutp-building-os-oss)
+# Building OS OSS stack (see github.com/gutp-bim/gutp-building-os-oss)
 docker compose -f /path/to/gutp-building-os-oss/docker-compose.oss.yaml up -d
 
-# Start gateway with BOS ingress + egress addresses and the SoS Point List
+# Start gateway with the SPLIT BOS ingress + egress addresses and the SoS Point List.
+# Telemetry ingress and the control-plane egress terminate on DISTINCT ports
+# (egress on 5052, not 5051) — set both, or Control Commands silently never connect.
 GATEWAY_ID=GW-SOS-001 \
-BOS_ADDR=localhost:5051 \
+BOS_INGRESS_ADDR=localhost:5051 \
+BOS_EGRESS_ADDR=localhost:5052 \
 BOS_INSECURE=true \
 PROVISIONING_FILE=/path/to/mvp-pointlist.csv \
 go run ./cmd/gateway
