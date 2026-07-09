@@ -17,6 +17,24 @@ import (
 	"nexus-gateway/internal/storeforward"
 )
 
+// A non-positive capacity is rejected at Open so a misconfiguration fails fast
+// instead of silently dropping every frame (insert-then-evict) with a green
+// process (#26).
+func TestBuffer_Open_RejectsNonPositiveCapacity(t *testing.T) {
+	for _, cap := range []int{0, -1, -100} {
+		_, err := storeforward.Open(t.TempDir()+"/sf.db", cap)
+		if err == nil {
+			t.Fatalf("Open(capacity=%d) must return an error", cap)
+		}
+	}
+}
+
+func TestBuffer_Open_AcceptsPositiveCapacity(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 1)
+	require.NoError(t, err)
+	buf.Close()
+}
+
 // A successful Write signals WriteNotify so the uplink Forwarder can react
 // immediately instead of polling on a fixed tick (#71).
 func TestBuffer_WriteNotifies(t *testing.T) {

@@ -25,6 +25,7 @@ import (
 	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/lifecycle"
 	"nexus-gateway/internal/pointlist"
+	"nexus-gateway/internal/version"
 )
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -439,6 +440,22 @@ func TestMetrics_IncludesStorefwd(t *testing.T) {
 	} {
 		assert.Contains(t, body, want)
 	}
+}
+
+// /metrics must expose gateway_build_info carrying the single-source version (#22).
+func TestMetrics_IncludesBuildInfo(t *testing.T) {
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/metrics")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	b, _ := io.ReadAll(resp.Body)
+	body := string(b)
+
+	assert.Contains(t, body, "# TYPE gateway_build_info gauge")
+	assert.Contains(t, body, "gateway_build_info{version=\""+version.String()+"\"} 1")
 }
 
 // /metrics must still work (and omit storefwd_*) when no TelemetrySource is wired.

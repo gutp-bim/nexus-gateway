@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -30,6 +31,7 @@ import (
 	"nexus-gateway/internal/dispatch"
 	"nexus-gateway/internal/egress"
 	"nexus-gateway/internal/lifecycle"
+	"nexus-gateway/internal/logging"
 	"nexus-gateway/internal/normalizer"
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/pointsync"
@@ -37,9 +39,26 @@ import (
 	"nexus-gateway/internal/storeforward"
 	"nexus-gateway/internal/transport"
 	"nexus-gateway/internal/uplink"
+	"nexus-gateway/internal/version"
 )
 
 func main() {
+	// Answer --version before any environment-dependent setup (logging config,
+	// SF_CAP parsing) so a version probe works regardless of the runtime
+	// environment — an invalid LOG_LEVEL or SF_CAP must not mask the version (#22).
+	if wantsVersion(os.Args[1:]) {
+		fmt.Println(version.String())
+		return
+	}
+
+	// Configure logging from LOG_LEVEL / LOG_FORMAT before anything else so every
+	// slog call below honors it (#25). The default logger is still usable if this
+	// fails, so the error is reportable.
+	if err := logging.Setup(); err != nil {
+		slog.Error("logging setup failed", "err", err)
+		os.Exit(1)
+	}
+
 	natsURL := flag.String("nats", envOrDefault("NATS_URL", nats.DefaultURL), "NATS URL")
 	bosAddr := flag.String("bos", envOrDefault("BOS_ADDR", "localhost:50051"), "Building OS gRPC address (default for both ingress and egress; overridden by --bos-ingress-addr / --bos-egress-addr)")
 	bosIngressAddr := flag.String("bos-ingress-addr", envOrDefault("BOS_INGRESS_ADDR", ""), "Building OS GatewayIngress gRPC address for telemetry (overrides --bos; env BOS_INGRESS_ADDR)")
@@ -61,7 +80,7 @@ A row/point whose protocol has no entry here falls back to
 --provisioning-connector-id. When empty entirely, falls back to
 bacnet:<provisioning-connector-id>.`)
 	sfDB := flag.String("sf-db", envOrDefault("SF_DB", "data/storeforward.db"), "Store-and-Forward SQLite database path")
-	sfCap := flag.Int("sf-cap", 100_000, "Store-and-Forward ring buffer capacity (frames)")
+	sfCap := flag.Int("sf-cap", envOrDefaultInt("SF_CAP", 100_000), "Store-and-Forward ring buffer capacity (frames; env SF_CAP)")
 	devSim := flag.Bool("dev-sim", envOrDefault("DEV_SIM", "") == "true", "Run an in-process sim connector (dev/smoke only, non-production; ADR-0001)")
 	devSimInterval := flag.Duration("dev-sim-interval", 60*time.Second, "Publish interval for --dev-sim (1-min default; lower for fast local feedback)")
 	allowAdhocUpgrade := flag.Bool("allow-adhoc-upgrade", envOrDefault("ALLOW_ADHOC_UPGRADE", "") == "true", "Enable the dev-only POST /connectors/{id}/upgrade?image= action; MVP update path is catalog-driven (ADR-0006)")
@@ -79,6 +98,29 @@ bacnet:<provisioning-connector-id>.`)
 	cosignIdentity := flag.String("cosign-identity", envOrDefault("COSIGN_IDENTITY", ""), "Expected certificate identity for keyless cosign verification (ADR-0006)")
 	cosignOIDCIssuer := flag.String("cosign-oidc-issuer", envOrDefault("COSIGN_OIDC_ISSUER", ""), "Expected OIDC issuer for keyless cosign verification (ADR-0006)")
 	flag.Parse()
+
+	// Fail fast on obviously invalid numeric configuration rather than running
+	// with a silently broken setting (#26). Only validate a value that this run
+	// will actually use: point-sync-interval is always used, but the dev-sim and
+	// catalog-poll intervals are inert unless their feature is enabled, so
+	// rejecting them then would regress previously-harmless input.
+	if *sfCap <= 0 {
+		slog.Error("invalid --sf-cap / SF_CAP: capacity must be positive (a non-positive ring buffer drops every frame)", "value", *sfCap)
+		os.Exit(1)
+	}
+	if *syncInterval <= 0 {
+		slog.Error("invalid duration flag: must be positive", "flag", "--point-sync-interval", "value", *syncInterval)
+		os.Exit(1)
+	}
+	if *devSim && *devSimInterval <= 0 {
+		slog.Error("invalid duration flag: must be positive", "flag", "--dev-sim-interval", "value", *devSimInterval)
+		os.Exit(1)
+	}
+	if (*catalogURL != "" || *catalogFile != "") && *catalogPollInterval <= 0 {
+		slog.Error("invalid duration flag: must be positive", "flag", "--catalog-poll-interval", "value", *catalogPollInterval)
+		os.Exit(1)
+	}
+
 	*bosIngressAddr = resolveBOSAddr(*bosAddr, *bosIngressAddr)
 	*bosEgressAddr = resolveBOSAddr(*bosAddr, *bosEgressAddr)
 
@@ -109,6 +151,36 @@ bacnet:<provisioning-connector-id>.`)
 	if *bosInsecure {
 		slog.Warn("Building OS link is plaintext h2c (--bos-insecure) — dev/CI only")
 	}
+
+	// One redacted resolved-configuration summary at startup so operators can see
+	// what the process actually resolved (#25). Only addresses, modes, and paths
+	// are logged — never secret values.
+	catalogConfigured := *catalogURL != "" || *catalogFile != ""
+	// cosign only takes effect alongside a catalog source (the verifier is built
+	// inside the catalog block); report n/a otherwise so the log doesn't imply
+	// signature verification is active when it is inert.
+	cosignMode := "n/a"
+	if catalogConfigured {
+		cosignMode = describeSource(*cosignKey != "", "keyed", *cosignIdentity != "", "keyless", "disabled")
+	}
+	logLevel, logFormat := logging.Resolved()
+	slog.Info("resolved configuration",
+		"version", version.String(),
+		"gateway_id", *gatewayID,
+		"nats", *natsURL,
+		"bos_ingress", *bosIngressAddr,
+		"bos_egress", *bosEgressAddr,
+		"bos_tls", !*bosInsecure,
+		"admin_addr", *adminAddr,
+		"auth_enabled", *jwksURL != "",
+		"provisioning", describeSource(*provURL != "", "http", *provFile != "", "file", "fixture"),
+		"catalog", describeSource(*catalogURL != "", "url", *catalogFile != "", "file", "none"),
+		"cosign", cosignMode,
+		"sf_db", *sfDB,
+		"sf_cap", *sfCap,
+		"log_level", logLevel,
+		"log_format", logFormat,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -284,12 +356,12 @@ bacnet:<provisioning-connector-id>.`)
 				client:    catalogClient,
 				verifier:  verifier,
 				allowlist: allowlist,
-				gwVersion: "0.1.0",
+				gwVersion: version.String(),
 			}
 			catalogInstaller = gi
 			catalogSrc = gi
 			// Start the background update loop (ADR-0006 poll-only model).
-			updater := lifecycle.NewUpdater(connMgr, connRegistry, catalogClient, verifier, allowlist, "0.1.0",
+			updater := lifecycle.NewUpdater(connMgr, connRegistry, catalogClient, verifier, allowlist, version.String(),
 				lifecycle.UpdaterConfig{SoakWindow: 30 * time.Second})
 			go updater.Run(ctx, *catalogPollInterval)
 			slog.Info("catalog: connector install + update enabled", "allowlist", allowlist, "poll_interval", *catalogPollInterval)
@@ -380,6 +452,51 @@ func envOrDefault(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// envOrDefaultInt reads an integer environment variable, falling back to def
+// when unset. A set-but-unparseable value fails fast rather than silently
+// reverting to the default (#26).
+func envOrDefaultInt(key string, def int) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		slog.Error("invalid integer environment variable", "key", key, "value", v, "err", err)
+		os.Exit(1)
+	}
+	return n
+}
+
+// wantsVersion reports whether -version/--version appears among the args before
+// a "--" terminator. Deliberately lightweight (no flag parsing) so it can run
+// before any environment-dependent configuration.
+func wantsVersion(args []string) bool {
+	for _, a := range args {
+		if a == "--" {
+			return false
+		}
+		if a == "-version" || a == "--version" {
+			return true
+		}
+	}
+	return false
+}
+
+// describeSource picks a label for the startup config summary: label1 if cond1,
+// else label2 if cond2, else def. Keeps the summary a flat set of short mode
+// strings rather than repeating precedence logic inline.
+func describeSource(cond1 bool, label1 string, cond2 bool, label2, def string) string {
+	switch {
+	case cond1:
+		return label1
+	case cond2:
+		return label2
+	default:
+		return def
+	}
 }
 
 // resolveBOSAddr returns override when non-empty, otherwise falls back to bosAddr.
