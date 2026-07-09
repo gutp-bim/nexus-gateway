@@ -27,7 +27,7 @@ Everything in §2–§5 needs only Docker. §6 (no-equipment dev run) needs Go.
 ## 2. Bring up the full stack
 
 ```bash
-git clone https://github.com/takashikasuya/nexus-gateway
+git clone https://github.com/gutp-bim/nexus-gateway
 cd nexus-gateway
 docker compose up --build
 ```
@@ -164,10 +164,19 @@ file-backed catalog (`fixtures/catalog.json`); `GET /catalog` lists it.
 ## 6. Run the gateway directly (no equipment, no Docker)
 
 For fast iteration on the Go code, run the gateway with an in-process **sim
-connector** that synthesizes Common Events — no NATS connectors, no equipment:
+connector** that synthesizes Common Events — no protocol connectors, no equipment.
+
+**Prerequisite:** a JetStream-enabled NATS broker must be running — the gateway
+provisions the `EVENTS` stream on startup and exits if it can't connect. Start a
+standalone one, or reuse the compose stack's broker on host port 14222:
 
 ```bash
-go run ./cmd/gateway --dev-sim
+# Option A — a standalone JetStream broker on the default port (4222):
+docker run --rm -p 4222:4222 nats:2.10-alpine -js
+go run ./cmd/gateway --dev-sim                            # default NATS_URL=nats://localhost:4222
+
+# Option B — reuse the compose stack's NATS (host port 14222):
+NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 ```
 
 The sim publishes every 60 s by default (the 1-minute freshness floor). For fast
