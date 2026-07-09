@@ -76,7 +76,7 @@ E2E_NATS_URL=nats://localhost:14222 E2E_ADMIN_URL=http://localhost:18080 \
 ## Layer 3 — Building OS integration E2E (opt-in)
 
 Requires the Building OS OSS stack (`docker-compose.oss.yaml` in
-[gutp-building-os-oss](https://github.com/takashikasuya/gutp-building-os-oss)).
+[gutp-building-os-oss](https://github.com/gutp-bim/gutp-building-os-oss)).
 Tests skip automatically when the relevant `E2E_BOS_*` env var is unset (ADR-0004).
 
 **Prerequisites:**
