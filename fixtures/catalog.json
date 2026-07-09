@@ -2,7 +2,7 @@
   {
     "name": "sim-connector",
     "version": "0.0.0",
-    "image": "ghcr.io/takashikasuya/nexus-gateway/sim-connector",
+    "image": "ghcr.io/gutp-bim/nexus-gateway/sim-connector",
     "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     "min_gateway_version": "0.1.0",
     "permissions": {
@@ -14,7 +14,7 @@
   {
     "name": "bacnet-connector",
     "version": "0.1.0",
-    "image": "ghcr.io/takashikasuya/nexus-gateway/bacnet-connector",
+    "image": "ghcr.io/gutp-bim/nexus-gateway/bacnet-connector",
     "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     "min_gateway_version": "0.1.0",
     "permissions": {
@@ -26,7 +26,7 @@
   {
     "name": "opcua-connector",
     "version": "0.1.0",
-    "image": "ghcr.io/takashikasuya/nexus-gateway/opcua-connector",
+    "image": "ghcr.io/gutp-bim/nexus-gateway/opcua-connector",
     "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     "min_gateway_version": "0.1.0",
     "permissions": {
@@ -38,7 +38,7 @@
   {
     "name": "mqtt-connector",
     "version": "0.1.0",
-    "image": "ghcr.io/takashikasuya/nexus-gateway/mqtt-connector",
+    "image": "ghcr.io/gutp-bim/nexus-gateway/mqtt-connector",
     "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     "min_gateway_version": "0.1.0",
     "permissions": {

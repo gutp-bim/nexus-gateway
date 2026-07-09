@@ -60,5 +60,5 @@ Store-and-Forward; see `MVP_READINESS.md`.
 - Scrubbed real lab/building-OS IP addresses from tracked files, replacing them
   with RFC 5737 documentation addresses (`192.0.2.0/24`).
 
-[Unreleased]: https://github.com/takashikasuya/nexus-gateway/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/takashikasuya/nexus-gateway/releases/tag/v0.1.0
+[Unreleased]: https://github.com/gutp-bim/nexus-gateway/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/gutp-bim/nexus-gateway/releases/tag/v0.1.0

@@ -2,6 +2,8 @@
 
 *[English](getting-started.md) / 日本語*
 
+> このファイルは英語の [getting-started.md](getting-started.md) を追従する翻訳です。正本は英語版で、差異が生じた場合は英語版が優先されます。
+
 ハンズオン形式の手引きです。フルスタックを起動し、シミュレートしたコネクタから
 テレメトリが流れる様子を観察し、Admin API でコネクタのライフサイクルを操作します。
 物理機器なしで、約 10 分。
@@ -27,7 +29,7 @@
 ## 2. フルスタックの起動
 
 ```bash
-git clone https://github.com/takashikasuya/nexus-gateway
+git clone https://github.com/gutp-bim/nexus-gateway
 cd nexus-gateway
 docker compose up --build
 ```

@@ -10,7 +10,7 @@ nexus-gateway — a Building OS Integration Gateway: an edge gateway connecting 
 
 nexus-gateway runs at the building edge to collect equipment data, relay control commands, absorb protocol differences, and normalize everything into a Building OS common data model. It is used by building operators and systems integrators who need to bridge heterogeneous equipment (BACnet, OPC-UA, MQTT, Modbus, …) to a central Building OS over a single gRPC contract. Building OS is the System of Record; this gateway is strictly responsible for connection and translation — never for device/metadata registry or command authority.
 
-Tech stack: Go (Core Agent), Protocol Buffers + Buf, gRPC, NATS JetStream, SQLite, OpenTelemetry. Connectors: Python (BACnet — BACpypes3/BAC0), Java (OPC-UA — Eclipse Milo), Go or Python (MQTT 5.0, Modbus TCP). Admin UI: React + Next.js + shadcn/ui + TanStack Table. Auth: Keycloak (OIDC/OAuth2). Containerized, non-Kubernetes runtime.
+Tech stack: Go (Core Agent), Protocol Buffers + Buf, gRPC, NATS JetStream, SQLite, OpenTelemetry. Connectors: Python (BACnet — BACpypes3/BAC0), Java (OPC-UA — Eclipse Milo), Go (MQTT 5.0). Modbus TCP is planned (not yet implemented). Admin UI: React + Next.js + shadcn/ui + TanStack Table. Auth: Keycloak (OIDC/OAuth2). Containerized, non-Kubernetes runtime.
 
 ---
 
