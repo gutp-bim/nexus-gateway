@@ -3,9 +3,14 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import type { GatewayHealth } from "@/lib/api";
-import { apiFetch, ApiError, isRecord } from "@/lib/apiClient";
+import { apiFetch, isRecord } from "@/lib/apiClient";
+import { usePolling } from "@/lib/use-polling";
+import { LastUpdated } from "@/components/last-updated";
+import { ErrorBanner } from "@/components/error-banner";
+
+const POLL_MS = 5_000;
 
 function fmt(n: number, decimals = 1) {
   return n.toFixed(decimals);
@@ -31,28 +36,18 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 export default function DashboardPage() {
-  const [health, setHealth] = useState<GatewayHealth | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const fetchHealth = useCallback(
+    () => apiFetch<GatewayHealth>("/api/gateway/health", undefined, isRecord),
+    []
+  );
+  const { data: health, error, loading, lastUpdated, stale, refresh } = usePolling(fetchHealth, {
+    intervalMs: POLL_MS,
+  });
 
-  const fetchHealth = async () => {
-    try {
-      const data = await apiFetch<GatewayHealth>("/api/gateway/health", undefined, isRecord);
-      setHealth(data);
-      setLastUpdated(new Date());
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : String(e));
-    }
-  };
-
-  useEffect(() => {
-    fetchHealth();
-    const id = setInterval(fetchHealth, 5_000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (error) return <p style={{ color: "#dc2626" }}>Failed to load health: {error}</p>;
+  // Only blank the screen before the very first result. After that a failed
+  // poll keeps the last-known health with a stale badge instead of a wipe.
+  if (loading && !health) return <p>Loading…</p>;
+  if (error && !health) return <ErrorBanner error={error} onRetry={refresh} label="Failed to load health" />;
   if (!health) return <p>Loading…</p>;
 
   const uptimeSec = health.UptimeSeconds;
@@ -81,11 +76,12 @@ export default function DashboardPage() {
           value={health.DiskTotalMB > 0 ? `${fmt(health.DiskUsedMB / 1024)} / ${fmt(health.DiskTotalMB / 1024)} GB (${diskPct}%)` : "—"}
         />
       </div>
-      {lastUpdated && (
-        <p style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-          Last updated: {lastUpdated.toLocaleTimeString()} — refreshing every 5 s
-        </p>
+      {stale && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <ErrorBanner error={error} onRetry={refresh} label="Refresh failed" />
+        </div>
       )}
+      <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
     </div>
   );
 }
