@@ -5,6 +5,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import { SessionWatcher } from "@/components/session-watcher";
+import { ToastProvider } from "@/components/toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Periodic client-side session refetch, well under a typical Keycloak
@@ -14,7 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider refetchInterval={60}>
       <SessionWatcher />
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </SessionProvider>
   );
 }
