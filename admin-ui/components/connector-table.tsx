@@ -3,15 +3,19 @@
 
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import type { ConnectorItem } from "@/lib/api";
-import { apiFetch, ApiError } from "@/lib/apiClient";
+import type { CatalogEntry, Capabilities, ConnectorItem } from "@/lib/api";
+import { apiFetch, isArrayOf, isRecord } from "@/lib/apiClient";
+import { useToast } from "@/components/toast";
+import { messageFor } from "@/components/error-banner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { UpgradeDialog } from "@/components/upgrade-dialog";
 
 const col = createColumnHelper<ConnectorItem>();
 
@@ -21,27 +25,67 @@ type Props = {
   onRefresh: () => void;
 };
 
+// A disruptive action awaiting confirmation.
+type PendingConfirm = {
+  id: string;
+  action: string;
+  title: string;
+  message: React.ReactNode;
+  confirmLabel: string;
+  danger: boolean;
+};
+
 export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
+  const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  const [upgradeFor, setUpgradeFor] = useState<ConnectorItem | null>(null);
+
+  // Supporting data for the Upgrade dialog. Fetched once; failures degrade
+  // safely (no catalog target shown, ad-hoc stays hidden) rather than blocking
+  // the whole table, since these are secondary to the connector list itself.
+  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
+  const [allowAdhoc, setAllowAdhoc] = useState(false);
+
+  useEffect(() => {
+    if (!isOperator) return; // viewers can't act, so skip the extra fetches
+    let cancelled = false;
+    (async () => {
+      try {
+        const entries = await apiFetch<CatalogEntry[]>("/api/gateway/catalog", undefined, isArrayOf());
+        if (!cancelled) setCatalog(entries);
+      } catch {
+        /* catalog is optional context; leave empty on failure */
+      }
+      try {
+        const caps = await apiFetch<Capabilities>("/api/gateway/capabilities", undefined, isRecord);
+        if (!cancelled) setAllowAdhoc(caps.allow_adhoc_upgrade === true);
+      } catch {
+        /* default-safe: ad-hoc stays disabled */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOperator]);
 
   const doAction = useCallback(
     async (id: string, action: string, image?: string) => {
       setBusy(`${id}:${action}`);
-      setError(null);
       try {
         const url = image
           ? `/api/gateway/connectors/${encodeURIComponent(id)}/${action}?image=${encodeURIComponent(image)}`
           : `/api/gateway/connectors/${encodeURIComponent(id)}/${action}`;
         await apiFetch(url, { method: "POST" });
+        toast.success(`${labelForAction(action)} ${id} succeeded`);
         onRefresh();
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : String(e));
+        toast.error(`${labelForAction(action)} ${id} failed: ${messageFor(e)}`);
       } finally {
         setBusy(null);
       }
     },
-    [onRefresh]
+    [onRefresh, toast]
   );
 
   const columns = useMemo(() => [
@@ -79,7 +123,8 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
       id: "actions",
       header: "Actions",
       cell: (info) => {
-        const { id, running, prev_image } = info.row.original;
+        const conn = info.row.original;
+        const { id, running, prev_image } = conn;
         const isBusy = busy?.startsWith(`${id}:`);
 
         if (!isOperator) {
@@ -89,29 +134,72 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
           <span style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
             {running ? (
               <>
-                <ActionBtn label="Stop" disabled={!!isBusy} onClick={() => doAction(id, "stop")} />
-                <ActionBtn label="Restart" disabled={!!isBusy} onClick={() => doAction(id, "restart")} />
+                <ActionBtn
+                  label="Stop"
+                  disabled={!!isBusy}
+                  onClick={() =>
+                    setConfirm({
+                      id,
+                      action: "stop",
+                      title: `Stop ${id}`,
+                      message: (
+                        <>
+                          Stop connector <strong>{id}</strong>? Telemetry from this connector will pause until it is
+                          started again.
+                        </>
+                      ),
+                      confirmLabel: "Stop",
+                      danger: true,
+                    })
+                  }
+                  variant="danger"
+                />
+                <ActionBtn
+                  label="Restart"
+                  disabled={!!isBusy}
+                  onClick={() =>
+                    setConfirm({
+                      id,
+                      action: "restart",
+                      title: `Restart ${id}`,
+                      message: (
+                        <>
+                          Restart connector <strong>{id}</strong>? It will briefly stop, interrupting telemetry, then
+                          start again.
+                        </>
+                      ),
+                      confirmLabel: "Restart",
+                      danger: false,
+                    })
+                  }
+                />
               </>
             ) : (
               <ActionBtn label="Start" disabled={!!isBusy} onClick={() => doAction(id, "start")} />
             )}
-            <ActionBtn
-              label="Upgrade"
-              disabled={!!isBusy}
-              onClick={() => {
-                const image = window.prompt("New image reference:", info.row.original.image);
-                if (image) doAction(id, "upgrade", image);
-              }}
-            />
+            <ActionBtn label="Upgrade" disabled={!!isBusy} onClick={() => setUpgradeFor(conn)} />
             {prev_image && (
               <ActionBtn
                 label="Rollback"
                 disabled={!!isBusy}
-                onClick={() => {
-                  if (window.confirm(`Roll back ${id} to:\n${prev_image}\n\nProceed?`)) {
-                    doAction(id, "rollback");
-                  }
-                }}
+                onClick={() =>
+                  setConfirm({
+                    id,
+                    action: "rollback",
+                    title: `Roll back ${id}`,
+                    message: (
+                      <>
+                        Roll back <strong>{id}</strong> to its previous image?
+                        <br />
+                        <span style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#6b7280", wordBreak: "break-all" }}>
+                          {prev_image}
+                        </span>
+                      </>
+                    ),
+                    confirmLabel: "Roll back",
+                    danger: true,
+                  })
+                }
                 variant="danger"
               />
             )}
@@ -126,7 +214,6 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
 
   return (
     <div>
-      {error && <p style={{ color: "#dc2626", marginBottom: "0.5rem" }}>Error: {error}</p>}
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
         <thead>
           {table.getHeaderGroups().map((hg) => (
@@ -159,8 +246,60 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
           )}
         </tbody>
       </table>
+
+      <ConfirmDialog
+        open={confirm !== null}
+        title={confirm?.title ?? ""}
+        message={confirm?.message}
+        confirmLabel={confirm?.confirmLabel ?? "Confirm"}
+        danger={confirm?.danger ?? false}
+        onConfirm={() => {
+          if (confirm) doAction(confirm.id, confirm.action);
+          setConfirm(null);
+        }}
+        onCancel={() => setConfirm(null)}
+      />
+
+      {upgradeFor && (
+        <UpgradeDialog
+          key={upgradeFor.id}
+          open
+          connectorId={upgradeFor.id}
+          currentImage={upgradeFor.image}
+          catalogEntry={catalog.find((e) => e.name === upgradeFor.id)}
+          allowAdhoc={allowAdhoc}
+          onUpdate={() => {
+            doAction(upgradeFor.id, "update");
+            setUpgradeFor(null);
+          }}
+          onUpgrade={(image) => {
+            doAction(upgradeFor.id, "upgrade", image);
+            setUpgradeFor(null);
+          }}
+          onCancel={() => setUpgradeFor(null)}
+        />
+      )}
     </div>
   );
+}
+
+function labelForAction(action: string): string {
+  switch (action) {
+    case "start":
+      return "Start";
+    case "stop":
+      return "Stop";
+    case "restart":
+      return "Restart";
+    case "upgrade":
+      return "Upgrade";
+    case "update":
+      return "Update";
+    case "rollback":
+      return "Rollback";
+    default:
+      return action;
+  }
 }
 
 function shortDigest(d: string): string {

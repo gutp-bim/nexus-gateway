@@ -170,6 +170,7 @@ func (s *Server) registerRoutes(authenticated bool) {
 	}
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+	s.mux.HandleFunc("GET /capabilities", require(RoleViewer, s.handleCapabilities))
 	s.mux.HandleFunc("GET /connectors", require(RoleViewer, s.handleListConnectors))
 	s.mux.HandleFunc("POST /connectors/{id}/{action}", require(RoleOperator, s.handleAction))
 	if s.installer != nil {
@@ -244,6 +245,18 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	h.Status = "ok"
 	h.Version = version.String()
 	writeJSON(w, h)
+}
+
+// capabilitiesResponse advertises server-side feature switches the Admin UI must
+// know before rendering write-path affordances. Ad-hoc upgrade (upgrade?image=<ref>)
+// is dev-only and disabled by default (ADR-0006), so the UI hides the free-form
+// image field unless the server reports it as allowed.
+type capabilitiesResponse struct {
+	AllowAdhocUpgrade bool `json:"allow_adhoc_upgrade"`
+}
+
+func (s *Server) handleCapabilities(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, capabilitiesResponse{AllowAdhocUpgrade: s.allowAdhocUpgrade})
 }
 
 type connectorItem struct {
