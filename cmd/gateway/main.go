@@ -32,6 +32,7 @@ import (
 	"nexus-gateway/internal/egress"
 	"nexus-gateway/internal/lifecycle"
 	"nexus-gateway/internal/logging"
+	"nexus-gateway/internal/metrics"
 	"nexus-gateway/internal/normalizer"
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/pointsync"
@@ -185,17 +186,41 @@ bacnet:<provisioning-connector-id>.`)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Connect to NATS
+	// Connect to NATS. Lifecycle callbacks drive the nats_connected gauge and
+	// log each transition with structured events (#23), so a broker flap is
+	// visible on /metrics and in logs rather than only surfacing as downstream
+	// publish errors.
 	nc, err := nats.Connect(*natsURL,
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(-1),
 		nats.ReconnectWait(2*time.Second),
+		// ConnectHandler covers the initial connect, including the delayed async
+		// connect under RetryOnFailedConnect when the broker is down at startup —
+		// that path fires ConnectedCB, not ReconnectedCB, so without this the gauge
+		// would stay 0 while NATS is actually up.
+		nats.ConnectHandler(func(c *nats.Conn) {
+			metrics.SetNatsConnected(true)
+			slog.Info("nats: connected", "url", c.ConnectedUrl())
+		}),
+		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
+			metrics.SetNatsConnected(false)
+			slog.Warn("nats: disconnected", "err", err)
+		}),
+		nats.ReconnectHandler(func(c *nats.Conn) {
+			metrics.SetNatsConnected(true)
+			slog.Info("nats: reconnected", "url", c.ConnectedUrl())
+		}),
+		nats.ClosedHandler(func(_ *nats.Conn) {
+			metrics.SetNatsConnected(false)
+			slog.Warn("nats: connection closed")
+		}),
 	)
 	if err != nil {
 		slog.Error("NATS connect failed", "err", err)
 		os.Exit(1)
 	}
 	defer nc.Close()
+	metrics.SetNatsConnected(nc.IsConnected())
 
 	js, err := jetstream.New(nc)
 	if err != nil {

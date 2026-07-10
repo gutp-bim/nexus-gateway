@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,9 +25,26 @@ import (
 	"nexus-gateway/internal/adminapi"
 	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/lifecycle"
+	"nexus-gateway/internal/metrics"
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/version"
 )
+
+// parseMetricInt extracts the integer value of a single (unlabeled) Prometheus
+// series line "name <int>" from an exposition body.
+func parseMetricInt(t *testing.T, body, name string) int64 {
+	t.Helper()
+	for _, line := range strings.Split(body, "\n") {
+		if strings.HasPrefix(line, name+" ") {
+			var v int64
+			_, err := fmt.Sscanf(strings.TrimPrefix(line, name+" "), "%d", &v)
+			require.NoError(t, err)
+			return v
+		}
+	}
+	t.Fatalf("metric %q not found in body", name)
+	return 0
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -433,26 +451,35 @@ func TestDevices_NilSource_Returns404(t *testing.T) {
 // ── telemetry tests ──────────────────────────────────────────────────────────
 
 type mockTelemetrySource struct {
-	drifts      map[string]int64
-	depth       int64
-	written     int64
-	sent        int64
-	dropped     int64
-	checkpoints int64
-	sendErrors  int64
+	drifts         map[string]int64
+	depth          int64
+	written        int64
+	sent           int64
+	dropped        int64
+	checkpoints    int64
+	sendErrors     int64
+	driftTotal     int64
+	lastCheckpoint int64
 }
 
-func (m *mockTelemetrySource) Drifts() map[string]int64 { return m.drifts }
-func (m *mockTelemetrySource) Depth() int64             { return m.depth }
-func (m *mockTelemetrySource) Written() int64           { return m.written }
-func (m *mockTelemetrySource) Sent() int64              { return m.sent }
-func (m *mockTelemetrySource) Dropped() int64           { return m.dropped }
-func (m *mockTelemetrySource) Checkpoints() int64       { return m.checkpoints }
-func (m *mockTelemetrySource) SendErrors() int64        { return m.sendErrors }
+func (m *mockTelemetrySource) Drifts() map[string]int64  { return m.drifts }
+func (m *mockTelemetrySource) Depth() int64              { return m.depth }
+func (m *mockTelemetrySource) Written() int64            { return m.written }
+func (m *mockTelemetrySource) Sent() int64               { return m.sent }
+func (m *mockTelemetrySource) Dropped() int64            { return m.dropped }
+func (m *mockTelemetrySource) Checkpoints() int64        { return m.checkpoints }
+func (m *mockTelemetrySource) SendErrors() int64         { return m.sendErrors }
+func (m *mockTelemetrySource) DriftTotal() int64         { return m.driftTotal }
+func (m *mockTelemetrySource) LastCheckpointUnix() int64 { return m.lastCheckpoint }
 
 // /metrics must expose the store-and-forward series when a TelemetrySource is wired.
 func TestMetrics_IncludesStorefwd(t *testing.T) {
-	src := &mockTelemetrySource{depth: 12, written: 1043, sent: 1031, dropped: 4, checkpoints: 34, sendErrors: 1}
+	// depth>0 (pending backlog) so the checkpoint timestamp reports the actual
+	// stored value rather than the "now" freshness override (#23).
+	src := &mockTelemetrySource{
+		depth: 12, written: 1043, sent: 1031, dropped: 4, checkpoints: 34, sendErrors: 1,
+		driftTotal: 7, lastCheckpoint: 1700000000,
+	}
 	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{Telemetry: src})
 	apiSrv := httptest.NewServer(srv)
 	t.Cleanup(apiSrv.Close)
@@ -470,8 +497,57 @@ func TestMetrics_IncludesStorefwd(t *testing.T) {
 		"storefwd_dropped_total 4",
 		"storefwd_checkpoint_total 34",
 		"storefwd_send_error_total 1",
+		"storefwd_drift_total 7",
+		"storefwd_last_checkpoint_timestamp_seconds 1700000000",
 		"# TYPE storefwd_written_total counter",
 		"# TYPE storefwd_buffer_depth gauge",
+		"# TYPE storefwd_drift_total counter",
+		"# TYPE storefwd_last_checkpoint_timestamp_seconds gauge",
+	} {
+		assert.Contains(t, body, want)
+	}
+}
+
+// With an empty backlog the checkpoint-staleness series reports "now" so a quiet,
+// healthy gateway does not look stale — staleness accrues only while frames pend (#23).
+func TestMetrics_CheckpointFreshWhenBacklogEmpty(t *testing.T) {
+	// depth 0, stale stored checkpoint (long ago). Exposition must override to ~now.
+	src := &mockTelemetrySource{depth: 0, lastCheckpoint: 1000}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{Telemetry: src})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/metrics")
+	require.NoError(t, err)
+	b, _ := io.ReadAll(resp.Body)
+	body := string(b)
+
+	assert.NotContains(t, body, "storefwd_last_checkpoint_timestamp_seconds 1000",
+		"empty backlog must not report the stale stored checkpoint")
+	ts := parseMetricInt(t, body, "storefwd_last_checkpoint_timestamp_seconds")
+	assert.Greater(t, ts, int64(1_600_000_000), "should report a recent (now-ish) timestamp")
+}
+
+// /metrics must expose per-connector up gauges and the NATS/uplink connectivity gauges (#23/#24).
+func TestMetrics_IncludesConnectivityAndConnectorUp(t *testing.T) {
+	metrics.SetNatsConnected(true)
+	metrics.SetUplinkConnected(false)
+	t.Cleanup(func() { metrics.SetNatsConnected(false); metrics.SetUplinkConnected(false) })
+
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/metrics")
+	require.NoError(t, err)
+	b, _ := io.ReadAll(resp.Body)
+	body := string(b)
+
+	for _, want := range []string{
+		`gateway_connector_up{connector_id="mqtt-01"} 1`,
+		"# TYPE gateway_connector_up gauge",
+		"nats_connected 1",
+		"uplink_connected 0",
 	} {
 		assert.Contains(t, body, want)
 	}
