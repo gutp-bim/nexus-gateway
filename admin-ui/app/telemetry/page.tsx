@@ -3,37 +3,25 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import type { TelemetryStats } from "@/lib/api";
-import { apiFetch, ApiError, isRecord } from "@/lib/apiClient";
+import { apiFetch, isRecord } from "@/lib/apiClient";
+import { usePolling } from "@/lib/use-polling";
+import { LastUpdated } from "@/components/last-updated";
+import { ErrorBanner } from "@/components/error-banner";
+
+const POLL_MS = 5_000;
 
 export default function TelemetryPage() {
-  const [stats, setStats] = useState<TelemetryStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const fetchingRef = useRef(false);
+  const fetchData = useCallback(
+    () => apiFetch<TelemetryStats>("/api/gateway/telemetry", undefined, isRecord),
+    []
+  );
+  const { data: stats, error, loading, lastUpdated, stale, refresh } = usePolling(fetchData, {
+    intervalMs: POLL_MS,
+  });
 
-  const fetchData = useCallback(async () => {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
-    try {
-      setStats(await apiFetch<TelemetryStats>("/api/gateway/telemetry", undefined, isRecord));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : String(e));
-    } finally {
-      setLoading(false);
-      fetchingRef.current = false;
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    const id = setInterval(fetchData, 5_000);
-    return () => clearInterval(id);
-  }, [fetchData]);
-
-  if (loading) return <p>Loading…</p>;
+  if (loading && !stats) return <p>Loading…</p>;
 
   const totalDrift = stats ? Object.values(stats.drifts).reduce((a, b) => a + b, 0) : 0;
   const driftEntries = stats
@@ -43,7 +31,11 @@ export default function TelemetryPage() {
   return (
     <div>
       <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>Telemetry Monitor</h1>
-      {error && <p style={{ color: "#dc2626", marginBottom: "0.75rem" }}>Failed to load: {error}</p>}
+      {error != null && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <ErrorBanner error={error} onRetry={refresh} label="Failed to load" />
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <StatCard label="S&F Buffer Depth" value={String(stats?.buffer_depth ?? 0)} unit="frames" />
@@ -82,6 +74,7 @@ export default function TelemetryPage() {
       {driftEntries.length === 0 && !error && (
         <p style={{ color: "#9ca3af" }}>No drift data yet</p>
       )}
+      <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
     </div>
   );
 }

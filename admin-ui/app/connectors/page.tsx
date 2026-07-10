@@ -3,34 +3,26 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { ConnectorTable } from "@/components/connector-table";
 import type { ConnectorItem } from "@/lib/api";
-import { apiFetch, ApiError, isArrayOf } from "@/lib/apiClient";
+import { apiFetch, isArrayOf } from "@/lib/apiClient";
+import { usePolling } from "@/lib/use-polling";
+import { LastUpdated } from "@/components/last-updated";
+import { ErrorBanner } from "@/components/error-banner";
+
+const POLL_MS = 10_000;
 
 export default function ConnectorsPage() {
   const { data: session } = useSession();
-  const [connectors, setConnectors] = useState<ConnectorItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchConnectors = useCallback(async () => {
-    try {
-      setConnectors(await apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf()));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchConnectors();
-    const id = setInterval(fetchConnectors, 10_000);
-    return () => clearInterval(id);
-  }, [fetchConnectors]);
+  const fetchConnectors = useCallback(
+    () => apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf()),
+    []
+  );
+  const { data: connectors, error, loading, lastUpdated, stale, refresh } = usePolling(fetchConnectors, {
+    intervalMs: POLL_MS,
+  });
 
   const isOperator = session?.realmRoles?.includes("gateway-operator") ?? false;
 
@@ -44,10 +36,17 @@ export default function ConnectorsPage() {
           </span>
         )}
       </div>
-      {loading && <p>Loading…</p>}
-      {error && <p style={{ color: "#dc2626" }}>Failed to load connectors: {error}</p>}
-      {!loading && (
-        <ConnectorTable data={connectors} isOperator={isOperator} onRefresh={fetchConnectors} />
+      {loading && !connectors && <p>Loading…</p>}
+      {error != null && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <ErrorBanner error={error} onRetry={refresh} label="Failed to load connectors" />
+        </div>
+      )}
+      {connectors && (
+        <>
+          <ConnectorTable data={connectors} isOperator={isOperator} onRefresh={refresh} />
+          <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
+        </>
       )}
     </div>
   );

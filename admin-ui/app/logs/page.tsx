@@ -3,46 +3,66 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ConnectorItem, ConnectorLogs } from "@/lib/api";
-import { apiFetch, ApiError, isArrayOf, isRecord } from "@/lib/apiClient";
+import { apiFetch, isArrayOf, isRecord } from "@/lib/apiClient";
+import { usePolling } from "@/lib/use-polling";
+import { LastUpdated } from "@/components/last-updated";
+import { ErrorBanner, messageFor } from "@/components/error-banner";
+
+const TAIL_MS = 5_000;
 
 export default function LogsPage() {
   const [connectors, setConnectors] = useState<ConnectorItem[]>([]);
   const [selectedID, setSelectedID] = useState<string>("");
-  const [logs, setLogs] = useState<ConnectorLogs | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const fetchingRef = useRef(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [tailOn, setTailOn] = useState(false);
 
-  // Load connector list once on mount
-  useEffect(() => {
+  // Load (or reload) the connector list. Keeps the current selection if there
+  // is one, else selects the first connector.
+  const loadConnectors = useCallback(() => {
     apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf())
       .then((items) => {
         setConnectors(items);
-        if (items.length > 0) setSelectedID(items[0].id);
+        setListError(null);
+        if (items.length > 0) setSelectedID((cur) => cur || items[0].id);
       })
-      .catch((e) => setError(e instanceof ApiError ? e.message : String(e)));
-  }, []);
-
-  const fetchLogs = useCallback(async (id: string) => {
-    if (!id || fetchingRef.current) return;
-    fetchingRef.current = true;
-    setLoading(true);
-    setError(null);
-    try {
-      setLogs(await apiFetch<ConnectorLogs>(`/api/gateway/logs/${encodeURIComponent(id)}?tail=200`, undefined, isRecord));
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : String(e));
-    } finally {
-      setLoading(false);
-      fetchingRef.current = false;
-    }
+      .catch((e) => setListError(messageFor(e)));
   }, []);
 
   useEffect(() => {
-    if (selectedID) fetchLogs(selectedID);
-  }, [selectedID, fetchLogs]);
+    loadConnectors();
+  }, [loadConnectors]);
+
+  // Poll the selected connector's log tail. The interval only runs while the
+  // tail toggle is on (#41); selecting a connector always fetches once via the
+  // effect below, regardless of the toggle. Selection is preserved across
+  // refreshes (selectedID is never reset by a poll).
+  const fetchLogs = useCallback((): Promise<ConnectorLogs | null> => {
+    if (!selectedID) return Promise.resolve(null);
+    return apiFetch<ConnectorLogs>(
+      `/api/gateway/logs/${encodeURIComponent(selectedID)}?tail=200`,
+      undefined,
+      isRecord
+    );
+  }, [selectedID]);
+
+  const { data: logs, error, fetching, lastUpdated, stale, refresh } = usePolling(fetchLogs, {
+    intervalMs: TAIL_MS,
+    enabled: tailOn && !!selectedID,
+  });
+
+  // Fetch once whenever the selected connector changes, independent of the tail toggle.
+  useEffect(() => {
+    if (selectedID) refresh();
+  }, [selectedID, refresh]);
+
+  // Retry both sources: a connector-list load failure must re-run that load (not
+  // just the log poller), and a log failure re-polls the tail.
+  const retry = useCallback(() => {
+    loadConnectors();
+    refresh();
+  }, [loadConnectors, refresh]);
 
   const lineStyle = (line: string): React.CSSProperties => {
     const l = line.toLowerCase();
@@ -66,22 +86,35 @@ export default function LogsPage() {
           ))}
         </select>
         <button
-          onClick={() => fetchLogs(selectedID)}
-          disabled={loading || !selectedID}
+          onClick={() => refresh()}
+          disabled={fetching || !selectedID}
           style={{
             padding: "0.3rem 0.75rem",
             fontSize: "0.875rem",
             border: "1px solid #d1d5db",
             borderRadius: "0.25rem",
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.5 : 1,
+            cursor: fetching ? "not-allowed" : "pointer",
+            opacity: fetching ? 0.5 : 1,
           }}
         >
-          {loading ? "Loading…" : "Reload"}
+          {fetching ? "Loading…" : "Reload"}
         </button>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.875rem", color: "#374151" }}>
+          <input
+            type="checkbox"
+            checked={tailOn}
+            onChange={(e) => setTailOn(e.target.checked)}
+            disabled={!selectedID}
+          />
+          Auto-refresh ({Math.round(TAIL_MS / 1000)}s)
+        </label>
       </div>
 
-      {error && <p style={{ color: "#dc2626", marginBottom: "0.5rem" }}>Error: {error}</p>}
+      {(listError || error) != null && (
+        <div style={{ marginBottom: "0.5rem" }}>
+          <ErrorBanner error={error ?? listError} onRetry={retry} label="Error" />
+        </div>
+      )}
 
       <pre style={{
         background: "#111827",
@@ -98,9 +131,10 @@ export default function LogsPage() {
           ? logs.lines.map((line, i) => (
               <span key={i} style={{ display: "block", ...lineStyle(line) }}>{line}</span>
             ))
-          : <span style={{ color: "#6b7280" }}>{loading ? "" : "No log lines"}</span>
+          : <span style={{ color: "#6b7280" }}>{fetching ? "" : "No log lines"}</span>
         }
       </pre>
+      <LastUpdated at={lastUpdated} stale={stale} intervalMs={tailOn ? TAIL_MS : undefined} />
     </div>
   );
 }
