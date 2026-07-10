@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	_ "modernc.org/sqlite"
 
@@ -39,6 +40,13 @@ type Buffer struct {
 	sent        atomic.Int64
 	checkpoints atomic.Int64
 	sendErrors  atomic.Int64
+
+	// driftTotal is the running sum of per-point drift (accepted<sent shortfall,
+	// ADR-0002), so designed loss is exposable as a single counter without summing
+	// the per-point map on every scrape (#24). lastCheckpointUnix is the wall clock
+	// of the most recent successful ack-checkpoint, feeding a staleness metric (#23).
+	driftTotal         atomic.Int64
+	lastCheckpointUnix atomic.Int64
 
 	// notify is signaled (non-blocking, coalesced) after each successful Write so
 	// the single uplink Forwarder can drain immediately instead of polling (#71).
@@ -85,7 +93,13 @@ func Open(path string, capacity int) (*Buffer, error) {
 		db.Close() //nolint:errcheck
 		return nil, err
 	}
-	return &Buffer{db: db, capacity: capacity, drifts: make(map[string]int64), notify: make(chan struct{}, 1)}, nil
+	b := &Buffer{db: db, capacity: capacity, drifts: make(map[string]int64), notify: make(chan struct{}, 1)}
+	// Seed the checkpoint clock to open time so the staleness metric measures
+	// "seconds since boot" until the first real checkpoint, instead of reporting
+	// epoch 0 (1970) and firing a spurious staleness alert on a fresh gateway that
+	// has a backlog but has not yet completed its first ack-checkpoint (#23).
+	b.lastCheckpointUnix.Store(time.Now().Unix())
+	return b, nil
 }
 
 // WriteNotify returns a channel signaled (coalesced to one pending slot) after
@@ -144,8 +158,12 @@ func (b *Buffer) Write(f *pb.TelemetryFrame) error {
 // RecordSent adds n to the count of frames acked-as-sent to Building OS.
 func (b *Buffer) RecordSent(n int64) { b.sent.Add(n) }
 
-// RecordCheckpoint counts one successful ack-checkpoint (ADR-0002).
-func (b *Buffer) RecordCheckpoint() { b.checkpoints.Add(1) }
+// RecordCheckpoint counts one successful ack-checkpoint (ADR-0002) and stamps the
+// checkpoint clock used by the staleness metric (#23).
+func (b *Buffer) RecordCheckpoint() {
+	b.checkpoints.Add(1)
+	b.lastCheckpointUnix.Store(time.Now().Unix())
+}
 
 // RecordSendError counts one uplink send/checkpoint failure.
 func (b *Buffer) RecordSendError() { b.sendErrors.Add(1) }
@@ -164,6 +182,14 @@ func (b *Buffer) Checkpoints() int64 { return b.checkpoints.Load() }
 
 // SendErrors returns the total uplink send/checkpoint failures.
 func (b *Buffer) SendErrors() int64 { return b.sendErrors.Load() }
+
+// DriftTotal returns the running sum of per-point drift (frames Building OS
+// rejected under best-effort semantics, ADR-0002).
+func (b *Buffer) DriftTotal() int64 { return b.driftTotal.Load() }
+
+// LastCheckpointUnix returns the wall-clock unix time of the most recent
+// successful ack-checkpoint, or 0 if none has occurred yet.
+func (b *Buffer) LastCheckpointUnix() int64 { return b.lastCheckpointUnix.Load() }
 
 // ReadBatch returns up to limit frames with seq > afterSeq, in ascending order.
 func (b *Buffer) ReadBatch(afterSeq int64, limit int) ([]StoredFrame, error) {
@@ -218,11 +244,13 @@ func (b *Buffer) Depth() int64 {
 	return n
 }
 
-// RecordDrift increments the in-memory drift counter for pointID by delta.
+// RecordDrift increments the in-memory drift counter for pointID by delta, and
+// the running total for the aggregate counter series (#24).
 func (b *Buffer) RecordDrift(pointID string, delta int64) {
 	b.mu.Lock()
 	b.drifts[pointID] += delta
 	b.mu.Unlock()
+	b.driftTotal.Add(delta)
 }
 
 // Drifts returns a snapshot of per-point_id drift counters.
