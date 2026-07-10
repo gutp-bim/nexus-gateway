@@ -3,9 +3,14 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import type { PointEntry } from "@/lib/api";
-import { apiFetch, ApiError, isArrayOf } from "@/lib/apiClient";
+import { apiFetch, isArrayOf } from "@/lib/apiClient";
+import { usePolling } from "@/lib/use-polling";
+import { LastUpdated } from "@/components/last-updated";
+import { ErrorBanner } from "@/components/error-banner";
+
+const POLL_MS = 30_000;
 
 type Group = { connectorID: string; protocol: string; entries: PointEntry[] };
 
@@ -20,39 +25,27 @@ function groupByConnector(entries: PointEntry[]): Group[] {
 }
 
 export default function DevicesPage() {
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const fetchingRef = useRef(false);
+  const fetchData = useCallback(
+    () => apiFetch<PointEntry[]>("/api/gateway/devices", undefined, isArrayOf()),
+    []
+  );
+  const { data: entries, error, loading, lastUpdated, stale, refresh } = usePolling(fetchData, {
+    intervalMs: POLL_MS,
+  });
 
-  const fetchData = useCallback(async () => {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
-    try {
-      const entries = await apiFetch<PointEntry[]>("/api/gateway/devices", undefined, isArrayOf());
-      setGroups(groupByConnector(entries));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : String(e));
-    } finally {
-      setLoading(false);
-      fetchingRef.current = false;
-    }
-  }, []);
+  if (loading && !entries) return <p>Loading…</p>;
 
-  useEffect(() => {
-    fetchData();
-    const id = setInterval(fetchData, 30_000);
-    return () => clearInterval(id);
-  }, [fetchData]);
-
-  if (loading) return <p>Loading…</p>;
+  const groups: Group[] = entries ? groupByConnector(entries) : [];
 
   return (
     <div>
       <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>Devices & Points</h1>
-      {error && <p style={{ color: "#dc2626" }}>Failed to load: {error}</p>}
-      {groups.length === 0 && !error && (
+      {error != null && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <ErrorBanner error={error} onRetry={refresh} label="Failed to load" />
+        </div>
+      )}
+      {entries && groups.length === 0 && !error && (
         <p style={{ color: "#9ca3af" }}>No points in Point List</p>
       )}
       {groups.map((g) => (
@@ -91,6 +84,7 @@ export default function DevicesPage() {
           </table>
         </div>
       ))}
+      <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
     </div>
   );
 }

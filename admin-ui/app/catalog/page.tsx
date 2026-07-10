@@ -3,58 +3,48 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import type { CatalogEntry, ConnectorItem } from "@/lib/api";
-import { apiFetch, ApiError, isArrayOf } from "@/lib/apiClient";
+import { apiFetch, isArrayOf } from "@/lib/apiClient";
+import { usePolling } from "@/lib/use-polling";
+import { LastUpdated } from "@/components/last-updated";
+import { ErrorBanner, messageFor } from "@/components/error-banner";
+import { useToast } from "@/components/toast";
+
+const POLL_MS = 15_000;
+
+type CatalogData = { catalog: CatalogEntry[]; installed: ConnectorItem[] };
 
 export default function CatalogPage() {
   const { data: session } = useSession();
-  const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
-  const [installed, setInstalled] = useState<ConnectorItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const fetchingRef = useRef(false);
 
-  const fetchData = useCallback(async () => {
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
-    try {
-      const [catData, connData] = await Promise.all([
-        apiFetch<CatalogEntry[]>("/api/gateway/catalog", undefined, isArrayOf()),
-        apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf()),
-      ]);
-      setCatalog(catData);
-      setInstalled(connData);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : String(e));
-    } finally {
-      setLoading(false);
-      fetchingRef.current = false;
-    }
+  const fetchData = useCallback(async (): Promise<CatalogData> => {
+    const [catalog, installed] = await Promise.all([
+      apiFetch<CatalogEntry[]>("/api/gateway/catalog", undefined, isArrayOf()),
+      apiFetch<ConnectorItem[]>("/api/gateway/connectors", undefined, isArrayOf()),
+    ]);
+    return { catalog, installed };
   }, []);
 
-  useEffect(() => {
-    fetchData();
-    const id = setInterval(fetchData, 15_000);
-    return () => clearInterval(id);
-  }, [fetchData]);
+  const { data, error, loading, lastUpdated, stale, refresh } = usePolling(fetchData, {
+    intervalMs: POLL_MS,
+  });
 
   const isOperator = session?.realmRoles?.includes("gateway-operator") ?? false;
-
-  const installedMap = new Map(installed.map((c) => [c.id, c]));
+  const catalog = data?.catalog ?? [];
+  const installedMap = new Map((data?.installed ?? []).map((c) => [c.id, c]));
 
   const doInstall = async (name: string) => {
     setBusy(name);
-    setActionError(null);
     try {
       await apiFetch(`/api/gateway/connectors/${encodeURIComponent(name)}/install`, { method: "POST" });
-      await fetchData();
+      toast.success(`Installed ${name}`);
+      await refresh();
     } catch (e) {
-      setActionError(e instanceof ApiError ? e.message : String(e));
+      toast.error(`Install ${name} failed: ${messageFor(e)}`);
     } finally {
       setBusy(null);
     }
@@ -62,18 +52,18 @@ export default function CatalogPage() {
 
   const doUpdate = async (name: string) => {
     setBusy(`update:${name}`);
-    setActionError(null);
     try {
       await apiFetch(`/api/gateway/connectors/${encodeURIComponent(name)}/update`, { method: "POST" });
-      await fetchData();
+      toast.success(`Updated ${name}`);
+      await refresh();
     } catch (e) {
-      setActionError(e instanceof ApiError ? e.message : String(e));
+      toast.error(`Update ${name} failed: ${messageFor(e)}`);
     } finally {
       setBusy(null);
     }
   };
 
-  if (loading) return <p>Loading…</p>;
+  if (loading && !data) return <p>Loading…</p>;
 
   return (
     <div>
@@ -85,8 +75,11 @@ export default function CatalogPage() {
           </span>
         )}
       </div>
-      {error && <p style={{ color: "#dc2626" }}>Failed to load: {error}</p>}
-      {actionError && <p style={{ color: "#dc2626", marginBottom: "0.5rem" }}>Error: {actionError}</p>}
+      {error != null && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <ErrorBanner error={error} onRetry={refresh} label="Failed to load" />
+        </div>
+      )}
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
         <thead>
           <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
@@ -166,6 +159,7 @@ export default function CatalogPage() {
           })}
         </tbody>
       </table>
+      <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
     </div>
   );
 }
