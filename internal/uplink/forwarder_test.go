@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	pb "nexus-gateway/gen"
+	"nexus-gateway/internal/metrics"
 	"nexus-gateway/internal/storeforward"
 	"nexus-gateway/internal/uplink"
 )
@@ -187,6 +188,49 @@ func TestForwarder_SendErrorDoesNotAdvanceCursor(t *testing.T) {
 	err := fwd.Run(context.Background())
 	require.Error(t, err)
 	assert.Equal(t, int64(0), buf.Cursor(), "cursor must not advance when the send fails")
+}
+
+// A successful ack-checkpoint marks the uplink connected (#23); a subsequent
+// send failure flips it back to disconnected.
+func TestForwarder_TracksUplinkConnected(t *testing.T) {
+	metrics.SetUplinkConnected(false)
+	t.Cleanup(func() { metrics.SetUplinkConnected(false) })
+
+	buf := newBuf(t)
+	writeFrames(t, buf, "p1", "p2", "p3")
+	sink := &fakeSink{accepted: 3}
+
+	fwd := uplink.NewForwarder(buf, sink, uplink.Config{CheckpointSize: 3, CheckpointAge: time.Hour})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go fwd.Run(ctx) //nolint:errcheck
+
+	assert.Eventually(t, func() bool { return metrics.UplinkConnected() }, 2*time.Second, 20*time.Millisecond,
+		"uplink_connected should be true after a successful checkpoint")
+
+	// A failing session flips the gauge to disconnected.
+	failBuf := newBuf(t)
+	writeFrames(t, failBuf, "p9")
+	failFwd := uplink.NewForwarder(failBuf, &fakeSink{sendErr: errors.New("stream broken")}, uplink.Config{CheckpointSize: 3, CheckpointAge: time.Hour})
+	require.Error(t, failFwd.Run(context.Background()))
+	assert.False(t, metrics.UplinkConnected(), "uplink_connected should be false after a send failure")
+}
+
+// The buffer records the checkpoint clock and running drift total for the
+// staleness/loss metrics (#23/#24).
+func TestForwarder_RecordsCheckpointClockAndDriftTotal(t *testing.T) {
+	buf := newBuf(t)
+	writeFrames(t, buf, "p1", "p2", "p3")
+	sink := &fakeSink{accepted: 2} // one frame rejected → drift 1
+
+	before := time.Now().Unix()
+	fwd := uplink.NewForwarder(buf, sink, uplink.Config{CheckpointSize: 3, CheckpointAge: time.Hour})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go fwd.Run(ctx) //nolint:errcheck
+
+	assert.Eventually(t, func() bool { return buf.DriftTotal() == 1 }, 2*time.Second, 20*time.Millisecond)
+	assert.GreaterOrEqual(t, buf.LastCheckpointUnix(), before, "checkpoint clock is stamped on a successful ack")
 }
 
 // A checkpoint (CloseAndRecv) failure must also leave the cursor un-advanced.
