@@ -10,6 +10,7 @@ import (
 	"time"
 
 	pb "nexus-gateway/gen"
+	"nexus-gateway/internal/metrics"
 	"nexus-gateway/internal/storeforward"
 )
 
@@ -76,10 +77,14 @@ func (f *Forwarder) Run(ctx context.Context) error {
 		accepted, err := f.sink.Checkpoint(ctx)
 		if err != nil {
 			f.buf.RecordSendError()
+			metrics.SetUplinkConnected(false)
 			return fmt.Errorf("checkpoint: %w", err)
 		}
 		f.buf.RecordSent(sent)
 		f.buf.RecordCheckpoint()
+		// A completed ack round-trip is the definitive "uplink healthy" signal (#23).
+		// An idle gateway (no frames to checkpoint) holds the last-known state.
+		metrics.SetUplinkConnected(true)
 		newCursor, drifts := storeforward.ApplyAck(batch, accepted)
 		for pointID, delta := range drifts {
 			f.buf.RecordDrift(pointID, delta)
@@ -111,6 +116,7 @@ func (f *Forwarder) Run(ctx context.Context) error {
 			for _, sf := range frames {
 				if err := f.sink.Send(ctx, sf.Frame); err != nil {
 					f.buf.RecordSendError()
+					metrics.SetUplinkConnected(false)
 					return fmt.Errorf("send: %w", err)
 				}
 				batch = append(batch, storeforward.SentFrame{Seq: sf.Seq, PointID: sf.Frame.PointId})

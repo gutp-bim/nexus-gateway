@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/lifecycle"
@@ -61,6 +62,11 @@ type TelemetrySource interface {
 	Dropped() int64
 	Checkpoints() int64
 	SendErrors() int64
+	// DriftTotal is the running sum of per-point drift, so designed loss is
+	// alertable as one counter (#24). LastCheckpointUnix is the wall clock of the
+	// last successful ack-checkpoint, feeding a staleness metric (#23); 0 = never.
+	DriftTotal() int64
+	LastCheckpointUnix() int64
 }
 
 // ConnectorLogger provides recent log lines for a connector container.
@@ -389,6 +395,25 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "gateway_mem_alloc_mb %g\n", h.MemAllocMB)
 	fmt.Fprintf(w, "gateway_connectors_total %d\n", len(h.Connectors))
 	fmt.Fprintf(w, "gateway_connectors_running %d\n", running)
+	// Per-connector lifecycle state as labeled series (#24) so monitoring can name
+	// which connector is down, not only "N of M running" above (unchanged).
+	fmt.Fprintf(w, "# HELP gateway_connector_up Per-connector lifecycle state (1 = running, 0 = stopped).\n")
+	fmt.Fprintf(w, "# TYPE gateway_connector_up gauge\n")
+	for _, c := range h.Connectors {
+		up := 0
+		if c.Running {
+			up = 1
+		}
+		fmt.Fprintf(w, "gateway_connector_up{connector_id=%q} %d\n", c.ID, up)
+	}
+	// Broker and Building OS connectivity as gauges (#23) so a link outage is
+	// alertable directly instead of inferred from buffer depth.
+	fmt.Fprintf(w, "# HELP nats_connected Whether the gateway holds a live NATS connection (1/0).\n")
+	fmt.Fprintf(w, "# TYPE nats_connected gauge\n")
+	fmt.Fprintf(w, "nats_connected %d\n", metrics.NatsConnectedGauge())
+	fmt.Fprintf(w, "# HELP uplink_connected Whether the Building OS telemetry uplink is currently healthy (1/0).\n")
+	fmt.Fprintf(w, "# TYPE uplink_connected gauge\n")
+	fmt.Fprintf(w, "uplink_connected %d\n", metrics.UplinkConnectedGauge())
 	fmt.Fprintf(w, "# HELP normalizer_invalid_total Common Events the Normalizer could not parse.\n")
 	fmt.Fprintf(w, "# TYPE normalizer_invalid_total counter\n")
 	fmt.Fprintf(w, "normalizer_invalid_total %d\n", metrics.NormalizerInvalid())
@@ -416,6 +441,18 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "# HELP storefwd_send_error_total Uplink send/checkpoint failures.\n")
 		fmt.Fprintf(w, "# TYPE storefwd_send_error_total counter\n")
 		fmt.Fprintf(w, "storefwd_send_error_total %d\n", t.SendErrors())
+		fmt.Fprintf(w, "# HELP storefwd_drift_total Frames Building OS rejected (accepted<sent, best-effort loss per ADR-0002).\n")
+		fmt.Fprintf(w, "# TYPE storefwd_drift_total counter\n")
+		fmt.Fprintf(w, "storefwd_drift_total %d\n", t.DriftTotal())
+		// Checkpoint staleness only accrues while frames are pending: a quiet, healthy
+		// gateway (empty backlog) reports "now" so it never looks stale (#23 AC).
+		ts := t.LastCheckpointUnix()
+		if t.Depth() == 0 {
+			ts = time.Now().Unix()
+		}
+		fmt.Fprintf(w, "# HELP storefwd_last_checkpoint_timestamp_seconds Unix time of the last successful ack-checkpoint (now when the backlog is empty).\n")
+		fmt.Fprintf(w, "# TYPE storefwd_last_checkpoint_timestamp_seconds gauge\n")
+		fmt.Fprintf(w, "storefwd_last_checkpoint_timestamp_seconds %d\n", ts)
 	}
 }
 
