@@ -82,6 +82,17 @@ export async function listCatalog(token?: string): Promise<CatalogEntry[]> {
   return res.json();
 }
 
+/** Server-side feature switches the Admin UI needs before rendering write-path
+ * affordances (e.g. the ad-hoc image field in the Upgrade dialog, #40). */
+export type Capabilities = {
+  allow_adhoc_upgrade: boolean;
+};
+
+export async function getCapabilities(token?: string): Promise<Capabilities> {
+  const res = await adminFetch("/capabilities", token);
+  return res.json();
+}
+
 export type PointEntry = {
   connector_id: string;
   protocol: string;

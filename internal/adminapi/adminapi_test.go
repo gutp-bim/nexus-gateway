@@ -361,6 +361,41 @@ func TestAction_AdhocUpgradeAllowedWithFlag(t *testing.T) {
 	assert.Equal(t, "upgrade", mgr.lastAction)
 }
 
+// ── capabilities tests (#40) ─────────────────────────────────────────────────
+
+// The Admin UI reads GET /capabilities to decide whether to offer the free-form
+// ad-hoc image field in the Upgrade dialog. Default: ad-hoc upgrade disabled.
+func TestCapabilities_AdhocDisabledByDefault(t *testing.T) {
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/capabilities")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+
+	var caps map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&caps))
+	assert.Equal(t, false, caps["allow_adhoc_upgrade"])
+}
+
+// With AllowAdhocUpgrade enabled (dev), the capability is advertised as true so
+// the UI reveals the ad-hoc image field.
+func TestCapabilities_AdhocReportedWhenEnabled(t *testing.T) {
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{AllowAdhocUpgrade: true})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/capabilities")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var caps map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&caps))
+	assert.Equal(t, true, caps["allow_adhoc_upgrade"])
+}
+
 // ── devices tests ────────────────────────────────────────────────────────────
 
 func TestDevices_ListAll(t *testing.T) {
