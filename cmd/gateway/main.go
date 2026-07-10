@@ -26,6 +26,7 @@ import (
 	dockerclient "github.com/docker/docker/client"
 
 	"nexus-gateway/connector/sim"
+	pb "nexus-gateway/gen"
 	"nexus-gateway/internal/adminapi"
 	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/dispatch"
@@ -95,6 +96,7 @@ bacnet:<provisioning-connector-id>.`)
 	catalogAllowlist := flag.String("catalog-allowlist", envOrDefault("CATALOG_ALLOWLIST", "ghcr.io"), "Comma-separated list of allowed OCI registries (ADR-0006)")
 	catalogPollInterval := flag.Duration("catalog-poll-interval", 10*time.Minute, "How often the Updater polls the catalog for new connector versions (ADR-0006)")
 	cosignKey := flag.String("cosign-key", envOrDefault("COSIGN_KEY_FILE", ""), "Path to cosign public key for signature verification (ADR-0006); empty = keyless")
+	connectorNetwork := flag.String("connector-network", envOrDefault("CONNECTOR_NETWORK", ""), "Docker network name to attach managed connector containers to (e.g. nexus-gateway_default); empty = Docker default bridge")
 	cosignIdentity := flag.String("cosign-identity", envOrDefault("COSIGN_IDENTITY", ""), "Expected certificate identity for keyless cosign verification (ADR-0006)")
 	cosignOIDCIssuer := flag.String("cosign-oidc-issuer", envOrDefault("COSIGN_OIDC_ISSUER", ""), "Expected OIDC issuer for keyless cosign verification (ADR-0006)")
 	flag.Parse()
@@ -293,11 +295,27 @@ bacnet:<provisioning-connector-id>.`)
 		slog.Error("storeforward open failed", "err", err)
 		os.Exit(1)
 	}
+	// Fan-out normalizer frames: drive the S&F pump and update the recent-value
+	// store in parallel so the Admin API can serve live "last known value" data.
+	recentStore := adminapi.NewRecentStore()
+	fanIn := make(chan *pb.TelemetryFrame, 256)
 	var pumpWg sync.WaitGroup
 	pumpWg.Add(1)
 	go func() {
 		defer pumpWg.Done()
-		storeforward.Pump(ctx, norm.Frames(), buf)
+		storeforward.Pump(ctx, fanIn, buf)
+	}()
+	pumpWg.Add(1)
+	go func() {
+		defer pumpWg.Done()
+		for f := range norm.Frames() {
+			recentStore.Record(f)
+			select {
+			case fanIn <- f:
+			case <-ctx.Done():
+				return
+			}
+		}
 	}()
 
 	// Start Ingress uplink
@@ -323,7 +341,10 @@ bacnet:<provisioning-connector-id>.`)
 	if docker != nil {
 		dockerCC = docker
 	}
-	connMgr := lifecycle.NewManager(dockerCC, connRegistry)
+	connMgr := lifecycle.NewManagerWithConfig(dockerCC, connRegistry, lifecycle.ManagerConfig{
+		NATSURL:          *natsURL,
+		ConnectorNetwork: *connectorNetwork,
+	})
 	healthMon := lifecycle.NewHealthMonitor(dockerCC, connRegistry)
 
 	// Build the Connector Catalog installer if a catalog source is configured (ADR-0006).
@@ -373,6 +394,7 @@ bacnet:<provisioning-connector-id>.`)
 		Catalog:           catalogSrc,
 		PointList:         resolver,
 		Telemetry:         buf,
+		Recent:            recentStore,
 		Logger:            connMgr,
 		AllowAdhocUpgrade: *allowAdhocUpgrade,
 	}
