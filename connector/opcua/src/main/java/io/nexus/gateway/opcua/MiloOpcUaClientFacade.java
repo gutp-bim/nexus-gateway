@@ -6,10 +6,16 @@ package io.nexus.gateway.opcua;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
 import org.eclipse.milo.opcua.sdk.client.SessionActivityListener;
 import org.eclipse.milo.opcua.sdk.client.api.UaSession;
+import org.eclipse.milo.opcua.sdk.client.api.config.OpcUaClientConfigBuilder;
+import org.eclipse.milo.opcua.sdk.client.api.identity.AnonymousProvider;
+import org.eclipse.milo.opcua.sdk.client.api.identity.IdentityProvider;
+import org.eclipse.milo.opcua.sdk.client.api.identity.UsernameProvider;
+import org.eclipse.milo.opcua.sdk.client.api.identity.X509IdentityProvider;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaMonitoredItem;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscription;
 import org.eclipse.milo.opcua.stack.core.AttributeId;
 import org.eclipse.milo.opcua.stack.core.Identifiers;
+import org.eclipse.milo.opcua.stack.core.security.SecurityPolicy;
 import org.eclipse.milo.opcua.stack.core.types.builtin.*;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
 import org.eclipse.milo.opcua.stack.core.types.enumerated.*;
@@ -17,9 +23,22 @@ import org.eclipse.milo.opcua.stack.core.types.structured.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateCrtKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.uint;
 import static org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned.ushort;
@@ -29,18 +48,25 @@ public class MiloOpcUaClientFacade implements OpcUaClientFacade {
     private static final Logger log = LoggerFactory.getLogger(MiloOpcUaClientFacade.class);
 
     private final String endpointUrl;
+    private final SecurityConfig security;
     private OpcUaClient miloClient;
     private volatile boolean connected;
 
+    /** Legacy constructor: no security → {@code None} policy + anonymous identity (unchanged behaviour). */
     public MiloOpcUaClientFacade(String endpointUrl) {
+        this(endpointUrl, SecurityConfig.anonymous());
+    }
+
+    public MiloOpcUaClientFacade(String endpointUrl, SecurityConfig security) {
         this.endpointUrl = endpointUrl;
+        this.security = (security != null) ? security : SecurityConfig.anonymous();
     }
 
     @Override
     public void connect() throws Exception {
         connected = false;
         try {
-            miloClient = OpcUaClient.create(endpointUrl);
+            miloClient = buildClient();
             // Track live session state so /health flips to degraded when the session
             // drops after startup (server down / partition), not just on close (#35).
             // Registered before connect() so no early transition is missed.
@@ -68,6 +94,130 @@ public class MiloOpcUaClientFacade implements OpcUaClientFacade {
     @Override
     public boolean isConnected() {
         return connected;
+    }
+
+    /**
+     * Build the {@link OpcUaClient}. The default (None policy + anonymous identity) path is byte-for-byte
+     * today's {@code OpcUaClient.create(endpointUrl)} so the simulator / integration path is unchanged.
+     * Otherwise the 3-arg factory selects the endpoint matching the configured policy + mode, sets the
+     * identity provider, and (for a secured channel) installs the application certificate + key pair.
+     */
+    private OpcUaClient buildClient() throws Exception {
+        if (security.policy() == SecurityConfig.Policy.NONE
+            && security.identity() == SecurityConfig.IdentityMode.ANONYMOUS) {
+            return OpcUaClient.create(endpointUrl);
+        }
+
+        SecurityPolicy wantPolicy = toMiloPolicy(security.policy());
+        MessageSecurityMode wantMode = toMiloMode(security.mode());
+
+        // Load PEM material once if either a secured channel or an x509 user token needs it.
+        X509Certificate cert = null;
+        KeyPair keyPair = null;
+        if (security.isSecured() || security.identity() == SecurityConfig.IdentityMode.X509) {
+            cert = loadCertificate(security.certFile());
+            PrivateKey privateKey = loadPrivateKey(security.keyFile());
+            keyPair = new KeyPair(publicKeyOf(cert, privateKey), privateKey);
+        }
+        final X509Certificate appCert = cert;
+        final KeyPair appKeyPair = keyPair;
+
+        Function<List<EndpointDescription>, Optional<EndpointDescription>> selector = endpoints -> {
+            log.info("opcua: {} endpoints offered; selecting policy={} mode={}",
+                endpoints.size(), security.policy().label, security.mode().label);
+            return endpoints.stream()
+                .filter(e -> wantPolicy.getUri().equals(e.getSecurityPolicyUri()))
+                .filter(e -> wantMode.equals(e.getSecurityMode()))
+                .findFirst();
+        };
+
+        IdentityProvider identityProvider = switch (security.identity()) {
+            case ANONYMOUS -> new AnonymousProvider();
+            case USERNAME  -> new UsernameProvider(security.username(), security.password());
+            case X509      -> new X509IdentityProvider(appCert, appKeyPair.getPrivate());
+        };
+
+        Function<OpcUaClientConfigBuilder, org.eclipse.milo.opcua.sdk.client.api.config.OpcUaClientConfig>
+            configure = builder -> {
+                builder.setIdentityProvider(identityProvider);
+                if (appCert != null) {
+                    builder.setCertificate(appCert);
+                    builder.setKeyPair(appKeyPair);
+                }
+                return builder.build();
+            };
+
+        try {
+            return OpcUaClient.create(endpointUrl, selector, configure);
+        } catch (org.eclipse.milo.opcua.stack.core.UaException e) {
+            throw new IllegalStateException(
+                "opcua: no server endpoint matches OPCUA_SECURITY_POLICY=" + security.policy().label
+                    + " / OPCUA_SECURITY_MODE=" + security.mode().label + " at " + endpointUrl, e);
+        }
+    }
+
+    private static SecurityPolicy toMiloPolicy(SecurityConfig.Policy p) {
+        return switch (p) {
+            case NONE           -> SecurityPolicy.None;
+            case BASIC128RSA15  -> SecurityPolicy.Basic128Rsa15;
+            case BASIC256       -> SecurityPolicy.Basic256;
+            case BASIC256SHA256 -> SecurityPolicy.Basic256Sha256;
+        };
+    }
+
+    private static MessageSecurityMode toMiloMode(SecurityConfig.MessageMode m) {
+        return switch (m) {
+            case NONE            -> MessageSecurityMode.None;
+            case SIGN            -> MessageSecurityMode.Sign;
+            case SIGN_AND_ENCRYPT -> MessageSecurityMode.SignAndEncrypt;
+        };
+    }
+
+    /** Load an X.509 certificate from a PEM (or DER) file; names {@code OPCUA_CLIENT_CERT_FILE} on failure. */
+    private static X509Certificate loadCertificate(String certFile) {
+        try {
+            byte[] bytes = Files.readAllBytes(Path.of(certFile));
+            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            return (X509Certificate) cf.generateCertificate(new java.io.ByteArrayInputStream(bytes));
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                "OPCUA_CLIENT_CERT_FILE: cannot load client certificate from '" + certFile
+                    + "': " + e.getMessage(), e);
+        }
+    }
+
+    /** Load a PKCS#8 RSA private key from a PEM file; names {@code OPCUA_CLIENT_KEY_FILE} on failure. */
+    private static PrivateKey loadPrivateKey(String keyFile) {
+        try {
+            String pem = Files.readString(Path.of(keyFile));
+            String base64 = pem
+                .replaceAll("-----BEGIN (RSA )?PRIVATE KEY-----", "")
+                .replaceAll("-----END (RSA )?PRIVATE KEY-----", "")
+                .replaceAll("\\s", "");
+            byte[] der = Base64.getDecoder().decode(base64);
+            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(der);
+            return KeyFactory.getInstance("RSA").generatePrivate(spec);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(
+                "OPCUA_CLIENT_KEY_FILE: cannot load PKCS#8 private key from '" + keyFile
+                    + "': " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Public key for the app key pair. Prefer the certificate's public key; if it is unavailable, derive
+     * it from the RSA private key's modulus/exponent so the {@link KeyPair} is still well-formed.
+     */
+    private static PublicKey publicKeyOf(X509Certificate cert, PrivateKey privateKey) throws Exception {
+        if (cert != null && cert.getPublicKey() != null) {
+            return cert.getPublicKey();
+        }
+        if (privateKey instanceof RSAPrivateCrtKey crt) {
+            RSAPublicKeySpec spec = new RSAPublicKeySpec(crt.getModulus(), crt.getPublicExponent());
+            return KeyFactory.getInstance("RSA").generatePublic(spec);
+        }
+        throw new IllegalArgumentException(
+            "OPCUA_CLIENT_KEY_FILE: cannot derive a public key for the client key pair");
     }
 
     @Override
