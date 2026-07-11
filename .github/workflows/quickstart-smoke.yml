@@ -72,12 +72,15 @@ jobs:
         id: token
         run: |
           set -euo pipefail
-          TOKEN=$(curl -s http://localhost:18090/realms/nexus-gateway/protocol/openid-connect/token \
+          RESP=$(curl -s http://localhost:18090/realms/nexus-gateway/protocol/openid-connect/token \
             -d grant_type=password \
             -d client_id=admin-ui -d client_secret=admin-ui-secret \
-            -d username=operator -d password=operator | jq -r '.access_token // empty')
+            -d username=operator -d password=operator)
+          TOKEN=$(printf '%s' "$RESP" | jq -r '.access_token // empty')
           if [ -z "$TOKEN" ]; then
-            echo "::error::Token grant failed — the dev realm issued no access token. Check directAccessGrantsEnabled on the admin-ui client (regression of #18)."
+            ERR=$(printf '%s' "$RESP" | jq -r '.error // "unknown"')
+            DESC=$(printf '%s' "$RESP" | jq -r '.error_description // ""')
+            echo "::error::Token grant failed (error=$ERR${DESC:+, $DESC}). The dev realm did not issue an access token — check the admin-ui client's directAccessGrantsEnabled and the seeded users' requiredActions (regression of #18)."
             exit 1
           fi
           # A real JWT has three dot-separated segments; guard against a non-token string slipping through.
