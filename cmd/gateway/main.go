@@ -323,15 +323,19 @@ bacnet:<provisioning-connector-id>.`)
 	// store in parallel so the Admin API can serve live "last known value" data.
 	recentStore := adminapi.NewRecentStore()
 	fanIn := make(chan storeforward.FrameMsg, 256)
-	var pumpWg sync.WaitGroup
-	pumpWg.Add(1)
+	// pipelineWg tracks every goroutine that must finish before the buffer is
+	// closed on shutdown — the pump, the fan-out, and (below) the uplink and egress
+	// — so buf.Close never races an in-flight write or the uplink's final
+	// checkpoint (#27).
+	var pipelineWg sync.WaitGroup
+	pipelineWg.Add(1)
 	go func() {
-		defer pumpWg.Done()
+		defer pipelineWg.Done()
 		storeforward.Pump(ctx, fanIn, buf)
 	}()
-	pumpWg.Add(1)
+	pipelineWg.Add(1)
 	go func() {
-		defer pumpWg.Done()
+		defer pipelineWg.Done()
 		for fm := range norm.Frames() {
 			// recentStore is ack-agnostic (live "last known value" only); the
 			// source msg rides only the Pump branch, which owns the ack after a
@@ -351,12 +355,22 @@ bacnet:<provisioning-connector-id>.`)
 		slog.Error("uplink init failed", "err", err)
 		os.Exit(1)
 	}
-	go ul.Run(ctx)
+	// Tracked in pipelineWg: the uplink performs its final ack-checkpoint on
+	// shutdown, which must complete before buf.Close (#27).
+	pipelineWg.Add(1)
+	go func() {
+		defer pipelineWg.Done()
+		ul.Run(ctx)
+	}()
 
 	// Start Egress agent (control path, ADR-0004); also signals revalidatePL on PointListUpdate.
 	d := dispatch.New(nc, resolver, 5*time.Second)
 	egressAgent := egress.New(*bosEgressAddr, *gatewayID, d, bosCreds, revalidatePL)
-	go egressAgent.Run(ctx)
+	pipelineWg.Add(1)
+	go func() {
+		defer pipelineWg.Done()
+		egressAgent.Run(ctx)
+	}()
 
 	// Start Admin API
 	connRegistry := lifecycle.NewRegistry()
@@ -465,8 +479,35 @@ bacnet:<provisioning-connector-id>.`)
 	if adminSrv != nil {
 		adminSrv.Shutdown()
 	}
-	pumpWg.Wait()
+	// Wait for the pipeline (pump, fan-out, uplink final checkpoint, egress) to
+	// drain before closing the buffer, so the uplink's final ack-checkpoint lands
+	// against a live buffer and no in-flight write hits a closed DB (#27). Bounded
+	// so a hung Building OS link cannot block stop past the grace period.
+	if !waitTimeout(&pipelineWg, shutdownGrace) {
+		slog.Warn("shutdown: pipeline drain timed out; closing buffer", "grace", shutdownGrace)
+	}
 	buf.Close()
+}
+
+// shutdownGrace bounds the pipeline drain on SIGTERM. It exceeds the uplink's
+// internal drainGrace so the final checkpoint can complete, and with the admin
+// shutdown stays inside the container SIGTERM→SIGKILL window (Docker default 10s).
+const shutdownGrace = 6 * time.Second
+
+// waitTimeout waits for wg up to d, returning true if it completed and false on
+// timeout — so a stuck goroutine cannot block shutdown indefinitely.
+func waitTimeout(wg *sync.WaitGroup, d time.Duration) bool {
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return true
+	case <-time.After(d):
+		return false
+	}
 }
 
 // eventsStreamStats adapts the JetStream EVENTS stream to adminapi.StreamStatSource

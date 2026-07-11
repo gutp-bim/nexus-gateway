@@ -121,6 +121,81 @@ func TestSF_OutageSurvival(t *testing.T) {
 	assert.Equal(t, []float64{2.0, 2.0, 2.0}, vals, "buffered frames must arrive after BOS recovery")
 }
 
+// TestSF_CleanShutdownFinalCheckpoint verifies the ordered-shutdown fix (#27): on
+// ctx cancel the uplink performs a final ack-checkpoint against a live buffer so
+// the cursor advances (small replay window) and the buffer stays usable — no
+// "database is closed" from a checkpoint racing buffer close.
+func TestSF_CleanShutdownFinalCheckpoint(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	ns := startEmbeddedNATS(t)
+	nc, err := nats.Connect(ns.ClientURL())
+	require.NoError(t, err)
+	t.Cleanup(nc.Close)
+	js, err := jetstream.New(nc)
+	require.NoError(t, err)
+	_, err = js.CreateStream(ctx, jetstream.StreamConfig{
+		Name: "EVENTS", Subjects: []string{"evt.>"}, Storage: jetstream.MemoryStorage,
+	})
+	require.NoError(t, err)
+
+	pl := pointlist.NewFixture([]pointlist.Entry{
+		{ConnectorID: "sim-01", Protocol: "sim", LocalID: "l1", PointID: "p1"},
+		{ConnectorID: "sim-01", Protocol: "sim", LocalID: "l2", PointID: "p2"},
+		{ConnectorID: "sim-01", Protocol: "sim", LocalID: "l3", PointID: "p3"},
+	})
+	norm, err := normalizer.New(ctx, js, pl, "gw-001")
+	require.NoError(t, err)
+
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 1000)
+	require.NoError(t, err)
+	t.Cleanup(func() { buf.Close() })
+	go storeforward.Pump(ctx, norm.Frames(), buf)
+
+	received := make(chan *pb.TelemetryFrame, 100)
+	var accepted atomic.Int64
+	bos := startMockBOS(t, received, &accepted)
+
+	// A long checkpoint age + high size means the steady loop sends frames but
+	// never checkpoints them — so the ONLY thing that can advance the cursor is the
+	// clean-shutdown final drain.
+	cfg := uplink.Config{CheckpointSize: 1000, CheckpointAge: time.Hour}
+	ul, err := uplink.NewIngress(ctx, bos.addr, "gw-001", buf, cfg, insecureCreds())
+	require.NoError(t, err)
+
+	runCtx, runCancel := context.WithCancel(ctx)
+	uplinkDone := make(chan struct{})
+	go func() { ul.Run(runCtx); close(uplinkDone) }()
+
+	for _, lid := range []string{"l1", "l2", "l3"} {
+		publish(t, js, "sim-01", lid, 1.0)
+	}
+	// Frames are sent to BOS (streamed) but not yet checkpointed → cursor stays 0.
+	for i := range 3 {
+		select {
+		case <-received:
+		case <-ctx.Done():
+			t.Fatalf("timeout waiting for streamed frame %d", i)
+		}
+	}
+	require.Equal(t, int64(0), buf.Cursor(), "no checkpoint yet (long age, high size)")
+
+	// Clean shutdown: cancel the uplink's run context. Its final drain must
+	// re-send + checkpoint the un-acked frames on a fresh stream, advancing the cursor.
+	runCancel()
+	select {
+	case <-uplinkDone:
+	case <-ctx.Done():
+		t.Fatal("uplink did not return after shutdown")
+	}
+
+	assert.Equal(t, int64(3), buf.Cursor(), "final checkpoint must advance the cursor past all frames")
+	assert.GreaterOrEqual(t, buf.Checkpoints(), int64(1), "final drain records a checkpoint")
+	// The buffer is still usable — a checkpoint racing a closed DB would have errored.
+	assert.NotPanics(t, func() { _ = buf.Depth() })
+}
+
 // TestSF_ImmediateSend confirms healthy-state latency is sub-second even with a 5s checkpoint.
 func TestSF_ImmediateSend(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

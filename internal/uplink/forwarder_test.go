@@ -235,6 +235,32 @@ func TestForwarder_RecordsCheckpointClockAndDriftTotal(t *testing.T) {
 	assert.Equal(t, int64(3), buf.Sent(), "sent counts all forwarded frames")
 }
 
+// DrainOnce is the shutdown flush: it sends every un-acked frame and checkpoints
+// once, advancing the cursor, so the replay/duplicate window stays small on a
+// clean shutdown — driven by a fresh context after the run ctx is cancelled (#27).
+func TestForwarder_DrainOnceCheckpointsAndAdvances(t *testing.T) {
+	buf := newBuf(t)
+	writeFrames(t, buf, "p1", "p2", "p3")
+	sink := &fakeSink{accepted: 3}
+
+	fwd := uplink.NewForwarder(buf, sink, uplink.Config{CheckpointSize: 1000, CheckpointAge: time.Hour})
+	require.NoError(t, fwd.DrainOnce(context.Background()))
+
+	assert.Equal(t, int64(3), buf.Cursor(), "final drain advances the cursor past all frames")
+	assert.Equal(t, int64(1), buf.Checkpoints(), "final drain records exactly one checkpoint")
+	assert.Equal(t, 3, sink.sentCount())
+}
+
+// DrainOnce on an empty buffer is a no-op: nothing to send, no checkpoint.
+func TestForwarder_DrainOnceEmptyIsNoop(t *testing.T) {
+	buf := newBuf(t)
+	sink := &fakeSink{}
+	fwd := uplink.NewForwarder(buf, sink, uplink.Config{})
+	require.NoError(t, fwd.DrainOnce(context.Background()))
+	assert.Equal(t, int64(0), buf.Checkpoints())
+	assert.Equal(t, 0, sink.sentCount())
+}
+
 // A checkpoint (CloseAndRecv) failure must also leave the cursor un-advanced.
 func TestForwarder_CheckpointErrorDoesNotAdvanceCursor(t *testing.T) {
 	buf := newBuf(t)
