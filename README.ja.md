@@ -282,8 +282,17 @@ ADMIN_API_URL=https://gateway-admin-api.example.com
 ### シミュレータ統合(設備なし)
 
 隣接リポ `../bacnet-sim-gateway` と `../opcua-sim-gateway` が標準準拠の BACnet/IP・
-OPC-UA シミュレータを提供します。詳細は
-[`fixtures/integration/`](fixtures/integration/README.md):
+OPC-UA シミュレータを提供します。本チェックアウトの隣に clone してください
+(nexus-gateway と同じ GitHub organization で公開。sibling が無いと
+`../…-sim-gateway: no such file or directory` のビルドコンテキストエラーになります):
+
+```bash
+# nexus-gateway/ を既に含む親ディレクトリで
+git clone https://github.com/gutp-bim/bacnet-sim-gateway
+git clone https://github.com/gutp-bim/opcua-sim-gateway
+```
+
+詳細は [`fixtures/integration/`](fixtures/integration/README.md):
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile opcua up
