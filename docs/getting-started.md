@@ -227,10 +227,99 @@ a real NATS, Building OS, or Connector Catalog.
 
 ---
 
-## 7. Connecting real equipment
+## 7. Add your own Device and its Points (MQTT walkthrough)
+
+The integrator's core task is to onboard a **Device** and its **Points**. This
+walkthrough does it end-to-end over MQTT — the one protocol you can drive by hand
+with no simulator — from a **Point List** entry to visible **Telemetry**. It
+assumes the stack from §2 is up.
+
+### Step 1 — describe the Point in the Point List
+
+The **Point List** is the single source of truth that maps each protocol-native
+`local_id` to a canonical `point_id` (ADR-0001); the Normalizer resolves incoming
+readings against it. The compose stack loads it from
+[`fixtures/point_list.json`](../fixtures/point_list.json) (`POINT_LIST_FILE`).
+
+Add one entry for a new Point on a new Device:
+
+```jsonc
+{
+  "connector_id": "mqtt-01",              // which Connector owns this Point
+  "protocol": "mqtt",
+  "local_id": "sensors/lobby/temp",        // protocol-native address — the MQTT topic
+  "point_id": "lobby_temperature",         // canonical id used everywhere downstream
+  "device_ref": "mqtt://lobby-ahu",        // groups Points into one logical Device
+  "unit": "Cel",
+  "writable": false                        // read-only Point (no command topic needed)
+}
+```
+
+- **`point_id`** is the stable canonical identifier telemetry and control use; it
+  never carries protocol addressing.
+- **`local_id`** is the protocol-native address the Connector reads — for MQTT
+  that is the topic it subscribes to.
+- **`device_ref`** groups Points under one **Device**; entries sharing it appear as
+  the same Device in `/devices`.
+- **`writable`** marks whether the Point accepts control writes (a writable MQTT
+  Point also needs `command_topic` — see the schema pointer below).
+
+### Step 2 — point the MQTT Connector at it
+
+Bring up the MQTT Connector with a matching `MQTT_POINTS` entry (its `topic` must
+equal the Point List `local_id`). Point `MQTT_BROKER_URL` at any reachable MQTT
+5.0 broker (e.g. a local [Mosquitto](https://mosquitto.org/)):
+
+```bash
+MQTT_BROKER_URL=mqtt://your-broker:1883 \
+MQTT_POINTS='[{"topic":"sensors/lobby/temp","device_ref":"mqtt://lobby-ahu","unit":"Cel"}]' \
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up -d mqtt-connector
+```
+
+### Step 3 — publish a reading
+
+Publish a value to the topic (the connector normalizes it to a Common Event):
+
+```bash
+mosquitto_pub -h your-broker -t sensors/lobby/temp -m '21.4'
+```
+
+### Step 4 — verify Telemetry arrives
+
+The new Device and Point now show up, and the reading flows through to Telemetry:
+
+```bash
+# The new Device (device_ref) and its Point (point_id) resolve from the Point List
+curl -s http://localhost:18080/devices -H "Authorization: Bearer $TOKEN" | jq
+
+# buffer_depth / drifts stay near zero against mock-bos; a growing buffer_depth
+# means the reading was accepted but the uplink is down (see Troubleshooting)
+curl -s http://localhost:18080/telemetry -H "Authorization: Bearer $TOKEN" | jq
+```
+
+If `/devices` does not list your `point_id`, the gateway did not load the edited
+Point List — restart it (`docker compose restart gateway`). If the Point appears
+but no reading flows, the `topic` in `MQTT_POINTS` does not match the `local_id`.
+
+---
+
+## 8. Connecting real equipment
 
 Two simulator siblings let you exercise the real protocol connectors without
-hardware:
+hardware. They live in **separate repositories that must be checked out next to
+this one** — cloned as siblings under the same parent directory (the compose
+build contexts are `../bacnet-sim-gateway` and `../opcua-sim-gateway`), published
+under the same GitHub organization as nexus-gateway:
+
+```bash
+# from the parent directory that already contains nexus-gateway/
+git clone https://github.com/gutp-bim/bacnet-sim-gateway
+git clone https://github.com/gutp-bim/opcua-sim-gateway
+```
+
+If the sibling directory is missing, `docker compose … --profile opcua up` fails
+with a build-context error (`../opcua-sim-gateway: no such file or directory`)
+rather than anything protocol-specific — clone the sibling and retry.
 
 ```bash
 # OPC-UA (CI-friendly, plain TCP)
@@ -255,14 +344,15 @@ MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"
 docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
 ```
 
-See [`connector/mqtt/connector.go`](../connector/mqtt/connector.go) for the full
-`MQTT_POINTS` schema (fields: `topic`, `device_ref`, `unit`, `writable`,
-`command_topic`, `payload_template`). Writable points also need `command_topic` set to
-the broker topic the connector should publish writes to.
+See the `pointEnv` struct in
+[`cmd/mqtt-connector/main.go`](../cmd/mqtt-connector/main.go) for the full
+`MQTT_POINTS` JSON schema — it defines the wire keys (`topic`, `device_ref`,
+`unit`, `writable`, `command_topic`, `payload_template`). Writable points also need
+`command_topic` set to the broker topic the connector should publish writes to.
 
 ---
 
-## 8. Where to go next
+## 9. Where to go next
 
 - **Understand the design** — the [architecture section](../README.md#architecture)
   and the seven [ADRs](adr/) record every load-bearing decision.

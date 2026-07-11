@@ -6,16 +6,25 @@ protocol stacks (no field hardware), terminating at the mock Building OS.
 
 ## Prerequisites
 
-Check out the simulator repos next to this one:
+Check out the simulator repos **next to this one** (the compose build contexts
+are `../bacnet-sim-gateway` / `../opcua-sim-gateway`, so they must be siblings of
+the `nexus-gateway/` checkout). They are published under the same GitHub
+organization as nexus-gateway:
 
+```bash
+# from the parent directory that already contains nexus-gateway/
+git clone https://github.com/gutp-bim/bacnet-sim-gateway   # bbc-sim — BACnet/IP B-BC
+git clone https://github.com/gutp-bim/opcua-sim-gateway    # opcua-sim — OPC UA server
 ```
-../bacnet-sim-gateway   # bbc-sim — BACnet/IP B-BC
-../opcua-sim-gateway    # opcua-sim — OPC UA server
-```
+
+If a sibling is missing, the profile's `up` fails with a build-context error
+(`../opcua-sim-gateway: no such file or directory`) rather than anything
+protocol-specific — clone the sibling and retry.
 
 ## Shared Point List
 
-`point_list.json` is the single source of truth for native addressing. The 8
+`point_list.csv` (the file the compose loads via `PROVISIONING_FILE`, mirrored by
+`point_list.json`) is the single source of truth for native addressing. The 8
 logical points `PT001..PT008` are modelled by **both** simulators with
 protocol-native addresses, so the connectors and the Normalizer resolve
 `local_id → point_id` against the same definition:
@@ -44,7 +53,13 @@ docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile
 docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile bacnet up
 ```
 
-The gateway is overridden to read `POINT_LIST_FILE=/fixtures/integration/point_list.json`.
+The gateway is overridden with `PROVISIONING_FILE=/fixtures/integration/point_list.csv`
+(the file-backed Point List provisioning source; `.csv` here — see
+`docker-compose.integration.yml`). This is a different mechanism from the base
+stack's bootstrap fixture (`POINT_LIST_FILE=/fixtures/point_list.json`): when
+`PROVISIONING_FILE` (or `PROVISIONING_URL`) is set it takes precedence, so the
+integration run reads the CSV, not the JSON. The `point_list.json` alongside it is
+a human-readable mirror of the same points and is not what the compose loads.
 
 ## Status
 
