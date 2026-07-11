@@ -35,7 +35,7 @@ public class Main {
 
         Connector.Publisher publisher = (subject, data) -> js.publish(subject, data);
 
-        MiloOpcUaClientFacade miloClient = new MiloOpcUaClientFacade(cfg.opcuaEndpoint());
+        MiloOpcUaClientFacade miloClient = new MiloOpcUaClientFacade(cfg.opcuaEndpoint(), cfg.security());
         Connector connector = new Connector(cfg, miloClient, publisher);
 
         HealthServer health = new HealthServer(healthPort, miloClient::isConnected);
