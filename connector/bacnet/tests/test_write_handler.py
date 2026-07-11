@@ -233,3 +233,36 @@ async def test_malformed_command_replied_with_bad_request():
     reply = msg.reply_json()
     assert reply["success"] is False
     assert "bad_request" in reply["response"]
+
+
+@pytest.mark.asyncio
+async def test_in_flight_duplicate_replies_in_flight():
+    """A duplicate arriving while the first write is in flight replies in_flight
+    immediately (not silently dropped), so the Command Channel does not stall (#30)."""
+    bacnet = MockBACnetClient(write_delay=0.1)
+    cfg = make_config([writable_point()])
+    handler = WriteHandler(cfg, bacnet)
+
+    msg1 = cmd_msg(control_id="ctrl-race")
+    msg2 = cmd_msg(control_id="ctrl-race")
+
+    task1 = asyncio.create_task(handler.handle(msg1))
+    await asyncio.sleep(0.01)  # let msg1 reserve the sentinel and enter the (delayed) write
+    await handler.handle(msg2)  # duplicate while msg1 is still in flight
+
+    reply2 = msg2.reply_json()
+    assert reply2["success"] is False
+    assert reply2["response"] == "in_flight"
+
+    await task1
+    assert msg1.reply_json()["response"] == "ok"
+    assert len(bacnet.writes) == 1, "the in-flight original still writes exactly once"
+
+
+def test_nats_connect_kwargs_configures_unlimited_reconnect():
+    """The connector must reconnect indefinitely (#30), not stop at the nats-py default cap."""
+    from bacnet_connector.main import nats_connect_kwargs
+
+    kwargs = nats_connect_kwargs()
+    assert kwargs["max_reconnect_attempts"] == -1
+    assert kwargs["reconnect_time_wait"] > 0

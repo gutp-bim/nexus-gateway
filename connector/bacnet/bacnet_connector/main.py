@@ -22,6 +22,19 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 logger = logging.getLogger(__name__)
 
 
+def nats_connect_kwargs() -> dict:
+    """Keyword args for nats.connect that survive an arbitrarily long outage (#30).
+
+    nats-py defaults to ~60 reconnect attempts, so an outage longer than ~2 minutes
+    would leave the connector permanently silent until manual restart. Unlimited
+    reconnects with a fixed backoff match the MQTT/sim connectors.
+    """
+    return {
+        "max_reconnect_attempts": -1,  # -1 = reconnect indefinitely
+        "reconnect_time_wait": 2,      # seconds between attempts (backoff)
+    }
+
+
 async def _await_stream(js: JetStreamContext, subject: str, *, poll_interval: float = 5.0) -> None:
     """Block until the JetStream stream covering *subject* exists.
 
@@ -42,7 +55,7 @@ async def _await_stream(js: JetStreamContext, subject: str, *, poll_interval: fl
 
 
 async def _run(cfg: Config) -> None:
-    nc = await nats.connect(cfg.nats_url)
+    nc = await nats.connect(cfg.nats_url, **nats_connect_kwargs())
     js: JetStreamContext = nc.jetstream()
 
     subject = f"evt.bacnet.{cfg.connector_id}"
