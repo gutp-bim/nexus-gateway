@@ -248,6 +248,8 @@ docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
 | Admin UI で `401 Unauthorized` | `ADMIN_USERNAME`/`ADMIN_PASSWORD` が違う(Basic 認証モード)。Keycloak を有効にしている場合はトークン未設定/期限切れ — §4 を再実行。 |
 | `/connectors`・`/devices` 等で `401 Unauthorized` | Keycloak モードでのみ起こり得ます(デフォルトモードではこれらは認証不要)。トークン未設定/期限切れ — §4 を再実行。Keycloak トークンは短命です。 |
 | `POST` アクションで `403 Forbidden` | Keycloak モードのみ: トークンが `operator` でなく `viewer`。 |
+| トークン取得で `unauthorized_client` | パスワードグラント用に realm の `admin-ui` クライアントで**ダイレクトアクセスグラント**を有効化する必要があります。同梱の dev realm(`fixtures/keycloak/realm.json`)は有効化済み。realm を独自変更した場合は再度有効化してください。 |
+| ブラウザサインインで `Invalid redirect_uri` | Admin UI のオリジン(compose はホストポート **13000** で公開)を realm クライアントの `redirectUris`/`webOrigins` に登録する必要があります。同梱 dev realm は `http://localhost:13000` を登録済み。独自 realm やホストポート変更時は対応するエントリを追加してください。 |
 | トークン取得に失敗 | Keycloak がまだ healthy でない。`docker compose ps` で確認し、起動後に再試行。 |
 | `/telemetry` の `buffer_depth` が増え続ける | Building OS へのアップリンク断。フレームがバッファ中(`mock-bos` 再起動時など想定内)。 |
 | ゲートウェイがコネクタを管理できない | コンテナに host Docker socket(`/var/run/docker.sock`)のマウントが必要。`docker-compose.yml` 参照。 |
