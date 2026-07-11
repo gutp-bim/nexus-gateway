@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import time
 from typing import Any, Callable, Awaitable
 
 import nats
@@ -64,6 +65,11 @@ class Connector:
     Dependencies are injected so tests can stub the BACnet and NATS layers.
     """
 
+    # Minimum seconds between repeated non-numeric-value WARNINGs for the same
+    # point, so a persistently-bad point does not flood the logs. Overridable per
+    # instance (e.g. in tests) via ``self._bad_value_warn_window``.
+    BAD_VALUE_WARN_WINDOW_SEC: float = 300.0
+
     def __init__(self, cfg: Config, bacnet: BACnetClient, js: JetStreamContext):
         self._cfg = cfg
         self._bacnet = bacnet
@@ -74,6 +80,10 @@ class Connector:
         # Device-reachability proxy for health: True once the most recent poll
         # cycle produced at least one successful read (or there are no points).
         self._healthy = False
+        # Rate-limit state for the non-numeric-value WARNING: local_id → last warn
+        # monotonic timestamp.
+        self._bad_value_warn_window = self.BAD_VALUE_WARN_WINDOW_SEC
+        self._last_bad_value_warn: dict[str, float] = {}
 
     def healthy(self) -> bool:
         """Return whether the connector is reachable per the most recent poll cycle."""
@@ -159,12 +169,36 @@ class Connector:
             any_success = True
             for obj_id, value, status in results:
                 pt = self._point_map.get(obj_id)
-                if pt is None or value is None:
+                if pt is None:
+                    # Unconfigured point — skip silently (not our concern).
+                    continue
+                if value is None:
+                    # A configured point returned a non-numeric/None value. Warn
+                    # (naming the point) but rate-limit per local_id so a
+                    # persistently-bad point does not flood the logs; still skip.
+                    self._warn_bad_value(pt.local_id, status)
                     continue
                 await self._publish(pt, value, bacnet_quality(status))
 
         # A cycle is healthy if any chunk read succeeded this pass.
         self._healthy = any_success
+
+    def _warn_bad_value(self, local_id: str, status: str | None) -> None:
+        """Emit a rate-limited WARNING for a configured point with no numeric value.
+
+        At most one WARNING per ``self._bad_value_warn_window`` seconds per
+        ``local_id`` (monotonic clock), so a persistently-bad point stays visible
+        without flooding the logs.
+        """
+        now = time.monotonic()
+        last = self._last_bad_value_warn.get(local_id)
+        if last is not None and (now - last) < self._bad_value_warn_window:
+            return
+        self._last_bad_value_warn[local_id] = now
+        logger.warning(
+            "bacnet: point %s returned no numeric value (status=%s) — skipping",
+            local_id, status,
+        )
 
     async def _subscribe_cov(self, pt: PointConfig) -> None:
         """Subscribe to COV for a single point and publish events on each change."""

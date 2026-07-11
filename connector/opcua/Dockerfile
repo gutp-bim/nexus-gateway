@@ -15,6 +15,11 @@ WORKDIR /app
 
 COPY --from=build /build/build/install/nexus-opcua-connector/ .
 
+# Run as an unprivileged user (not root).
+RUN addgroup -S nexus && adduser -S -G nexus nexus \
+    && chown -R nexus:nexus /app
+USER nexus
+
 # Health endpoint (GET /health); overridable via HEALTH_PORT env.
 EXPOSE 8080
 

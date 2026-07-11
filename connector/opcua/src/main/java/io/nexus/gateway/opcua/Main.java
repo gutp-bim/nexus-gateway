@@ -20,6 +20,8 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         Config cfg = Config.fromEnv();
+        // Bind connector_id to the MDC so every structured (JSON) log line carries it.
+        org.slf4j.MDC.put("connector_id", cfg.connectorId());
         log.info("opcua: starting connector={} endpoint={}", cfg.connectorId(), cfg.opcuaEndpoint());
 
         int healthPort = healthPortFromEnv();

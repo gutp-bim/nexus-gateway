@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -31,6 +32,16 @@ public class Connector {
     private final List<String> nodeIds;
     private final String subject;
     private final CountDownLatch stopLatch = new CountDownLatch(1);
+
+    /**
+     * Last time (epoch millis) a non-numeric WARN was emitted per node id, so a
+     * persistently-bad configured point does not flood WARN. Package-visible window
+     * ({@link #nonNumericWarnWindowMs}) is overridable in tests.
+     */
+    private final ConcurrentHashMap<String, Long> lastNonNumericWarnMs = new ConcurrentHashMap<>();
+
+    /** Rate-limit window for the non-numeric WARN (default 300 s); package-visible for tests. */
+    long nonNumericWarnWindowMs = 300_000L;
 
     public Connector(Config cfg, OpcUaClientFacade client, Publisher publisher) {
         this.cfg = cfg;
@@ -56,8 +67,8 @@ public class Connector {
         // Log browse results for Point List authoring (AC: browse logged locally)
         try {
             Map<String, String> nodes = client.browse("i=85"); // Objects folder
-            log.info("opcua: browse found {} nodes under Objects", nodes.size());
-            nodes.forEach((id, name) -> log.info("  {} => {}", id, name));
+            log.debug("opcua: browse found {} nodes under Objects", nodes.size());
+            nodes.forEach((id, name) -> log.debug("  {} => {}", id, name));
         } catch (Exception ex) {
             log.warn("opcua: browse failed (non-fatal): {}", ex.getMessage());
         }
@@ -96,7 +107,7 @@ public class Connector {
         if (pt == null) return;
         Double value = opcValue.toDouble();
         if (value == null) {
-            log.debug("opcua: skipping non-numeric value for {}", nodeId);
+            warnNonNumeric(nodeId);
             return;
         }
         publish(pt, value, opcValue.quality().toCommonQuality());
@@ -110,12 +121,41 @@ public class Connector {
                 PointConfig pt = pointMap.get(nodeId);
                 if (pt == null) return;
                 Double value = opcValue.toDouble();
-                if (value == null) return;
+                if (value == null) {
+                    warnNonNumeric(nodeId);
+                    return;
+                }
                 publish(pt, value, opcValue.quality().toCommonQuality());
             });
         } catch (Exception ex) {
             log.warn("opcua: poll failed: {}", ex.getMessage());
         }
+    }
+
+    /**
+     * Emit a rate-limited WARN for a configured point whose value is non-numeric
+     * (cannot be published). At most one WARN per node id per
+     * {@link #nonNumericWarnWindowMs} window so a persistently-bad point does not flood.
+     */
+    private void warnNonNumeric(String nodeId) {
+        if (shouldWarnNonNumeric(nodeId)) {
+            log.warn("opcua: non-numeric value for configured point {} — not published", nodeId);
+        }
+    }
+
+    /**
+     * True if a non-numeric WARN for {@code nodeId} is due (first time, or the window
+     * has elapsed since the last WARN); records the emit time as a side effect.
+     * Package-visible so the rate-limit can be unit-tested without the run loop.
+     */
+    boolean shouldWarnNonNumeric(String nodeId) {
+        long now = System.currentTimeMillis();
+        Long prev = lastNonNumericWarnMs.get(nodeId);
+        if (prev != null && now - prev < nonNumericWarnWindowMs) {
+            return false;
+        }
+        lastNonNumericWarnMs.put(nodeId, now);
+        return true;
     }
 
     private void publish(PointConfig pt, double value, String quality) {
