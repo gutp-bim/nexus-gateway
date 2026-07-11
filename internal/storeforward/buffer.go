@@ -273,19 +273,62 @@ func (b *Buffer) Drifts() map[string]int64 {
 	return out
 }
 
+// schemaVersion is the on-disk buffer schema this binary understands, tracked via
+// SQLite's PRAGMA user_version (#29). Bump it and append a migration step below
+// whenever the schema changes.
+const schemaVersion = 1
+
+// migrations[i] upgrades the schema from version i to version i+1. Each step must
+// be idempotent (a re-run, or a pre-stamp v0 database whose tables already exist,
+// must converge without data loss), so DDL uses IF NOT EXISTS. A future step that
+// is multi-statement or mutates data must wrap its step+version-stamp in a single
+// transaction, since migrate applies each step then stamps without an outer txn.
+var migrations = []func(*sql.DB) error{
+	// 0 -> 1: initial frames + cursor schema.
+	func(db *sql.DB) error {
+		_, err := db.Exec(`
+			CREATE TABLE IF NOT EXISTS frames (
+				seq        INTEGER PRIMARY KEY AUTOINCREMENT,
+				gateway_id TEXT NOT NULL DEFAULT '',
+				point_id   TEXT NOT NULL,
+				value      REAL NOT NULL,
+				timestamp  TEXT NOT NULL
+			);
+			CREATE TABLE IF NOT EXISTS cursor (
+				id  INTEGER PRIMARY KEY CHECK (id = 1),
+				seq INTEGER NOT NULL DEFAULT 0
+			);
+		`)
+		return err
+	},
+}
+
+// migrate brings the database schema up to schemaVersion by applying the ordered
+// migration steps between its current PRAGMA user_version and schemaVersion. A
+// database stamped newer than this binary understands fails fast, leaving the
+// file untouched (safe-downgrade). A step is applied then its version stamped, so
+// an interrupted upgrade re-runs the (idempotent) step on the next open.
 func migrate(db *sql.DB) error {
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS frames (
-			seq        INTEGER PRIMARY KEY AUTOINCREMENT,
-			gateway_id TEXT NOT NULL DEFAULT '',
-			point_id   TEXT NOT NULL,
-			value      REAL NOT NULL,
-			timestamp  TEXT NOT NULL
-		);
-		CREATE TABLE IF NOT EXISTS cursor (
-			id  INTEGER PRIMARY KEY CHECK (id = 1),
-			seq INTEGER NOT NULL DEFAULT 0
-		);
-	`)
-	return err
+	var current int
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&current); err != nil {
+		return fmt.Errorf("storeforward: read schema version: %w", err)
+	}
+	if current > schemaVersion {
+		return fmt.Errorf("storeforward: database schema version %d is newer than this binary understands (%d); refusing to open", current, schemaVersion)
+	}
+	if len(migrations) < schemaVersion {
+		// Developer error: schemaVersion was bumped without appending the step.
+		return fmt.Errorf("storeforward: schemaVersion %d but only %d migration steps defined", schemaVersion, len(migrations))
+	}
+	for v := current; v < schemaVersion; v++ {
+		if err := migrations[v](db); err != nil {
+			return fmt.Errorf("storeforward: migration %d->%d: %w", v, v+1, err)
+		}
+		// PRAGMA user_version does not accept a bound parameter; the value is an
+		// internal constant, never user input, so interpolation is safe.
+		if _, err := db.Exec(fmt.Sprintf("PRAGMA user_version = %d", v+1)); err != nil {
+			return fmt.Errorf("storeforward: stamp schema version %d: %w", v+1, err)
+		}
+	}
+	return nil
 }
