@@ -286,6 +286,76 @@ async def test_poll_transport_failure_is_tolerated():
     assert js.published == []
 
 
+# ── health / reachability tests ───────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_healthy_false_before_first_poll():
+    """A freshly constructed connector is unhealthy until the first successful poll."""
+    bacnet = MockBACnetClient(poll_results=[("analogInput,0", 1.0, None)])
+    js = MockJetStream()
+    cfg = make_config([PointConfig(local_id="analogInput,0", device_ref="d")])
+    conn = Connector(cfg, bacnet, js)
+    assert conn.healthy() is False
+
+
+@pytest.mark.asyncio
+async def test_healthy_true_after_successful_poll():
+    """After a poll cycle with at least one successful chunk read, healthy() is True."""
+    bacnet = MockBACnetClient(poll_results=[("analogInput,0", 1.0, None)])
+    js = MockJetStream()
+    cfg = make_config([PointConfig(local_id="analogInput,0", device_ref="d")])
+    stop = asyncio.Event()
+    stop.set()
+
+    conn = Connector(cfg, bacnet, js)
+    await conn.run(stop_event=stop)
+    assert conn.healthy() is True
+
+
+@pytest.mark.asyncio
+async def test_healthy_false_when_all_chunks_fail():
+    """If every chunk read raises in a poll cycle, healthy() is False."""
+    # 3 points, chunk 1 → 3 chunks, all failing.
+    bacnet = ChunkRecordingClient(fail_chunks={0, 1, 2})
+    js = MockJetStream()
+    cfg = make_config(_points(3), rpm_chunk_size=1)
+    stop = asyncio.Event()
+    stop.set()
+
+    conn = Connector(cfg, bacnet, js)
+    await conn.run(stop_event=stop)
+    assert conn.healthy() is False
+
+
+@pytest.mark.asyncio
+async def test_healthy_true_when_any_chunk_succeeds():
+    """A single failed chunk must not flip healthy False if another chunk succeeds."""
+    # 3 points, chunk 1 → 3 chunks; fail only the first.
+    bacnet = ChunkRecordingClient(fail_chunks={0})
+    js = MockJetStream()
+    cfg = make_config(_points(3), rpm_chunk_size=1)
+    stop = asyncio.Event()
+    stop.set()
+
+    conn = Connector(cfg, bacnet, js)
+    await conn.run(stop_event=stop)
+    assert conn.healthy() is True
+
+
+@pytest.mark.asyncio
+async def test_healthy_true_with_no_points():
+    """With no points configured there is nothing to poll — healthy once the stack is up."""
+    bacnet = MockBACnetClient()
+    js = MockJetStream()
+    cfg = make_config([])
+    stop = asyncio.Event()
+    stop.set()
+
+    conn = Connector(cfg, bacnet, js)
+    await conn.run(stop_event=stop)
+    assert conn.healthy() is True
+
+
 # ── event module tests ────────────────────────────────────────────────────────
 
 def test_make_event_fields():

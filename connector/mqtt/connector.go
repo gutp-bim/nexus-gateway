@@ -76,6 +76,7 @@ type Connector struct {
 	js        jetstream.JetStream
 	readyOnce sync.Once
 	ready     chan struct{}
+	connected atomic.Bool // broker session state, for the /health probe (#35)
 	dedup     *sdk.CommandDedup
 
 	// lkv holds the last-known value per topic (local_id) for the freshness floor
@@ -101,6 +102,13 @@ func New(cfg Config, nc *nats.Conn, js jetstream.JetStream) *Connector {
 		dedup: sdk.NewCommandDedup(1000),
 		lkv:   make(map[string]*lkvState),
 	}
+}
+
+// Healthy reports whether the MQTT broker session is currently up. It backs the
+// connector's /health probe (#35): false before the first connect and after a
+// server disconnect / client error, true while a session is established.
+func (c *Connector) Healthy() bool {
+	return c.connected.Load()
 }
 
 // AwaitReady blocks until the first MQTT subscription is active or ctx is cancelled.
@@ -178,14 +186,23 @@ func (c *Connector) Run(ctx context.Context) {
 					return
 				}
 			}
+			// Broker session is up — reflect it in /health (#35).
+			c.connected.Store(true)
 			// Signal that the first subscription is ready (subsequent reconnects are silently ignored).
 			c.readyOnce.Do(func() { close(c.ready) })
+		},
+		OnConnectError: func(err error) {
+			// A connection attempt failed (broker unreachable): stay/return to not-ok.
+			c.connected.Store(false)
 		},
 		ClientConfig: paho.ClientConfig{
 			ClientID: c.cfg.ClientID,
 			// Manual acknowledgment: PUBACK is sent only after the event lands in JetStream,
 			// preventing data loss when NATS is temporarily unavailable (QoS 1 guarantee).
 			EnableManualAcknowledgment: true,
+			// Broker session lost — mark unhealthy until autopaho reconnects (#35).
+			OnServerDisconnect: func(*paho.Disconnect) { c.connected.Store(false) },
+			OnClientError:      func(error) { c.connected.Store(false) },
 			OnPublishReceived: []func(paho.PublishReceived) (bool, error){
 				func(pr paho.PublishReceived) (bool, error) {
 					p, ok := topicMap[pr.Packet.Topic]

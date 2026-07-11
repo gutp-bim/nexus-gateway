@@ -41,6 +41,8 @@ class Config:
     # polling. Each subscription is a long-lived session; thousands of them can
     # overwhelm a device. Disable (poll-only) for large point counts.
     cov_enabled: bool = True
+    # Port for the stdlib health HTTP server (GET /health). Device-reachability proxy.
+    health_port: int = 8080
 
     def __post_init__(self) -> None:
         if self.poll_interval <= 0:
@@ -80,4 +82,5 @@ class Config:
             not in ("0", "false", "no"),
             default_write_priority=int(os.environ.get("BACNET_DEFAULT_WRITE_PRIORITY", "8")),
             write_timeout=float(os.environ.get("BACNET_WRITE_TIMEOUT", "10")),
+            health_port=int(os.environ.get("HEALTH_PORT", "8080")),
         )
