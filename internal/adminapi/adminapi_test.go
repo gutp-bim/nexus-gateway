@@ -457,6 +457,7 @@ type mockTelemetrySource struct {
 	sent           int64
 	accepted       int64
 	dropped        int64
+	writeErrors    int64
 	checkpoints    int64
 	sendErrors     int64
 	driftTotal     int64
@@ -469,6 +470,7 @@ func (m *mockTelemetrySource) Written() int64            { return m.written }
 func (m *mockTelemetrySource) Sent() int64               { return m.sent }
 func (m *mockTelemetrySource) Accepted() int64           { return m.accepted }
 func (m *mockTelemetrySource) Dropped() int64            { return m.dropped }
+func (m *mockTelemetrySource) WriteErrors() int64        { return m.writeErrors }
 func (m *mockTelemetrySource) Checkpoints() int64        { return m.checkpoints }
 func (m *mockTelemetrySource) SendErrors() int64         { return m.sendErrors }
 func (m *mockTelemetrySource) DriftTotal() int64         { return m.driftTotal }
@@ -490,7 +492,7 @@ func TestMetrics_IncludesStorefwd(t *testing.T) {
 	// depth>0 (pending backlog) so the checkpoint timestamp reports the actual
 	// stored value rather than the "now" freshness override (#23).
 	src := &mockTelemetrySource{
-		depth: 12, written: 1043, sent: 1031, dropped: 4, checkpoints: 34, sendErrors: 1,
+		depth: 12, written: 1043, sent: 1031, dropped: 4, writeErrors: 2, checkpoints: 34, sendErrors: 1,
 		driftTotal: 7, lastCheckpoint: 1700000000,
 	}
 	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{Telemetry: src})
@@ -508,6 +510,7 @@ func TestMetrics_IncludesStorefwd(t *testing.T) {
 		"storefwd_written_total 1043",
 		"storefwd_sent_total 1031",
 		"storefwd_dropped_total 4",
+		"storefwd_write_error_total 2",
 		"storefwd_checkpoint_total 34",
 		"storefwd_send_error_total 1",
 		"storefwd_drift_total 7",
