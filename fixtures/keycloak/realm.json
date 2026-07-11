@@ -1,7 +1,7 @@
 {
   "realm": "nexus-gateway",
   "enabled": true,
-  "displayName": "nexus-gateway",
+  "displayName": "nexus-gateway (DEV ONLY — do not use in production)",
   "accessTokenLifespan": 300,
   "ssoSessionMaxLifespan": 36000,
   "roles": {
@@ -18,9 +18,9 @@
       "publicClient": false,
       "secret": "admin-ui-secret",
       "standardFlowEnabled": true,
-      "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost:3000/*"],
-      "webOrigins": ["http://localhost:3000"],
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:13000/*", "http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:13000", "http://localhost:3000"],
       "defaultClientScopes": ["openid", "profile", "email", "roles"]
     }
   ],

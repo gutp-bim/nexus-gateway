@@ -283,6 +283,8 @@ the broker topic the connector should publish writes to.
 | `401 Unauthorized` in the Admin UI | Wrong `ADMIN_USERNAME`/`ADMIN_PASSWORD` (Basic-auth mode), or an expired/missing token if you opted into Keycloak — re-run §4. |
 | `401 Unauthorized` on `/connectors`, `/devices`, … | Only possible in Keycloak mode (default mode leaves these open). Missing/expired token — re-run §4; Keycloak tokens are short-lived. |
 | `403 Forbidden` on a `POST` action | Keycloak mode only: token is a `viewer`, not an `operator`. |
+| `unauthorized_client` on the token request | The realm's `admin-ui` client must have **direct access grants** enabled for the password-grant command; the bundled dev realm (`fixtures/keycloak/realm.json`) already does. If you customised the realm, re-enable it. |
+| `Invalid redirect_uri` on browser sign-in | The Admin UI origin (compose publishes it on port **13000**) must be registered in the realm client's `redirectUris`/`webOrigins`. The bundled dev realm registers `http://localhost:13000`; a custom realm or a changed host port needs the matching entry. |
 | Token request fails | Keycloak not healthy yet — `docker compose ps` and retry once it's up. |
 | `/telemetry` `buffer_depth` keeps growing | The uplink to Building OS is down; frames are buffering (expected during a `mock-bos` restart). |
 | Gateway can't manage connectors | The container needs the host Docker socket mounted (`/var/run/docker.sock`); see `docker-compose.yml`. |
