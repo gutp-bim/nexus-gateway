@@ -67,7 +67,7 @@ curl -s http://localhost:18080/metrics
 | Series | Type | Meaning |
 |--------|------|---------|
 | `gateway_build_info{version}` | gauge | Always `1`; carries the running version as a label. |
-| `gateway_uptime_seconds` / `gateway_goroutines` / `gateway_mem_alloc_mb` | gauge | Process host stats. |
+| `gateway_uptime_seconds` / `gateway_goroutines` / `gateway_mem_alloc_mb` / `gateway_cpu_percent` | gauge | Process host stats (CPU is the GOMAXPROCS-normalized busy % over the last sample window). |
 | `gateway_connectors_total` / `gateway_connectors_running` | gauge | Aggregate connector counts. |
 | `gateway_connector_up{connector_id}` | gauge | Per-connector lifecycle state (`1` running, `0` stopped) — names *which* connector is down, not only "N of M". |
 | `nats_connected` | gauge | `1` while the gateway holds a live NATS connection; flips to `0` on disconnect/close (also logged as structured events). |

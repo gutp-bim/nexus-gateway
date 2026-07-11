@@ -31,6 +31,7 @@ type GatewayHealth struct {
 	UptimeSeconds float64
 	GoRoutines    int
 	MemAllocMB    float64
+	CPUPercent    float64
 	DiskUsedMB    float64
 	DiskTotalMB   float64
 	Connectors    []ConnectorHealth
@@ -42,6 +43,7 @@ type GatewayStats struct {
 	UptimeSeconds float64
 	GoRoutines    int
 	MemAllocMB    float64
+	CPUPercent    float64
 	DiskUsedMB    float64
 	DiskTotalMB   float64
 }
@@ -82,6 +84,7 @@ func (h *HealthMonitor) Snapshot(ctx context.Context) GatewayHealth {
 		UptimeSeconds: s.UptimeSeconds,
 		GoRoutines:    s.GoRoutines,
 		MemAllocMB:    s.MemAllocMB,
+		CPUPercent:    s.CPUPercent,
 		DiskUsedMB:    s.DiskUsedMB,
 		DiskTotalMB:   s.DiskTotalMB,
 		Connectors:    h.prober.Probe(ctx, h.registry.List()),
@@ -102,6 +105,17 @@ type runtimeMetrics struct {
 	dTotal  float64
 	dAt     time.Time
 	dInit   bool
+
+	// CPU% is a delta between two runtime/metrics cpu-seconds samples, so like
+	// disk it is cached and recomputed at most once per cpuTTL — a sub-second
+	// window would produce a noisy, meaningless ratio, and /health is polled often.
+	cpuTTL    time.Duration
+	cpuMu     sync.Mutex
+	cpuAt     time.Time
+	cpuPct    float64
+	cpuInit   bool
+	lastTotal float64 // /cpu/classes/total:cpu-seconds at last recompute
+	lastIdle  float64 // /cpu/classes/idle:cpu-seconds at last recompute
 }
 
 // NewGatewayMetrics returns the default GatewayMetrics backed by the Go runtime
@@ -111,7 +125,47 @@ func NewGatewayMetrics() GatewayMetrics {
 }
 
 func newRuntimeMetrics(diskFn func() (usedMB, totalMB float64), diskTTL time.Duration) *runtimeMetrics {
-	return &runtimeMetrics{startTime: time.Now(), diskFn: diskFn, diskTTL: diskTTL}
+	return &runtimeMetrics{startTime: time.Now(), diskFn: diskFn, diskTTL: diskTTL, cpuTTL: time.Second}
+}
+
+// cpuPercent returns the share of available CPU capacity (GOMAXPROCS-normalized)
+// the Go runtime consumed since the last recompute, as a percentage. It is a
+// delta of runtime/metrics cpu-seconds classes, recomputed at most once per
+// cpuTTL; the first call establishes the baseline and returns 0. If the CPU
+// classes are unavailable on this runtime, it returns 0.
+func (m *runtimeMetrics) cpuPercent() float64 {
+	m.cpuMu.Lock()
+	defer m.cpuMu.Unlock()
+
+	samples := []metrics.Sample{
+		{Name: "/cpu/classes/total:cpu-seconds"},
+		{Name: "/cpu/classes/idle:cpu-seconds"},
+	}
+	metrics.Read(samples)
+	if samples[0].Value.Kind() != metrics.KindFloat64 || samples[1].Value.Kind() != metrics.KindFloat64 {
+		return 0 // CPU classes not supported on this runtime
+	}
+	total, idle := samples[0].Value.Float64(), samples[1].Value.Float64()
+
+	if !m.cpuInit {
+		m.lastTotal, m.lastIdle, m.cpuAt, m.cpuInit = total, idle, time.Now(), true
+		return 0 // no delta yet
+	}
+	if time.Since(m.cpuAt) < m.cpuTTL {
+		return m.cpuPct // reuse cached value within the window
+	}
+
+	dTotal, dIdle := total-m.lastTotal, idle-m.lastIdle
+	pct := 0.0
+	if dTotal > 0 {
+		busy := dTotal - dIdle
+		if busy < 0 {
+			busy = 0
+		}
+		pct = busy / dTotal * 100
+	}
+	m.lastTotal, m.lastIdle, m.cpuAt, m.cpuPct = total, idle, time.Now(), pct
+	return pct
 }
 
 // disk returns cached disk stats, refreshing via diskFn at most once per diskTTL.
@@ -139,6 +193,7 @@ func (m *runtimeMetrics) Sample() GatewayStats {
 		UptimeSeconds: time.Since(m.startTime).Seconds(),
 		GoRoutines:    runtime.NumGoroutine(),
 		MemAllocMB:    allocMB,
+		CPUPercent:    m.cpuPercent(),
 		DiskUsedMB:    diskUsed,
 		DiskTotalMB:   diskTotal,
 	}

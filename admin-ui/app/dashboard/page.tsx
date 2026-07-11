@@ -70,6 +70,7 @@ export default function DashboardPage() {
         <StatCard label="Status" value={running === total && total > 0 ? "✓ OK" : total === 0 ? "No connectors" : `${running}/${total} running`} />
         <StatCard label="Uptime" value={uptimeStr} />
         <StatCard label="Memory" value={`${fmt(health.MemAllocMB)} MB`} />
+        <StatCard label="CPU" value={`${fmt(health.CPUPercent ?? 0)}%`} />
         <StatCard label="Goroutines" value={String(health.GoRoutines)} />
         <StatCard
           label="Disk"
