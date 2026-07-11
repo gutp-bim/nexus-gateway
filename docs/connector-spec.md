@@ -639,7 +639,9 @@ Keep at least the last **1000** `control_id` → WriteReply entries. Evict the o
 |------|---------------------|
 | Publish on `evt.<protocol>.<connector_id>` only | **Must** |
 | Use JetStream acknowledged publish | **Must** |
+| Reconnect to NATS indefinitely with backoff (never stop at the client's default attempt cap) | **Must** |
 | Reply to every `cmd.*` Request within timeout | **Must** |
+| Reply to an in-flight duplicate `cmd.*` (same `control_id`) with the `in_flight` token, not silence | **Must** |
 | Deduplicate write commands by `control_id` | **Must** |
 | Never resolve `point_id` | **Must** |
 | Echo `device_ref`, `unit` unchanged in events | **Must** |

@@ -186,6 +186,36 @@ class WriteHandlerTest {
     }
 
     @Test
+    void inFlightDuplicateRepliesInFlight() throws Exception {
+        MockOpcUaClient client = new MockOpcUaClient();
+        client.writeDelayMs = 500;  // keep the first write in flight while the duplicate arrives
+        Map<String, byte[]> byReplyTo = new ConcurrentHashMap<>();
+        WriteHandler handler = new WriteHandler(
+            makeConfig(List.of(writablePoint())), client, byReplyTo::put);
+
+        Thread first = new Thread(() -> {
+            try {
+                handler.handle(cmdBytes("ctrl-race", "ns=2;i=1001", 7.0), "reply.1");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        first.start();
+        Thread.sleep(100);  // let the first handle() reserve the in-flight sentinel
+
+        handler.handle(cmdBytes("ctrl-race", "ns=2;i=1001", 7.0), "reply.2");
+
+        Map<String, Object> dup = MAPPER.readValue(byReplyTo.get("reply.2"), new TypeReference<>() {});
+        assertFalse((Boolean) dup.get("success"), "in-flight duplicate must not report success");
+        assertEquals("in_flight", dup.get("response"), "duplicate must get the in_flight token, not stall (#30)");
+
+        first.join(5_000);
+        Map<String, Object> orig = MAPPER.readValue(byReplyTo.get("reply.1"), new TypeReference<>() {});
+        assertEquals("ok", orig.get("response"), "the original still completes with its real result");
+        assertEquals(1, client.writes.size(), "the in-flight original still writes exactly once");
+    }
+
+    @Test
     void methodPointCallsCallMethod() throws Exception {
         MockOpcUaClient client = new MockOpcUaClient();
         Replies replies = new Replies();
