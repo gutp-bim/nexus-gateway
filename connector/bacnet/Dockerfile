@@ -12,4 +12,6 @@ COPY bacnet_connector/ bacnet_connector/
 
 ENV PYTHONUNBUFFERED=1
 
+EXPOSE 8080
+
 ENTRYPOINT ["python", "-m", "bacnet_connector.main"]

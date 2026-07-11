@@ -27,6 +27,7 @@ class WriteHandlerTest {
         long writeDelayMs;
 
         @Override public void connect() {}
+        @Override public boolean isConnected() { return true; }
         @Override public void close() {}
         @Override public Map<String, OpcValue> read(List<String> nodeIds) { return Map.of(); }
         @Override public void subscribe(List<String> nodeIds, BiConsumer<String, OpcValue> onValue) {}

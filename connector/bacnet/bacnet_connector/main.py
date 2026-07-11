@@ -14,6 +14,7 @@ from nats.js import JetStreamContext
 from bacnet_connector.bacnet_client import Bacpypes3Client
 from bacnet_connector.config import Config
 from bacnet_connector.connector import Connector
+from bacnet_connector.health import start_health_server
 from bacnet_connector.write_handler import WriteHandler
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -60,9 +61,12 @@ async def _run(cfg: Config) -> None:
     logger.info("bacnet: write handler subscribed to %s", cmd_subject)
 
     connector = Connector(cfg, bacnet, js)
+    health_server = start_health_server(cfg.health_port, connector.healthy)
     try:
         await connector.run(stop_event=stop_event)
     finally:
+        if health_server is not None:
+            health_server.shutdown()
         try:
             await sub.unsubscribe()
         finally:

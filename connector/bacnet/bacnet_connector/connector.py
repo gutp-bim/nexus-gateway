@@ -71,6 +71,13 @@ class Connector:
         self._subject = f"evt.bacnet.{cfg.connector_id}"
         self._point_map = {pt.local_id: pt for pt in cfg.points}
         self._cov_tasks: list[asyncio.Task] = []
+        # Device-reachability proxy for health: True once the most recent poll
+        # cycle produced at least one successful read (or there are no points).
+        self._healthy = False
+
+    def healthy(self) -> bool:
+        """Return whether the connector is reachable per the most recent poll cycle."""
+        return self._healthy
 
     async def run(self, *, stop_event: asyncio.Event | None = None) -> None:
         """Poll all points once, then set up COV subscriptions and keep polling.
@@ -127,10 +134,13 @@ class Connector:
         remaining chunks still publish.
         """
         if not self._cfg.points:
+            # Nothing to poll — the stack is up, so report healthy.
+            self._healthy = True
             return
 
         requests = [(pt.local_id, "presentValue") for pt in self._cfg.points]
         chunk_size = self._cfg.rpm_chunk_size
+        any_success = False
         for start in range(0, len(requests), chunk_size):
             chunk = requests[start:start + chunk_size]
             try:
@@ -146,11 +156,15 @@ class Connector:
                 )
                 continue
 
+            any_success = True
             for obj_id, value, status in results:
                 pt = self._point_map.get(obj_id)
                 if pt is None or value is None:
                     continue
                 await self._publish(pt, value, bacnet_quality(status))
+
+        # A cycle is healthy if any chunk read succeeded this pass.
+        self._healthy = any_success
 
     async def _subscribe_cov(self, pt: PointConfig) -> None:
         """Subscribe to COV for a single point and publish events on each change."""
