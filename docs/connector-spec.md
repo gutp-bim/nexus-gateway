@@ -198,9 +198,11 @@ top of* this floor; the periodic poll is the guarantee that still holds when val
 - **sim** — fixed ticker. Standalone `cmd/sim-connector`: `--interval` / `SIM_POLL_INTERVAL`
   (default **60 s**). In-process `--dev-sim`: `--dev-sim-interval` flag (default **60 s**;
   lower it for fast local feedback). A non-positive interval is clamped to the 60 s default.
-- **MQTT** — push-based: it emits when a broker message arrives and has no poll. A
-  freshness-floor re-publish of each point's last-known value once per interval is
-  **planned, not yet implemented**.
+- **MQTT** — push-based: it emits when a broker message arrives, **and** re-publishes
+  each point's last-known value once per `MQTT_FRESHNESS_INTERVAL` (default **60 s**) when
+  no broker update has arrived within the interval, so a never-changing point matches the
+  BACnet/OPC-UA cadence. A broker update resets the point's floor timer; a point that has
+  never reported is never invented. Set `MQTT_FRESHNESS_INTERVAL=0` to disable (pure push).
 
 ### 3.7 MQTT telemetry payload formats
 
@@ -343,6 +345,11 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `MQTT_PASSWORD` | _(empty)_ | Broker authentication password. |
 | `MQTT_KEEPALIVE` | `30` | MQTT KeepAlive interval in seconds. |
 | `MQTT_SESSION_EXPIRY` | `0` | MQTT 5.0 session expiry interval in seconds. `0` = session ends on disconnect (clean session behaviour). |
+| `MQTT_FRESHNESS_INTERVAL` | `60s` | Freshness floor (§3.6): re-publish each point's last-known value when idle this long. Go duration (`60s`, `2m`); `0` disables (pure push). |
+| `MQTT_TLS_CA_FILE` | _(empty)_ | PEM CA bundle verifying the broker certificate for `mqtts://`. Empty = system roots. Ignored for plain `mqtt://`. |
+| `MQTT_TLS_CERT_FILE` | _(empty)_ | Client certificate (PEM) for mutual TLS. Must be paired with `MQTT_TLS_KEY_FILE`. |
+| `MQTT_TLS_KEY_FILE` | _(empty)_ | Client private key (PEM) for mutual TLS. Must be paired with `MQTT_TLS_CERT_FILE`. |
+| `MQTT_TLS_INSECURE_SKIP_VERIFY` | `false` | **Dev only.** Skip broker certificate verification for `mqtts://`. Never enable in production. |
 | `MQTT_POINTS` | `[]` | JSON array of point configs (see §6.3). |
 
 ### 5.3 CONNECTOR_MAP

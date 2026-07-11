@@ -287,6 +287,42 @@ func TestMQTT_TelemetryDuringWrite(t *testing.T) {
 	assert.InDelta(t, 22.0, evt2.Value, 0.001)
 }
 
+// TestMQTT_FreshnessFloorRepublishes: with a silent broker after one update, the
+// connector re-publishes the last-known value within the freshness floor (#34), so
+// a never-changing Point does not look perpetually stale to Building OS.
+func TestMQTT_FreshnessFloorRepublishes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID:       "mqtt-fresh",
+		BrokerURL:         "mqtt://" + brokerAddr,
+		ClientID:          "nexus-gw-fresh",
+		KeepAlive:         30,
+		SessionExpiry:     60,
+		FreshnessInterval: 200 * time.Millisecond,
+		Points: []mqttconn.PointConfig{
+			{Topic: "sensors/temp", DeviceRef: "dev:ahu-01", Unit: "Cel"},
+		},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+
+	// One broker update seeds the last-known value and emits the first event.
+	publishMQTT(t, brokerAddr, "sensors/temp", []byte("22.5"))
+	evt1 := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-fresh")
+	assert.InDelta(t, 22.5, evt1.Value, 0.001)
+
+	// With no further broker traffic, the floor ticker must re-publish the same
+	// value — the next event arrives from the freshness floor, not the broker.
+	evt2 := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-fresh")
+	assert.InDelta(t, 22.5, evt2.Value, 0.001)
+	assert.Equal(t, "sensors/temp", evt2.LocalID)
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 func startBroker(t *testing.T) string {
