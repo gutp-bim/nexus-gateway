@@ -1,18 +1,60 @@
-# MQTT connector stack.
-# Requires an external MQTT 5.0 broker (e.g. Mosquitto). No bundled simulator is provided.
+# Bundled MQTT hello-world stack (#37).
 #
-# Run with: docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+# One command brings up a Mosquitto broker, a sample publisher, the MQTT
+# connector, and (from docker-compose.yml) the gateway + NATS + mock Building OS,
+# so MQTT telemetry flows end-to-end with NO external infrastructure — mirroring
+# the simulator-backed BACnet/OPC-UA stories:
 #
-# Set MQTT_BROKER_URL and MQTT_POINTS before starting:
-#   MQTT_BROKER_URL=mqtt://<host>:1883 \
-#   MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"}]' \
-#   docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+#   docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up --build
 #
-# NOTE: The default MQTT_BROKER_URL (mqtt://localhost:1883) resolves to the
-# container's own loopback interface, NOT the host machine. Always set
-# MQTT_BROKER_URL explicitly to the broker's reachable address.
+# The sample publisher publishes a readable point (sensors/room1/temp) every 10s
+# and echoes writes to the writable point's command topic
+# (actuators/room1/setpoint/set) so a Command Channel write is visible in its logs.
+# Both points are in fixtures/point_list.json (room1_temperature read-only,
+# room1_setpoint writable).
+#
+# To point at an EXTERNAL broker instead, override MQTT_BROKER_URL (and skip the
+# bundled broker/publisher):
+#   MQTT_BROKER_URL=mqtt://your-broker:1883 \
+#   docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up mqtt-connector
 
 services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    ports:
+      - "11883:1883"   # host access for manual mosquitto_pub/sub (services use mqtt-broker:1883)
+    volumes:
+      - ./fixtures/mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      # mosquitto_pub returns 0 only if the broker accepts a connection.
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t healthcheck -m ping || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mqtt-publisher:
+    image: eclipse-mosquitto:2
+    depends_on:
+      mqtt-broker:
+        condition: service_healthy
+    # Publish a slowly-varying temperature every 10s (readable point), and echo
+    # any write delivered to the setpoint command topic (writable point) so a
+    # Command Channel write shows up in `docker compose logs mqtt-publisher`.
+    # $$ escapes a literal $ for the container shell (compose would eat a single $).
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "mqtt-publisher: subscribing to actuators/room1/setpoint/set (writes echo here)";
+        mosquitto_sub -h mqtt-broker -p 1883 -t 'actuators/room1/setpoint/set' -v &
+        echo "mqtt-publisher: publishing sensors/room1/temp every 10s";
+        while true; do
+          t=$$(( 20 + $$(date +%S) % 6 ));
+          mosquitto_pub -h mqtt-broker -p 1883 -t sensors/room1/temp -m "$$t";
+          echo "mqtt-publisher: sensors/room1/temp=$$t";
+          sleep 10;
+        done
+    restart: unless-stopped
+
   mqtt-connector:
     build:
       context: .
@@ -20,14 +62,21 @@ services:
     environment:
       - CONNECTOR_ID=mqtt-01
       - NATS_URL=nats://nats:4222
-      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-mqtt://localhost:1883}
+      # Defaults to the bundled broker; override MQTT_BROKER_URL for an external one.
+      - MQTT_BROKER_URL=${MQTT_BROKER_URL:-mqtt://mqtt-broker:1883}
       - MQTT_CLIENT_ID=${MQTT_CLIENT_ID:-mqtt-01}
       - MQTT_USERNAME=${MQTT_USERNAME:-}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
       - MQTT_KEEPALIVE=${MQTT_KEEPALIVE:-30}
       - MQTT_SESSION_EXPIRY=${MQTT_SESSION_EXPIRY:-0}
-      - MQTT_POINTS=${MQTT_POINTS:-[]}
+      # One readable + one writable point, matching fixtures/point_list.json. The
+      # writable point needs a command_topic the connector publishes writes to.
+      # Set literally (not via ${...:-default}) because a brace-containing default
+      # inside ${...} breaks Compose interpolation; edit here to change the points.
+      - MQTT_POINTS=[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"},{"topic":"actuators/room1/setpoint","device_ref":"mqtt://room1","unit":"Cel","writable":true,"command_topic":"actuators/room1/setpoint/set"}]
     depends_on:
       nats:
+        condition: service_healthy
+      mqtt-broker:
         condition: service_healthy
     restart: unless-stopped
