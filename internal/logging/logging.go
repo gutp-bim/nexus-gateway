@@ -16,16 +16,34 @@ import (
 	"strings"
 )
 
+// records is the process-wide gateway log ring buffer, populated by Setup and
+// surfaced to the Admin API via Records() (#42). It is created even before Setup
+// so an early caller never dereferences nil.
+var records = NewRecorder(500)
+
+// Records returns the gateway log recorder (the in-memory ring buffer of recent
+// gateway log lines) for the Admin API's gateway-log source.
+func Records() *Recorder { return records }
+
 // Setup builds the default slog logger from LOG_LEVEL (debug/info/warn/error,
 // default info) and LOG_FORMAT (text/json, default text) and installs it via
-// slog.SetDefault. Invalid values return an error so the caller can fail fast;
-// the default logger remains usable to report that error.
+// slog.SetDefault. Every record is also captured (as a JSON line, so severity is
+// a structured field) into the gateway log recorder (Records()) for the Admin
+// API. Invalid values return an error so the caller can fail fast; the default
+// logger remains usable to report that error.
 func Setup() error {
-	handler, err := build(os.Getenv("LOG_LEVEL"), os.Getenv("LOG_FORMAT"), os.Stderr)
+	level, err := parseLevel(os.Getenv("LOG_LEVEL"))
 	if err != nil {
 		return err
 	}
-	slog.SetDefault(slog.New(handler))
+	base, err := build(os.Getenv("LOG_LEVEL"), os.Getenv("LOG_FORMAT"), os.Stderr)
+	if err != nil {
+		return err
+	}
+	// The recorder always captures JSON (regardless of the stderr LOG_FORMAT) so
+	// the gateway-log source has a structured `level` field to filter on.
+	recorder := slog.NewJSONHandler(records, &slog.HandlerOptions{Level: level})
+	slog.SetDefault(slog.New(fanoutHandler{handlers: []slog.Handler{base, recorder}}))
 	return nil
 }
 

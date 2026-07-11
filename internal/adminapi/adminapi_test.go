@@ -488,6 +488,49 @@ func TestDevices_NilSource_Returns404(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
+// ── gateway log source (#42) ──────────────────────────────────────────────────
+
+type mockGatewayLogs struct{ lines []string }
+
+func (m *mockGatewayLogs) Lines(tail int) []string {
+	if tail > 0 && tail < len(m.lines) {
+		return m.lines[len(m.lines)-tail:]
+	}
+	return m.lines
+}
+
+func TestGatewayLogs_ReturnsStructuredLines(t *testing.T) {
+	src := &mockGatewayLogs{lines: []string{
+		`{"time":"t","level":"INFO","msg":"started"}`,
+		`{"time":"t","level":"WARN","msg":"disk near capacity"}`,
+	}}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{GatewayLogs: src})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/logs/gateway?tail=200")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body struct {
+		ConnectorID string   `json:"connector_id"`
+		Lines       []string `json:"lines"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Equal(t, "gateway", body.ConnectorID)
+	require.Len(t, body.Lines, 2)
+	assert.Contains(t, body.Lines[1], `"level":"WARN"`)
+}
+
+func TestGatewayLogs_NilSource_Returns404(t *testing.T) {
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, _ := http.Get(apiSrv.URL + "/logs/gateway")
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
 // ── telemetry tests ──────────────────────────────────────────────────────────
 
 type mockTelemetrySource struct {
