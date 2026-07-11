@@ -30,5 +30,13 @@
     "point_id": "room1_humidity",
     "unit": "%RH",
     "writable": false
+  },
+  {
+    "connector_id": "mqtt-01",
+    "protocol": "mqtt",
+    "local_id": "actuators/room1/setpoint",
+    "point_id": "room1_setpoint",
+    "unit": "Cel",
+    "writable": true
   }
 ]

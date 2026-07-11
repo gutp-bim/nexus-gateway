@@ -335,13 +335,38 @@ control path (Building OS → gateway → connector), the
 
 ### MQTT
 
-The MQTT connector connects to any MQTT 5.0 broker. It requires an external broker
-(e.g. [Mosquitto](https://mosquitto.org/)); no bundled simulator is provided.
+The MQTT compose path is fully **bundled** — a Mosquitto broker and a sample
+publisher come up with the connector, so no external infrastructure is needed
+(mirroring the BACnet/OPC-UA simulator stories):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up --build
+```
+
+This adds a `mqtt-broker`, a `mqtt-publisher` that publishes a readable point
+(`sensors/room1/temp`) every 10 s, and the `mqtt-connector`. Both MQTT points ship
+in `fixtures/point_list.json`: `room1_temperature` (read-only) and `room1_setpoint`
+(writable). Watch telemetry arrive:
+
+```bash
+curl -s http://localhost:18080/telemetry -H "Authorization: Bearer $TOKEN" | jq   # buffer flowing
+curl -s http://localhost:18080/devices   -H "Authorization: Bearer $TOKEN" | jq   # room1 points
+```
+
+Drive the **writable** point through the Command Channel (the publisher subscribes
+to the setpoint command topic and echoes writes to its own log):
+
+```bash
+# send a control for room1_setpoint, then watch it arrive at the broker
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml logs -f mqtt-publisher
+```
+
+**External broker instead of the bundled one:** override `MQTT_BROKER_URL` and start
+just the connector:
 
 ```bash
 MQTT_BROKER_URL=mqtt://your-broker:1883 \
-MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"}]' \
-docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up mqtt-connector
 ```
 
 See the `pointEnv` struct in

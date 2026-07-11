@@ -303,13 +303,38 @@ docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile
 
 ### MQTT
 
-MQTT コネクタは任意の MQTT 5.0 ブローカーに接続します。外部ブローカー
-([Mosquitto](https://mosquitto.org/) など)が必要です。バンドルされたシミュレータはありません。
+MQTT の compose パスは**バンドル済み**です — Mosquitto ブローカーとサンプル
+パブリッシャがコネクタと一緒に起動するので、外部インフラは不要です
+(BACnet/OPC-UA のシミュレータ相当):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up --build
+```
+
+`mqtt-broker`・読み取りポイント(`sensors/room1/temp`)を 10 秒毎に publish する
+`mqtt-publisher`・`mqtt-connector` が追加されます。MQTT ポイントは 2 つとも
+`fixtures/point_list.json` に定義済み: `room1_temperature`(読み取り専用)と
+`room1_setpoint`(書き込み可能)。テレメトリの到達を確認:
+
+```bash
+curl -s http://localhost:18080/telemetry -H "Authorization: Bearer $TOKEN" | jq   # バッファ流入
+curl -s http://localhost:18080/devices   -H "Authorization: Bearer $TOKEN" | jq   # room1 ポイント
+```
+
+**書き込み可能**ポイントを Command Channel 経由で操作(パブリッシャが setpoint の
+command topic を購読し、受信した書き込みを自身のログにエコーします):
+
+```bash
+# room1_setpoint に制御を送り、ブローカーへの到達を確認
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml logs -f mqtt-publisher
+```
+
+**バンドルではなく外部ブローカーを使う場合:** `MQTT_BROKER_URL` を上書きして
+コネクタのみ起動:
 
 ```bash
 MQTT_BROKER_URL=mqtt://your-broker:1883 \
-MQTT_POINTS='[{"topic":"sensors/room1/temp","device_ref":"mqtt://room1","unit":"Cel"}]' \
-docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up mqtt-connector
 ```
 
 `MQTT_POINTS` の完全な JSON スキーマは
