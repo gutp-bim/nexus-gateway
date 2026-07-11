@@ -86,6 +86,8 @@ bacnet:<provisioning-connector-id>.`)
 	devSimInterval := flag.Duration("dev-sim-interval", 60*time.Second, "Publish interval for --dev-sim (1-min default; lower for fast local feedback)")
 	allowAdhocUpgrade := flag.Bool("allow-adhoc-upgrade", envOrDefault("ALLOW_ADHOC_UPGRADE", "") == "true", "Enable the dev-only POST /connectors/{id}/upgrade?image= action; MVP update path is catalog-driven (ADR-0006)")
 	syncInterval := flag.Duration("point-sync-interval", 10*time.Minute, "Point List poll interval after the initial sync (the list is near-static, ADR-0003)")
+	healthCheckpointStale := flag.Duration("health-checkpoint-stale", 60*time.Second, "/health degrades the uplink when a pending backlog is un-checkpointed this long (#45)")
+	healthNearCapacityFrac := flag.Float64("health-near-capacity-frac", 0.9, "/health degrades the buffer when depth/capacity exceeds this fraction (#45)")
 	bosInsecure := flag.Bool("bos-insecure", envOrDefault("BOS_INSECURE", "") == "true", "Dial Building OS over plaintext h2c (no TLS) — dev/CI only (ADR-0007)")
 	bosCA := flag.String("bos-ca", envOrDefault("BOS_CA_FILE", ""), "PEM CA bundle to verify the Building OS server cert (empty = system roots)")
 	bosCert := flag.String("bos-cert", envOrDefault("BOS_CERT_FILE", ""), "Client certificate for mTLS to Building OS (CN/SAN = gateway_id)")
@@ -439,6 +441,10 @@ bacnet:<provisioning-connector-id>.`)
 		Recent:            recentStore,
 		Logger:            connMgr,
 		AllowAdhocUpgrade: *allowAdhocUpgrade,
+		HealthThresholds: lifecycle.Thresholds{
+			CheckpointStale:  *healthCheckpointStale,
+			NearCapacityFrac: *healthNearCapacityFrac,
+		},
 	}
 	var adminSrv *adminapi.Server
 	if *jwksURL != "" {

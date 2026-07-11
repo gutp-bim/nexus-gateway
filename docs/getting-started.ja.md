@@ -54,15 +54,26 @@ docker compose ps
 
 ## 3. ゲートウェイの稼働確認
 
-`/health` と `/metrics` は認証不要なので、すぐ叩けます:
+`/health`・`/health/live`・`/metrics` は認証不要なので、すぐ叩けます:
 
 ```bash
-# ヘルススナップショット: uptime・goroutine・disk/mem・コネクタ生存性
+# レディネス: host統計 + コネクタ生存性 + 評価済み status/components。
+# status は "ok" か "degraded"(いずれも HTTP 200)。degraded は不健全なサブシステム
+# を名指しします(NATS断・バックログ有りで checkpoint 陳腐化・buffer 容量逼迫/書込
+# エラー・Point List 空・コネクタ停止)。
 curl -s http://localhost:18080/health | jq
+
+# liveness: プロセスが応答している限り常に {"status":"ok"}。コンテナ healthcheck は
+# これを対象とするので、degraded でも稼働中なら再起動されません。
+curl -s http://localhost:18080/health/live | jq
 
 # Prometheus 形式メトリクス(gateway_* / normalizer_* カウンタ)
 curl -s http://localhost:18080/metrics
 ```
+
+> 劣化閾値は `--health-checkpoint-stale`(既定 60s)と `--health-near-capacity-frac`
+> (既定 0.9)で調整可能。バックログが空の静かなゲートウェイは degraded にフラップし
+> ません(checkpoint 陳腐化はフレーム保留中のみ加算)。
 
 `/metrics` は ADR-0002 のベストエフォート・ドロップカウンタ 2 種を公開します:
 `normalizer_invalid_total`(poison イベント)と
