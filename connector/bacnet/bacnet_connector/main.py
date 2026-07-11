@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import signal
 import sys
 
@@ -16,9 +17,9 @@ from bacnet_connector.bacnet_client import Bacpypes3Client
 from bacnet_connector.config import Config, ConfigError
 from bacnet_connector.connector import Connector
 from bacnet_connector.health import start_health_server
+from bacnet_connector.logging_setup import configure as configure_logging
 from bacnet_connector.write_handler import WriteHandler
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -88,6 +89,9 @@ async def _run(cfg: Config) -> None:
 
 
 def main() -> None:
+    # Configure JSON logging before anything else so even a ConfigError below is
+    # emitted as a structured line tagged with the connector id.
+    configure_logging(os.environ.get("CONNECTOR_ID", "unknown"))
     try:
         cfg = Config.from_env()
     except ConfigError as exc:

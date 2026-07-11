@@ -199,6 +199,66 @@ async def test_poll_skips_none_values():
 
 
 @pytest.mark.asyncio
+async def test_configured_none_value_warns_once_within_window(caplog):
+    """A configured point returning None warns once (naming local_id) across
+    repeated polls inside the rate-limit window, and never publishes."""
+    bacnet = MockBACnetClient(poll_results=[("analogInput,0", None, "comm-failure")])
+    js = MockJetStream()
+    cfg = make_config([PointConfig(local_id="analogInput,0", device_ref="d")])
+
+    conn = Connector(cfg, bacnet, js)
+    conn._bad_value_warn_window = 300  # keep the default window so repeats are suppressed
+
+    with caplog.at_level("WARNING", logger="bacnet_connector.connector"):
+        for _ in range(5):
+            await conn._poll_all()
+
+    warnings = [
+        r for r in caplog.records
+        if r.levelname == "WARNING" and "analogInput,0" in r.getMessage()
+    ]
+    assert len(warnings) == 1
+    assert js.published == []  # non-numeric value is never published
+
+
+@pytest.mark.asyncio
+async def test_configured_none_value_warns_again_after_window(caplog):
+    """Once the rate-limit window elapses, the next poll warns again."""
+    bacnet = MockBACnetClient(poll_results=[("analogInput,0", None, "comm-failure")])
+    js = MockJetStream()
+    cfg = make_config([PointConfig(local_id="analogInput,0", device_ref="d")])
+
+    conn = Connector(cfg, bacnet, js)
+    conn._bad_value_warn_window = 0  # window elapses immediately → every poll warns
+
+    with caplog.at_level("WARNING", logger="bacnet_connector.connector"):
+        await conn._poll_all()
+        await conn._poll_all()
+
+    warnings = [
+        r for r in caplog.records
+        if r.levelname == "WARNING" and "analogInput,0" in r.getMessage()
+    ]
+    assert len(warnings) == 2
+
+
+@pytest.mark.asyncio
+async def test_unconfigured_none_value_does_not_warn(caplog):
+    """An unconfigured point (pt is None) is still skipped silently — no WARNING."""
+    # "analogInput,9" is returned by the device but not in the configured points.
+    bacnet = MockBACnetClient(poll_results=[("analogInput,9", None, "comm-failure")])
+    js = MockJetStream()
+    cfg = make_config([PointConfig(local_id="analogInput,0", device_ref="d")])
+
+    conn = Connector(cfg, bacnet, js)
+    with caplog.at_level("WARNING", logger="bacnet_connector.connector"):
+        await conn._poll_all()
+
+    assert [r for r in caplog.records if r.levelname == "WARNING"] == []
+    assert js.published == []
+
+
+@pytest.mark.asyncio
 async def test_cov_callback_publishes_event():
     """A COV notification must publish a Common Event to NATS."""
     pt = PointConfig(local_id="analogInput,0", device_ref="dev-1", unit="degC")

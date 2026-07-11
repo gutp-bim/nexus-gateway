@@ -27,6 +27,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("org.slf4j:slf4j-api:2.0.18")
     runtimeOnly("ch.qos.logback:logback-classic:1.5.37")
+    runtimeOnly("net.logstash.logback:logstash-logback-encoder:7.4")
 
     testImplementation(platform("org.junit:junit-bom:6.1.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
