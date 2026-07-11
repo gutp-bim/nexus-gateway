@@ -5,6 +5,7 @@
 
 import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import type { CatalogEntry, ConnectorItem } from "@/lib/api";
 import { apiFetch, isArrayOf } from "@/lib/apiClient";
 import { usePolling } from "@/lib/use-polling";
@@ -19,6 +20,8 @@ type CatalogData = { catalog: CatalogEntry[]; installed: ConnectorItem[] };
 export default function CatalogPage() {
   const { data: session } = useSession();
   const toast = useToast();
+  const t = useTranslations("catalog");
+  const tc = useTranslations("common");
   const [busy, setBusy] = useState<string | null>(null);
 
   const fetchData = useCallback(async (): Promise<CatalogData> => {
@@ -41,10 +44,10 @@ export default function CatalogPage() {
     setBusy(name);
     try {
       await apiFetch(`/api/gateway/connectors/${encodeURIComponent(name)}/install`, { method: "POST" });
-      toast.success(`Installed ${name}`);
+      toast.success(t("toastInstalled", { name }));
       await refresh();
     } catch (e) {
-      toast.error(`Install ${name} failed: ${messageFor(e)}`);
+      toast.error(t("toastInstallFailed", { name, error: messageFor(e) }));
     } finally {
       setBusy(null);
     }
@@ -54,36 +57,43 @@ export default function CatalogPage() {
     setBusy(`update:${name}`);
     try {
       await apiFetch(`/api/gateway/connectors/${encodeURIComponent(name)}/update`, { method: "POST" });
-      toast.success(`Updated ${name}`);
+      toast.success(t("toastUpdated", { name }));
       await refresh();
     } catch (e) {
-      toast.error(`Update ${name} failed: ${messageFor(e)}`);
+      toast.error(t("toastUpdateFailed", { name, error: messageFor(e) }));
     } finally {
       setBusy(null);
     }
   };
 
-  if (loading && !data) return <p>Loading…</p>;
+  if (loading && !data) return <p>{tc("loading")}</p>;
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>Connector Catalog</h1>
+        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>{t("title")}</h1>
         {!isOperator && (
           <span style={{ fontSize: "0.8rem", color: "#6b7280", background: "#f3f4f6", padding: "0.2rem 0.6rem", borderRadius: "999px" }}>
-            viewer — install disabled
+            {t("viewerBadge")}
           </span>
         )}
       </div>
       {error != null && (
         <div style={{ marginBottom: "0.75rem" }}>
-          <ErrorBanner error={error} onRetry={refresh} label="Failed to load" />
+          <ErrorBanner error={error} onRetry={refresh} label={t("loadError")} />
         </div>
       )}
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
         <thead>
           <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-            {["Connector", "Version", "Digest", "Signature", "Status", "Action"].map((h) => (
+            {[
+              t("headerConnector"),
+              t("headerVersion"),
+              t("headerDigest"),
+              t("headerSignature"),
+              t("headerStatus"),
+              t("headerAction"),
+            ].map((h) => (
               <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", whiteSpace: "nowrap" }}>{h}</th>
             ))}
           </tr>
@@ -92,7 +102,7 @@ export default function CatalogPage() {
           {catalog.length === 0 ? (
             <tr>
               <td colSpan={6} style={{ padding: "1rem", color: "#9ca3af", textAlign: "center" }}>
-                Catalog is empty or not configured
+                {t("empty")}
               </td>
             </tr>
           ) : catalog.map((entry) => {
@@ -111,25 +121,25 @@ export default function CatalogPage() {
                 </td>
                 <td style={{ padding: "0.5rem 0.75rem" }}>
                   {entry.signature_required ? (
-                    <span style={{ color: "#7c3aed", fontWeight: 600, fontSize: "0.8rem" }}>✓ required</span>
+                    <span style={{ color: "#7c3aed", fontWeight: 600, fontSize: "0.8rem" }}>{t("signatureRequired")}</span>
                   ) : (
-                    <span style={{ color: "#9ca3af", fontSize: "0.8rem" }}>optional</span>
+                    <span style={{ color: "#9ca3af", fontSize: "0.8rem" }}>{t("signatureOptional")}</span>
                   )}
                 </td>
                 <td style={{ padding: "0.5rem 0.75rem" }}>
                   {conn ? (
                     <span>
                       <span style={{ color: conn.running ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
-                        {conn.running ? "Running" : "Stopped"}
+                        {conn.running ? t("running") : t("stopped")}
                       </span>
                       {updateAvailable && (
                         <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "#d97706", background: "#fef3c7", padding: "0.1rem 0.4rem", borderRadius: "999px" }}>
-                          update available
+                          {t("updateAvailable")}
                         </span>
                       )}
                     </span>
                   ) : (
-                    <span style={{ color: "#9ca3af" }}>not installed</span>
+                    <span style={{ color: "#9ca3af" }}>{t("notInstalled")}</span>
                   )}
                 </td>
                 <td style={{ padding: "0.5rem 0.75rem" }}>
@@ -137,7 +147,7 @@ export default function CatalogPage() {
                     <span style={{ display: "flex", gap: "0.4rem" }}>
                       {!conn && (
                         <ActionBtn
-                          label={isBusy && busy === entry.name ? "Installing…" : "Install"}
+                          label={isBusy && busy === entry.name ? t("installing") : t("install")}
                           disabled={isBusy}
                           onClick={() => doInstall(entry.name)}
                           variant="primary"
@@ -145,7 +155,7 @@ export default function CatalogPage() {
                       )}
                       {conn && updateAvailable && (
                         <ActionBtn
-                          label={isBusy ? "Updating…" : "Update"}
+                          label={isBusy ? t("updating") : t("update")}
                           disabled={isBusy}
                           onClick={() => doUpdate(entry.name)}
                           variant="primary"

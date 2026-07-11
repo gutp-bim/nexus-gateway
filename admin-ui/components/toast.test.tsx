@@ -2,9 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithIntl } from "@/lib/i18n/test-utils";
 import { ToastProvider, useToast } from "./toast";
+
+// ToastViewport reads catalog strings (variant words, dismiss aria-label).
+const render = (ui: ReactElement) => renderWithIntl(ui);
 
 function Trigger() {
   const toast = useToast();
