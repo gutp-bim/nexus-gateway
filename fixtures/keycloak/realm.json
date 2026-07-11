@@ -21,7 +21,7 @@
       "directAccessGrantsEnabled": true,
       "redirectUris": ["http://localhost:13000/*", "http://localhost:3000/*"],
       "webOrigins": ["http://localhost:13000", "http://localhost:3000"],
-      "defaultClientScopes": ["openid", "profile", "email", "roles"]
+      "defaultClientScopes": ["profile", "email", "roles"]
     }
   ],
   "users": [
@@ -30,6 +30,9 @@
       "enabled": true,
       "emailVerified": true,
       "email": "operator@example.com",
+      "firstName": "Dev",
+      "lastName": "Operator",
+      "requiredActions": [],
       "credentials": [{ "type": "password", "value": "operator", "temporary": false }],
       "realmRoles": ["gateway-operator", "gateway-viewer"]
     },
@@ -38,6 +41,9 @@
       "enabled": true,
       "emailVerified": true,
       "email": "viewer@example.com",
+      "firstName": "Dev",
+      "lastName": "Viewer",
+      "requiredActions": [],
       "credentials": [{ "type": "password", "value": "viewer", "temporary": false }],
       "realmRoles": ["gateway-viewer"]
     }
