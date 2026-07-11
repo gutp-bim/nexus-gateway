@@ -118,8 +118,11 @@ services:
       # KEYCLOAK_* lines above later doesn't race a not-yet-healthy Keycloak.
       keycloak:
         condition: service_healthy
+    # Liveness, not readiness (#45): /health/live always reports "status":"ok" when
+    # the process is serving, so a degraded-but-serving gateway (e.g. NATS blip,
+    # empty Point List) is not restart-looped. Readiness/degradation is on /health.
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health | grep -q '\"status\":\"ok\"' || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health/live | grep -q '\"status\":\"ok\"' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 6

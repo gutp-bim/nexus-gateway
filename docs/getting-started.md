@@ -52,15 +52,27 @@ docker compose ps
 
 ## 3. Verify the gateway is alive
 
-`/health` and `/metrics` are unauthenticated, so you can hit them immediately:
+`/health`, `/health/live`, and `/metrics` are unauthenticated, so you can hit them immediately:
 
 ```bash
-# Health snapshot: uptime, goroutines, disk/mem, and per-connector liveness
+# Readiness: host stats + per-connector liveness + an evaluated status/components
+# breakdown. status is "ok" or "degraded" (both HTTP 200); degraded names the
+# unhealthy subsystem (NATS down, uplink checkpoint stale with a backlog, buffer
+# near-capacity or write errors, empty Point List, a connector not running).
 curl -s http://localhost:18080/health | jq
+
+# Liveness: always {"status":"ok"} while the process is serving — this is what the
+# container healthcheck targets, so a degraded-but-serving gateway is not restarted.
+curl -s http://localhost:18080/health/live | jq
 
 # Prometheus-style metrics (gateway_* and normalizer_* counters)
 curl -s http://localhost:18080/metrics
 ```
+
+> Degradation thresholds are tunable via `--health-checkpoint-stale` (default 60s)
+> and `--health-near-capacity-frac` (default 0.9). A quiet gateway with an empty
+> backlog never flaps to degraded — checkpoint staleness only accrues while frames
+> are pending.
 
 ### `/metrics` series reference
 

@@ -279,15 +279,55 @@ func TestHealth_NoAuthRequired(t *testing.T) {
 	assert.Greater(t, h.UptimeSeconds, 0.0)
 }
 
-// The container healthcheck in docker-compose.yml greps /health for
-// `"status":"ok"`, so the endpoint must emit that field.
-func TestHealth_ReportsStatusOk(t *testing.T) {
+// The container healthcheck greps the liveness route for `"status":"ok"`; it must
+// always report ok (process serving) regardless of degraded readiness (#45).
+func TestHealthLive_AlwaysOK(t *testing.T) {
+	metrics.SetNatsConnected(false) // even with a degraded /health, liveness stays ok
+	t.Cleanup(func() { metrics.SetNatsConnected(false) })
+
 	f := newFixture(t)
-	resp := f.get("/health", "")
+	resp := f.get("/health/live", "")
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var body map[string]any
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
-	assert.Equal(t, "ok", body["status"], `/health must report "status":"ok" for the container healthcheck`)
+	assert.Equal(t, "ok", body["status"], "liveness must always report ok for the container healthcheck")
+}
+
+// /health reports degraded (still HTTP 200) when a component is unhealthy — here,
+// NATS disconnected — with a named component reason (#45).
+func TestHealth_DegradedWhenNatsDown(t *testing.T) {
+	metrics.SetNatsConnected(false)
+	t.Cleanup(func() { metrics.SetNatsConnected(false) })
+
+	f := newFixture(t)
+	resp := f.get("/health", "")
+	require.Equal(t, http.StatusOK, resp.StatusCode, "degraded is still HTTP 200")
+	var h lifecycle.GatewayHealth
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&h))
+	assert.Equal(t, "degraded", h.Status)
+	var natsDown bool
+	for _, c := range h.Components {
+		if c.Name == "nats" {
+			natsDown = c.Status == "degraded" && c.Reason != ""
+		}
+	}
+	assert.True(t, natsDown, "the nats component must be degraded with a reason")
+}
+
+// /health reports ok when every evaluated component is healthy.
+func TestHealth_OKWhenAllComponentsHealthy(t *testing.T) {
+	metrics.SetNatsConnected(true)
+	metrics.SetUplinkConnected(true)
+	t.Cleanup(func() { metrics.SetNatsConnected(false); metrics.SetUplinkConnected(false) })
+
+	// mockMonitor reports one running connector; no telemetry/devices sources are
+	// wired, so those components are omitted — leaving nats + connectors, both ok.
+	f := newFixture(t)
+	resp := f.get("/health", "")
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var h lifecycle.GatewayHealth
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&h))
+	assert.Equal(t, "ok", h.Status)
 }
 
 func TestConnectors_ReturnsConnectorList(t *testing.T) {
@@ -458,6 +498,7 @@ type mockTelemetrySource struct {
 	accepted       int64
 	dropped        int64
 	writeErrors    int64
+	capacity       int
 	checkpoints    int64
 	sendErrors     int64
 	driftTotal     int64
@@ -471,6 +512,7 @@ func (m *mockTelemetrySource) Sent() int64               { return m.sent }
 func (m *mockTelemetrySource) Accepted() int64           { return m.accepted }
 func (m *mockTelemetrySource) Dropped() int64            { return m.dropped }
 func (m *mockTelemetrySource) WriteErrors() int64        { return m.writeErrors }
+func (m *mockTelemetrySource) Capacity() int             { return m.capacity }
 func (m *mockTelemetrySource) Checkpoints() int64        { return m.checkpoints }
 func (m *mockTelemetrySource) SendErrors() int64         { return m.sendErrors }
 func (m *mockTelemetrySource) DriftTotal() int64         { return m.driftTotal }
