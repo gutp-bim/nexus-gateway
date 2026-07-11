@@ -147,7 +147,7 @@ docker compose up --build
 | エンドポイント | URL | 備考 |
 |----------------|-----|------|
 | Admin UI | http://localhost:13000 | Basic 認証: `admin`/`admin`(デフォルト)。`AUTH_PROVIDER=keycloak` でオプトイン可 |
-| Gateway Admin API | http://localhost:18080 | `/health`、`/metrics`、`/connectors` |
+| Gateway Admin API | http://localhost:18080 | `/health`（レディネス: ok/degraded）、`/health/live`（liveness）、`/metrics`、`/connectors` |
 | Keycloak | http://localhost:18090 | デフォルトで起動するが `AUTH_PROVIDER=keycloak` 未設定時は不使用。管理者 `admin`/`admin` |
 | mock Building OS (gRPC) | `localhost:15051` | dev 用 `GatewayIngressService` スタブ |
 | NATS | `localhost:14222` | NATS クライアントポート。監視は `:18222` |

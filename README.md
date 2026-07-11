@@ -154,7 +154,7 @@ docker compose ps
 | Endpoint | URL | Notes |
 |----------|-----|-------|
 | Admin UI | http://localhost:13000 | Basic auth: `admin`/`admin` (default); Keycloak opt-in via `AUTH_PROVIDER=keycloak` |
-| Gateway Admin API | http://localhost:18080 | `/health`, `/metrics`, `/connectors` |
+| Gateway Admin API | http://localhost:18080 | `/health` (readiness: ok/degraded), `/health/live` (liveness), `/metrics`, `/connectors` |
 | Keycloak | http://localhost:18090 | Starts by default but unused unless `AUTH_PROVIDER=keycloak`; admin `admin`/`admin` |
 | mock Building OS (gRPC) | `localhost:15051` | `GatewayIngressService` stub for dev |
 | NATS | `localhost:14222` | NATS client port; monitoring at `:18222` |

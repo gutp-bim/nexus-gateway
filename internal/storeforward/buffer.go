@@ -189,6 +189,10 @@ func (b *Buffer) RecordWriteError() { b.writeErrors.Add(1) }
 // WriteErrors returns the total frames lost to buffer write failures.
 func (b *Buffer) WriteErrors() int64 { return b.writeErrors.Load() }
 
+// Capacity returns the buffer's configured ring-buffer capacity in frames, so a
+// near-capacity health rule can compare it against Depth (#45).
+func (b *Buffer) Capacity() int { return b.capacity }
+
 // Sent returns the total frames acked-as-sent to Building OS.
 func (b *Buffer) Sent() int64 { return b.sent.Load() }
 

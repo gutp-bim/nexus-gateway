@@ -62,6 +62,7 @@ type TelemetrySource interface {
 	Accepted() int64
 	Dropped() int64
 	WriteErrors() int64
+	Capacity() int
 	Checkpoints() int64
 	SendErrors() int64
 	// DriftTotal is the running sum of per-point drift, so designed loss is
@@ -98,6 +99,9 @@ type ServerOptions struct {
 	// action. The MVP update path is catalog-driven (ADR-0006); when false (default)
 	// the upgrade action returns 501 Not Implemented.
 	AllowAdhocUpgrade bool
+	// HealthThresholds tunes the /health degradation rules (#45); zero values fall
+	// back to lifecycle.DefaultThresholds inside the evaluator.
+	HealthThresholds lifecycle.Thresholds
 }
 
 // JWTConfig configures bearer-token authentication for the Admin API. The token
@@ -130,7 +134,8 @@ type Server struct {
 	monitor     HealthSnapshotter
 	shutdown    context.CancelFunc // stops the JWKS cache refresh goroutine
 
-	allowAdhocUpgrade bool // dev-only upgrade?image= action (ADR-0006: catalog-driven by default)
+	allowAdhocUpgrade bool                 // dev-only upgrade?image= action (ADR-0006: catalog-driven by default)
+	healthThresholds  lifecycle.Thresholds // /health degradation tuning (#45)
 }
 
 // NewServer creates an Admin API Server with authentication DISABLED — for
@@ -175,6 +180,7 @@ func buildServer(mgr ConnectorManager, monitor HealthSnapshotter, opts ServerOpt
 		monitor:     monitor,
 
 		allowAdhocUpgrade: opts.AllowAdhocUpgrade,
+		healthThresholds:  opts.HealthThresholds,
 	}
 	s.registerRoutes(authenticated)
 	return s
@@ -188,6 +194,7 @@ func (s *Server) registerRoutes(authenticated bool) {
 		return s.auth.require(role, h)
 	}
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /health/live", s.handleLive)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /capabilities", require(RoleViewer, s.handleCapabilities))
 	s.mux.HandleFunc("GET /connectors", require(RoleViewer, s.handleListConnectors))
@@ -308,13 +315,43 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
+// handleHealth is the readiness document: it evaluates every subsystem into an
+// ok/degraded status with a per-component breakdown (#45). It stays HTTP 200 for
+// both — degraded is an alerting signal, not a liveness failure — so the container
+// healthcheck targets /health/live instead.
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	h := s.monitor.Snapshot(r.Context())
-	// If the handler is responding, the gateway process is live. The container
-	// healthcheck (docker-compose.yml) greps the body for `"status":"ok"`.
-	h.Status = "ok"
 	h.Version = version.String()
+
+	in := lifecycle.HealthInputs{
+		NatsConnected:   metrics.NatsConnected(),
+		UplinkConnected: metrics.UplinkConnected(),
+		Connectors:      h.Connectors,
+		Now:             time.Now(),
+	}
+	if s.telemetry != nil {
+		in.HasBuffer = true
+		in.BufferDepth = s.telemetry.Depth()
+		in.BufferCapacity = s.telemetry.Capacity()
+		in.WriteErrors = s.telemetry.WriteErrors()
+		in.LastCheckpointUnix = s.telemetry.LastCheckpointUnix()
+	}
+	if s.devices != nil {
+		in.HasPointList = true
+		in.PointCount = len(s.devices.Snapshot())
+	}
+	report := lifecycle.Evaluate(in, s.healthThresholds)
+	h.Status = report.Status
+	h.Components = report.Components
 	writeJSON(w, h)
+}
+
+// handleLive is the liveness probe: if this handler answers, the process is
+// serving. It does no snapshotting (no disk/docker work) and always returns
+// {"status":"ok"} at HTTP 200, so the container healthcheck never restarts a
+// degraded-but-serving gateway (#45).
+func (s *Server) handleLive(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, map[string]string{"status": "ok"})
 }
 
 // capabilitiesResponse advertises server-side feature switches the Admin UI must

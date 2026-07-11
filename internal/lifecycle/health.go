@@ -22,9 +22,12 @@ type ConnectorHealth struct {
 
 // GatewayHealth is a point-in-time health snapshot.
 type GatewayHealth struct {
-	// Status is "ok" when the Admin API is serving; the Admin API sets it on the
-	// /health response. The container healthcheck greps for `"status":"ok"`.
+	// Status is "ok" or "degraded", set by the Admin API from the health evaluator
+	// (#45). Both are served HTTP 200; the container healthcheck now targets the
+	// separate liveness route, not this field.
 	Status string `json:"status,omitempty"`
+	// Components is the per-subsystem health breakdown that explains Status (#45).
+	Components []ComponentHealth `json:"components,omitempty"`
 	// Version is the gateway build version, surfaced on /health for operators.
 	// Set by the Admin API from the single-source version package (#22).
 	Version       string `json:"version,omitempty"`
