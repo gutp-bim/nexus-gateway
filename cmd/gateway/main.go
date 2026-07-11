@@ -440,6 +440,7 @@ bacnet:<provisioning-connector-id>.`)
 		StreamStats:       eventsStreamStats{js: js},
 		Recent:            recentStore,
 		Logger:            connMgr,
+		GatewayLogs:       logging.Records(),
 		AllowAdhocUpgrade: *allowAdhocUpgrade,
 		HealthThresholds: lifecycle.Thresholds{
 			CheckpointStale:  *healthCheckpointStale,
