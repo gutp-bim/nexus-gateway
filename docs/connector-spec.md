@@ -420,7 +420,35 @@ ENTRYPOINT ["<connector-binary>"]
 
 - Do not embed credentials or device addresses in the image.
 - All config must come from environment variables.
-- Log to stdout/stderr (JSON or plain text). The gateway captures container logs via Docker API.
+- **Run as a non-root user.** Create an unprivileged user in the image and `USER` it before the entrypoint; the connector needs no root privileges (device access is over the network, not raw sockets requiring root — BACnet UDP 47808 binds as an unprivileged port).
+- Log to stdout/stderr as structured JSON — see §5.8.
+
+### 5.8 Structured logging
+
+Connectors log **one JSON object per line** to stderr so the gateway's log capture
+(Docker API → Admin UI logs screen) and any external aggregator can parse them
+uniformly. Every line carries the same shared key set:
+
+| Key | Description |
+|-----|-------------|
+| `timestamp` | ISO-8601 with timezone offset, e.g. `2026-07-11T22:14:03.123+00:00`. |
+| `level` | Log level (`DEBUG` / `INFO` / `WARN` / `ERROR`). |
+| `connector_id` | The connector's `CONNECTOR_ID`, present on every line (set at startup, so even a startup/config-error line carries it). |
+| `message` | The human-readable log message. |
+
+Additional structured fields may be attached; an `exception`/stack-trace field is
+included only on error lines. Example:
+
+```json
+{"timestamp":"2026-07-11T22:14:03.123+00:00","level":"INFO","connector_id":"bacnet-01","message":"bacnet: connector bacnet-01 starting"}
+```
+
+Log-noise rules: a namespace/discovery dump (e.g. the OPC-UA browse listing) is
+logged at `DEBUG`, not `INFO`, so a large address space does not flood startup logs;
+and a **configured** Point that yields a non-numeric value is reported with a
+**rate-limited** `WARN` naming its `local_id` (rather than silently skipped or
+buried at `DEBUG`), throttled per `local_id` so a persistently-bad point cannot
+flood the logs.
 
 ---
 
