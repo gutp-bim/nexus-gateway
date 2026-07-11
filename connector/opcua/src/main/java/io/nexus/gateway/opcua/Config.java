@@ -16,11 +16,30 @@ public record Config(
     String deviceRef,
     List<PointConfig> points,
     double pollInterval,
-    double writeTimeout
+    double writeTimeout,
+    SecurityConfig security
 ) {
     public Config {
         if (pollInterval <= 0)  throw new IllegalArgumentException("pollInterval must be positive, got " + pollInterval);
         if (writeTimeout <= 0)  throw new IllegalArgumentException("writeTimeout must be positive, got " + writeTimeout);
+        if (security == null)   security = SecurityConfig.anonymous();
+    }
+
+    /**
+     * Backward-compatible constructor defaulting to the legacy {@code None} policy + anonymous identity
+     * (today's behaviour). Used by existing tests that predate the security config (#32).
+     */
+    public Config(
+        String connectorId,
+        String natsUrl,
+        String opcuaEndpoint,
+        String deviceRef,
+        List<PointConfig> points,
+        double pollInterval,
+        double writeTimeout
+    ) {
+        this(connectorId, natsUrl, opcuaEndpoint, deviceRef, points, pollInterval, writeTimeout,
+            SecurityConfig.anonymous());
     }
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -59,7 +78,9 @@ public record Config(
             })
             .toList();
 
-        return new Config(connectorId, natsUrl, endpoint, deviceRef, points, pollInterval, writeTimeout);
+        SecurityConfig security = SecurityConfig.fromEnv(System::getenv);
+
+        return new Config(connectorId, natsUrl, endpoint, deviceRef, points, pollInterval, writeTimeout, security);
     }
 
     private static String required(String key) {
