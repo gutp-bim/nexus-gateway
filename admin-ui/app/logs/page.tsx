@@ -4,6 +4,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { ConnectorItem, ConnectorLogs } from "@/lib/api";
 import { apiFetch, isArrayOf, isRecord } from "@/lib/apiClient";
 import { usePolling } from "@/lib/use-polling";
@@ -59,6 +60,7 @@ const SEVERITY_META: Record<Severity, { label: string; color: string }> = {
 };
 
 export default function LogsPage() {
+  const t = useTranslations("logs");
   const [connectors, setConnectors] = useState<ConnectorItem[]>([]);
   // Default to the always-available Gateway source so there is a valid, labeled
   // selection immediately (before the connector list loads). Selecting a
@@ -125,36 +127,40 @@ export default function LogsPage() {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>Logs</h1>
+        <h1 style={{ fontSize: "1.25rem", fontWeight: 700, margin: 0 }}>{t("title")}</h1>
 
         <label htmlFor="log-source" style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.875rem", color: "#374151" }}>
-          Source
+          {t("sourceLabel")}
           <select
             id="log-source"
-            aria-label="Log source"
+            aria-label={t("sourceAria")}
             value={selectedID}
             onChange={(e) => setSelectedID(e.target.value)}
             style={{ padding: "0.3rem 0.6rem", borderRadius: "0.25rem", border: "1px solid #d1d5db", fontSize: "0.875rem" }}
           >
             {/* Gateway is always selectable, even with zero connectors. */}
-            <option value={GATEWAY_ID}>Gateway</option>
+            <option value={GATEWAY_ID}>{t("gateway")}</option>
             {connectors.map((c) => (
-              <option key={c.id} value={c.id}>{c.id} {c.running ? "●" : "○"}</option>
+              <option key={c.id} value={c.id}>
+                {/* The ●/○ glyph is paired with a running/stopped word so status
+                    is not conveyed by the filled/hollow dot alone (a11y, #43). */}
+                {c.id} {c.running ? "●" : "○"} {c.running ? t("sourceRunning") : t("sourceStopped")}
+              </option>
             ))}
           </select>
         </label>
 
         <label htmlFor="log-severity" style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.875rem", color: "#374151" }}>
-          Severity
+          {t("severityLabel")}
           <select
             id="log-severity"
-            aria-label="Severity filter"
+            aria-label={t("severityAria")}
             value={severity}
             onChange={(e) => setSeverity(e.target.value as SeverityFilter)}
             style={{ padding: "0.3rem 0.6rem", borderRadius: "0.25rem", border: "1px solid #d1d5db", fontSize: "0.875rem" }}
           >
-            <option value="all">All</option>
-            <option value="warn">Warnings &amp; errors</option>
+            <option value="all">{t("severityAll")}</option>
+            <option value="warn">{t("severityWarn")}</option>
           </select>
         </label>
 
@@ -170,22 +176,23 @@ export default function LogsPage() {
             opacity: fetching ? 0.5 : 1,
           }}
         >
-          {fetching ? "Loading…" : "Reload"}
+          {fetching ? t("loading") : t("reload")}
         </button>
         <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.875rem", color: "#374151" }}>
           <input
             type="checkbox"
+            aria-label={t("autoRefresh", { seconds: Math.round(TAIL_MS / 1000) })}
             checked={tailOn}
             onChange={(e) => setTailOn(e.target.checked)}
             disabled={!selectedID}
           />
-          Auto-refresh ({Math.round(TAIL_MS / 1000)}s)
+          {t("autoRefresh", { seconds: Math.round(TAIL_MS / 1000) })}
         </label>
       </div>
 
       {(listError || error) != null && (
         <div style={{ marginBottom: "0.5rem" }}>
-          <ErrorBanner error={error ?? listError} onRetry={retry} label="Error" />
+          <ErrorBanner error={error ?? listError} onRetry={retry} label={t("errorLabel")} />
         </div>
       )}
 
@@ -222,7 +229,7 @@ export default function LogsPage() {
                 </span>
               );
             })
-          : <span style={{ color: "#6b7280" }}>{fetching ? "" : "No log lines"}</span>
+          : <span style={{ color: "#6b7280" }}>{fetching ? "" : t("noLogLines")}</span>
         }
       </pre>
       <LastUpdated at={lastUpdated} stale={stale} intervalMs={tailOn ? TAIL_MS : undefined} />

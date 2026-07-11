@@ -6,11 +6,11 @@
 import { Suspense, useEffect, useState } from "react";
 import { getProviders, signIn, type ClientSafeProvider } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 // Minimal custom sign-in page (issue #38): NextAuth's built-in default page
 // has no concept of "your session expired" — it only surfaces its own
-// OAuth-flow error codes. Deliberately small: no design-system or i18n work
-// here (out of scope for #38/#39; see PRD #17's broader UI slices).
+// OAuth-flow error codes. Strings are catalog-driven (EN/JA) as of #43.
 export default function SignInPage() {
   // useSearchParams() opts this subtree out of static prerendering unless
   // wrapped in Suspense (Next.js requirement for App Router).
@@ -22,6 +22,7 @@ export default function SignInPage() {
 }
 
 function SignInForm() {
+  const t = useTranslations("signin");
   const params = useSearchParams();
   const expired = params.get("reason") === "expired";
   const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
@@ -35,10 +36,10 @@ function SignInForm() {
 
   return (
     <div style={{ maxWidth: 360, margin: "4rem auto" }}>
-      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>Sign in</h1>
+      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>{t("title")}</h1>
       {expired && (
         <p style={{ color: "#dc2626", marginBottom: "1rem" }}>
-          Your session has expired. Please sign in again.
+          {t("expired")}
         </p>
       )}
       {providers?.keycloak && (
@@ -53,7 +54,7 @@ function SignInForm() {
             cursor: "pointer",
           }}
         >
-          Sign in with Keycloak
+          {t("keycloak")}
         </button>
       )}
       {providers?.basic && (
@@ -67,14 +68,16 @@ function SignInForm() {
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
+            placeholder={t("username")}
+            aria-label={t("username")}
             style={{ padding: "0.4rem 0.6rem", border: "1px solid #d1d5db", borderRadius: "0.25rem" }}
           />
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
-            placeholder="Password"
+            placeholder={t("password")}
+            aria-label={t("password")}
             style={{ padding: "0.4rem 0.6rem", border: "1px solid #d1d5db", borderRadius: "0.25rem" }}
           />
           <button
@@ -88,7 +91,7 @@ function SignInForm() {
               cursor: "pointer",
             }}
           >
-            Sign in
+            {t("submit")}
           </button>
         </form>
       )}

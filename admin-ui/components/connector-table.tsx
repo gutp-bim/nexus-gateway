@@ -10,6 +10,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useTranslations } from "next-intl";
 import type { CatalogEntry, Capabilities, ConnectorItem } from "@/lib/api";
 import { apiFetch, isArrayOf, isRecord } from "@/lib/apiClient";
 import { useToast } from "@/components/toast";
@@ -37,6 +38,8 @@ type PendingConfirm = {
 
 export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
   const toast = useToast();
+  const t = useTranslations("connectorTable");
+  const tc = useTranslations("common");
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [upgradeFor, setUpgradeFor] = useState<ConnectorItem | null>(null);
@@ -77,21 +80,21 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
           ? `/api/gateway/connectors/${encodeURIComponent(id)}/${action}?image=${encodeURIComponent(image)}`
           : `/api/gateway/connectors/${encodeURIComponent(id)}/${action}`;
         await apiFetch(url, { method: "POST" });
-        toast.success(`${labelForAction(action)} ${id} succeeded`);
+        toast.success(t("toastSuccess", { action: labelForAction(t, action), id }));
         onRefresh();
       } catch (e) {
-        toast.error(`${labelForAction(action)} ${id} failed: ${messageFor(e)}`);
+        toast.error(t("toastFailure", { action: labelForAction(t, action), id, error: messageFor(e) }));
       } finally {
         setBusy(null);
       }
     },
-    [onRefresh, toast]
+    [onRefresh, toast, t]
   );
 
   const columns = useMemo(() => [
-    col.accessor("id", { header: "ID" }),
+    col.accessor("id", { header: t("headerId") }),
     col.accessor("image", {
-      header: "Image / Digest",
+      header: t("headerImage"),
       cell: (info) => {
         const img = info.getValue();
         if (!img) return "—";
@@ -112,91 +115,81 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
       },
     }),
     col.accessor("running", {
-      header: "Status",
+      header: t("headerStatus"),
       cell: (info) => (
         <span style={{ color: info.getValue() ? "#16a34a" : "#dc2626", fontWeight: 600 }}>
-          {info.getValue() ? "Running" : "Stopped"}
+          {info.getValue() ? t("running") : t("stopped")}
         </span>
       ),
     }),
     col.display({
       id: "actions",
-      header: "Actions",
+      header: t("headerActions"),
       cell: (info) => {
         const conn = info.row.original;
         const { id, running, prev_image } = conn;
         const isBusy = busy?.startsWith(`${id}:`);
 
         if (!isOperator) {
-          return <span style={{ color: "#9ca3af", fontSize: "0.875rem" }}>viewer</span>;
+          return <span style={{ color: "#9ca3af", fontSize: "0.875rem" }}>{t("viewer")}</span>;
         }
         return (
           <span style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
             {running ? (
               <>
                 <ActionBtn
-                  label="Stop"
+                  label={t("stop")}
                   disabled={!!isBusy}
                   onClick={() =>
                     setConfirm({
                       id,
                       action: "stop",
-                      title: `Stop ${id}`,
-                      message: (
-                        <>
-                          Stop connector <strong>{id}</strong>? Telemetry from this connector will pause until it is
-                          started again.
-                        </>
-                      ),
-                      confirmLabel: "Stop",
+                      title: t("confirmStopTitle", { id }),
+                      message: t.rich("confirmStopMessage", { id, strong: (c) => <strong>{c}</strong> }),
+                      confirmLabel: t("stop"),
                       danger: true,
                     })
                   }
                   variant="danger"
                 />
                 <ActionBtn
-                  label="Restart"
+                  label={t("restart")}
                   disabled={!!isBusy}
                   onClick={() =>
                     setConfirm({
                       id,
                       action: "restart",
-                      title: `Restart ${id}`,
-                      message: (
-                        <>
-                          Restart connector <strong>{id}</strong>? It will briefly stop, interrupting telemetry, then
-                          start again.
-                        </>
-                      ),
-                      confirmLabel: "Restart",
+                      title: t("confirmRestartTitle", { id }),
+                      message: t.rich("confirmRestartMessage", { id, strong: (c) => <strong>{c}</strong> }),
+                      confirmLabel: t("restart"),
                       danger: false,
                     })
                   }
                 />
               </>
             ) : (
-              <ActionBtn label="Start" disabled={!!isBusy} onClick={() => doAction(id, "start")} />
+              <ActionBtn label={t("start")} disabled={!!isBusy} onClick={() => doAction(id, "start")} />
             )}
-            <ActionBtn label="Upgrade" disabled={!!isBusy} onClick={() => setUpgradeFor(conn)} />
+            <ActionBtn label={t("upgrade")} disabled={!!isBusy} onClick={() => setUpgradeFor(conn)} />
             {prev_image && (
               <ActionBtn
-                label="Rollback"
+                label={t("rollback")}
                 disabled={!!isBusy}
                 onClick={() =>
                   setConfirm({
                     id,
                     action: "rollback",
-                    title: `Roll back ${id}`,
+                    title: t("confirmRollbackTitle", { id }),
                     message: (
                       <>
-                        Roll back <strong>{id}</strong> to its previous image?
+                        {t.rich("confirmRollbackMessage", { id, strong: (c) => <strong>{c}</strong> })}
                         <br />
                         <span style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "#6b7280", wordBreak: "break-all" }}>
                           {prev_image}
                         </span>
                       </>
                     ),
-                    confirmLabel: "Roll back",
+                    confirmLabel: t("confirmRollbackLabel"),
                     danger: true,
                   })
                 }
@@ -208,7 +201,7 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
       },
     }),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [busy, isOperator, doAction]);
+  ], [busy, isOperator, doAction, t]);
 
   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
 
@@ -230,7 +223,7 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
           {table.getRowModel().rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} style={{ padding: "1rem", color: "#9ca3af", textAlign: "center" }}>
-                No connectors registered
+                {t("empty")}
               </td>
             </tr>
           ) : (
@@ -251,7 +244,8 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
         open={confirm !== null}
         title={confirm?.title ?? ""}
         message={confirm?.message}
-        confirmLabel={confirm?.confirmLabel ?? "Confirm"}
+        confirmLabel={confirm?.confirmLabel ?? tc("confirm")}
+        cancelLabel={tc("cancel")}
         danger={confirm?.danger ?? false}
         onConfirm={() => {
           if (confirm) doAction(confirm.id, confirm.action);
@@ -283,20 +277,22 @@ export function ConnectorTable({ data, isOperator, onRefresh }: Props) {
   );
 }
 
-function labelForAction(action: string): string {
+// Localized action verb for toast messages. `t` is the "connectorTable"
+// namespace translator; unknown actions fall back to the raw action string.
+function labelForAction(t: ReturnType<typeof useTranslations>, action: string): string {
   switch (action) {
     case "start":
-      return "Start";
+      return t("start");
     case "stop":
-      return "Stop";
+      return t("stop");
     case "restart":
-      return "Restart";
+      return t("restart");
     case "upgrade":
-      return "Upgrade";
+      return t("upgrade");
     case "update":
-      return "Update";
+      return t("update");
     case "rollback":
-      return "Rollback";
+      return t("rollback");
     default:
       return action;
   }

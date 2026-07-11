@@ -2,9 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithIntl } from "@/lib/i18n/test-utils";
 import { ConfirmDialog } from "./confirm-dialog";
+
+// ConfirmDialog renders Dialog, which reads a catalog string (the close-button
+// aria-label), so the intl provider must be present.
+const render = (ui: ReactElement) => renderWithIntl(ui);
 
 describe("ConfirmDialog", () => {
   it("renders nothing when closed", () => {
