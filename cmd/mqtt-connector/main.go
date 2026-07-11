@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -56,6 +57,24 @@ func main() {
 	}
 	keepAlive := uint16(keepAliveRaw)
 	sessionExpiry := uint32(envUint("MQTT_SESSION_EXPIRY", 0))
+
+	// TLS material for mqtts:// brokers (#33). Consulted only for TLS schemes.
+	tlsCAFile := os.Getenv("MQTT_TLS_CA_FILE")
+	tlsCertFile := os.Getenv("MQTT_TLS_CERT_FILE")
+	tlsKeyFile := os.Getenv("MQTT_TLS_KEY_FILE")
+	tlsInsecure := isTruthy(os.Getenv("MQTT_TLS_INSECURE_SKIP_VERIFY"))
+	if tlsInsecure {
+		slog.Warn("MQTT_TLS_INSECURE_SKIP_VERIFY is set — broker certificate verification is DISABLED (dev only)")
+	}
+
+	// Freshness floor (#34): re-publish last-known values at this cadence so a
+	// never-changing Point matches the BACnet/OPC-UA poll cadence. Default 60s;
+	// set MQTT_FRESHNESS_INTERVAL=0 to disable (pure push).
+	freshness, err := parseDurationDefault("MQTT_FRESHNESS_INTERVAL", 60*time.Second)
+	if err != nil {
+		slog.Error("MQTT_FRESHNESS_INTERVAL: invalid duration", "err", err)
+		os.Exit(1)
+	}
 
 	var envPoints []pointEnv
 	if raw := envOrDefault("MQTT_POINTS", "[]"); raw != "[]" {
@@ -108,14 +127,19 @@ func main() {
 	}
 
 	cfg := mqttconn.Config{
-		ConnectorID:   connID,
-		BrokerURL:     brokerURL,
-		ClientID:      clientID,
-		Username:      username,
-		Password:      password,
-		KeepAlive:     keepAlive,
-		SessionExpiry: sessionExpiry,
-		Points:        points,
+		ConnectorID:           connID,
+		BrokerURL:             brokerURL,
+		ClientID:              clientID,
+		Username:              username,
+		Password:              password,
+		KeepAlive:             keepAlive,
+		SessionExpiry:         sessionExpiry,
+		Points:                points,
+		TLSCAFile:             tlsCAFile,
+		TLSCertFile:           tlsCertFile,
+		TLSKeyFile:            tlsKeyFile,
+		TLSInsecureSkipVerify: tlsInsecure,
+		FreshnessInterval:     freshness,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -166,4 +190,23 @@ func envUint(key string, def uint64) uint64 {
 		slog.Warn("invalid uint in env, using default", "key", key, "default", def)
 	}
 	return def
+}
+
+// parseDurationDefault reads a Go duration string (e.g. "60s", "0") from env,
+// returning def when unset and an error when set but unparseable.
+func parseDurationDefault(key string, def time.Duration) (time.Duration, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return def, nil
+	}
+	return time.ParseDuration(v)
+}
+
+// isTruthy reports whether an env value represents an enabled boolean flag.
+func isTruthy(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
 }

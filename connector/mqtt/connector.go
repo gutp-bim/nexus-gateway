@@ -5,11 +5,14 @@ package mqtt
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,13 +41,26 @@ type PointConfig struct {
 // Config holds all settings for one MQTT connector instance.
 type Config struct {
 	ConnectorID   string
-	BrokerURL     string // e.g. "mqtt://localhost:1883"
+	BrokerURL     string // e.g. "mqtt://localhost:1883" or "mqtts://broker:8883"
 	ClientID      string
 	Username      string
 	Password      []byte
 	KeepAlive     uint16
 	SessionExpiry uint32 // seconds; 0 = session ends on disconnect
 	Points        []PointConfig
+
+	// TLS material for mqtts:// brokers (#33). Only consulted when the broker URL
+	// scheme is a TLS scheme (mqtts/ssl/tls); plain mqtt:// ignores these.
+	TLSCAFile             string // PEM CA bundle to verify the broker cert; empty = system roots
+	TLSCertFile           string // client certificate for mutual TLS (paired with TLSKeyFile)
+	TLSKeyFile            string // client private key for mutual TLS (paired with TLSCertFile)
+	TLSInsecureSkipVerify bool   // DEV ONLY: skip broker cert verification
+
+	// FreshnessInterval enables the freshness floor (#34): when > 0, each Point's
+	// last-known value is re-published as a Common Event if no broker update
+	// arrived within the interval, matching the poll cadence of BACnet/OPC-UA.
+	// 0 disables the floor (pure push, prior behaviour).
+	FreshnessInterval time.Duration
 }
 
 // WriteReply is re-exported from connector/sdk for callers that import this package.
@@ -61,6 +77,19 @@ type Connector struct {
 	readyOnce sync.Once
 	ready     chan struct{}
 	dedup     *sdk.CommandDedup
+
+	// lkv holds the last-known value per topic (local_id) for the freshness floor
+	// (#34), guarded by lkvMu. Populated only from real broker updates, so a Point
+	// that never reported is never invented.
+	lkvMu sync.Mutex
+	lkv   map[string]*lkvState
+}
+
+// lkvState is a Point's last-known value and the wall clock of its last emission
+// (broker update or freshness re-publish, whichever is most recent).
+type lkvState struct {
+	value    float64
+	lastEmit time.Time
 }
 
 func New(cfg Config, nc *nats.Conn, js jetstream.JetStream) *Connector {
@@ -70,6 +99,7 @@ func New(cfg Config, nc *nats.Conn, js jetstream.JetStream) *Connector {
 		js:    js,
 		ready: make(chan struct{}),
 		dedup: sdk.NewCommandDedup(1000),
+		lkv:   make(map[string]*lkvState),
 	}
 }
 
@@ -102,6 +132,16 @@ func (c *Connector) Run(ctx context.Context) {
 
 	subject := "evt.mqtt." + c.cfg.ConnectorID
 
+	// Build TLS config for mqtts:// brokers (#33). Plain mqtt:// leaves it nil.
+	var tlsCfg *tls.Config
+	if isTLSScheme(brokerURL.Scheme) {
+		tlsCfg, err = buildTLSConfig(c.cfg)
+		if err != nil {
+			slog.Error("mqtt: TLS configuration failed", "err", err)
+			return
+		}
+	}
+
 	// Register write handler before starting the connection so it is live before
 	// readyOnce fires (OnConnectionUp runs on autopaho's internal goroutine).
 	// cm is published atomically: the NATS callback may fire (and Load) on another
@@ -120,6 +160,7 @@ func (c *Connector) Run(ctx context.Context) {
 
 	mgr, err := autopaho.NewConnection(ctx, autopaho.ClientConfig{
 		ServerUrls:                    []*url.URL{brokerURL},
+		TlsCfg:                        tlsCfg,
 		KeepAlive:                     c.cfg.KeepAlive,
 		CleanStartOnInitialConnection: false,
 		SessionExpiryInterval:         c.cfg.SessionExpiry,
@@ -160,23 +201,8 @@ func (c *Connector) Run(ctx context.Context) {
 						_ = pr.Client.Ack(pr.Packet)
 						return true, nil
 					}
-					evt := common.Event{
-						Protocol:    "mqtt",
-						ConnectorID: c.cfg.ConnectorID,
-						LocalID:     p.Topic,
-						DeviceRef:   p.DeviceRef,
-						Value:       value,
-						Unit:        p.Unit,
-						Quality:     "Good",
-						Timestamp:   time.Now().UTC().Format(time.RFC3339),
-					}
-					data, err := json.Marshal(evt)
-					if err != nil {
-						_ = pr.Client.Ack(pr.Packet)
-						return true, nil
-					}
-					if _, err := c.js.Publish(ctx, subject, data); err != nil {
-						slog.Warn("mqtt: nats publish failed — withholding PUBACK for QoS 1 retry", "err", err)
+					if !c.publishValue(ctx, subject, p, value, time.Now()) {
+						slog.Warn("mqtt: nats publish failed — withholding PUBACK for QoS 1 retry", "topic", pr.Packet.Topic)
 						// Do not ack: broker will redeliver when NATS is available again.
 						return true, nil
 					}
@@ -192,7 +218,29 @@ func (c *Connector) Run(ctx context.Context) {
 	}
 	cm.Store(mgr)
 
+	// Freshness floor (#34): periodically re-publish the last-known value of any
+	// Point idle beyond the interval, so a never-changing broker value does not
+	// look perpetually stale to Building OS. Disabled when the interval is 0.
+	if c.cfg.FreshnessInterval > 0 {
+		go c.runFreshnessFloor(ctx, subject, topicMap)
+	}
+
 	<-mgr.Done()
+}
+
+// runFreshnessFloor ticks at the freshness interval, re-publishing stale points
+// until ctx is cancelled.
+func (c *Connector) runFreshnessFloor(ctx context.Context, subject string, topicMap map[string]PointConfig) {
+	ticker := time.NewTicker(c.cfg.FreshnessInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			c.republishStale(ctx, subject, topicMap, time.Now())
+		}
+	}
 }
 
 func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionManager, topicMap map[string]PointConfig, msg *nats.Msg) {
@@ -249,6 +297,126 @@ func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionMana
 	}
 	c.dedup.Complete(req.ControlID, reply)
 	respond(msg, reply)
+}
+
+// isTLSScheme reports whether a broker URL scheme requires TLS.
+func isTLSScheme(scheme string) bool {
+	switch strings.ToLower(scheme) {
+	case "mqtts", "ssl", "tls":
+		return true
+	}
+	return false
+}
+
+// buildTLSConfig assembles a *tls.Config from the connector's TLS material for
+// mqtts:// brokers (#33). It mirrors internal/transport: a CA bundle overrides the
+// system roots, a client cert/key pair enables mutual TLS, and the pair must be
+// supplied together. A UI/dev-only skip-verify flag disables verification. The
+// returned config is always at least TLS 1.2.
+func buildTLSConfig(cfg Config) (*tls.Config, error) {
+	tc := &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: cfg.TLSInsecureSkipVerify} //nolint:gosec // skip-verify is an explicit, documented dev-only opt-in
+
+	if cfg.TLSCAFile != "" {
+		pem, err := os.ReadFile(cfg.TLSCAFile)
+		if err != nil {
+			return nil, fmt.Errorf("MQTT_TLS_CA_FILE: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pem) {
+			return nil, fmt.Errorf("MQTT_TLS_CA_FILE: no valid PEM certificates in %s", cfg.TLSCAFile)
+		}
+		tc.RootCAs = pool
+	}
+
+	// Client cert and key are a pair: one without the other is a misconfiguration.
+	if (cfg.TLSCertFile == "") != (cfg.TLSKeyFile == "") {
+		if cfg.TLSCertFile == "" {
+			return nil, fmt.Errorf("MQTT_TLS_CERT_FILE is required when MQTT_TLS_KEY_FILE is set")
+		}
+		return nil, fmt.Errorf("MQTT_TLS_KEY_FILE is required when MQTT_TLS_CERT_FILE is set")
+	}
+	if cfg.TLSCertFile != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.TLSCertFile, cfg.TLSKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("MQTT_TLS_CERT_FILE/MQTT_TLS_KEY_FILE: %w", err)
+		}
+		tc.Certificates = []tls.Certificate{cert}
+	}
+
+	return tc, nil
+}
+
+// publishValue builds and publishes a Common Event for point p with value at ts,
+// and records it as the point's last-known value for the freshness floor. Returns
+// false if the JetStream publish failed (caller decides whether to ack/retry).
+func (c *Connector) publishValue(ctx context.Context, subject string, p PointConfig, value float64, ts time.Time) bool {
+	evt := common.Event{
+		Protocol:    "mqtt",
+		ConnectorID: c.cfg.ConnectorID,
+		LocalID:     p.Topic,
+		DeviceRef:   p.DeviceRef,
+		Value:       value,
+		Unit:        p.Unit,
+		Quality:     "Good",
+		Timestamp:   ts.UTC().Format(time.RFC3339),
+	}
+	data, err := json.Marshal(evt)
+	if err != nil {
+		return false
+	}
+	if _, err := c.js.Publish(ctx, subject, data); err != nil {
+		return false
+	}
+	c.recordValue(p.Topic, value, ts)
+	return true
+}
+
+// recordValue stores/refreshes a point's last-known value and resets its floor timer.
+func (c *Connector) recordValue(topic string, value float64, ts time.Time) {
+	c.lkvMu.Lock()
+	c.lkv[topic] = &lkvState{value: value, lastEmit: ts}
+	c.lkvMu.Unlock()
+}
+
+// dueForRepublish returns the topics whose last emission is older than the
+// freshness interval at now. Returns nothing when the floor is disabled
+// (interval <= 0), and never returns a point that has not reported (absent from lkv).
+func (c *Connector) dueForRepublish(now time.Time) []string {
+	if c.cfg.FreshnessInterval <= 0 {
+		return nil
+	}
+	c.lkvMu.Lock()
+	defer c.lkvMu.Unlock()
+	var due []string
+	for topic, st := range c.lkv {
+		if now.Sub(st.lastEmit) >= c.cfg.FreshnessInterval {
+			due = append(due, topic)
+		}
+	}
+	return due
+}
+
+// republishStale re-publishes the last-known value of every point idle beyond the
+// freshness floor, stamping the event with now (#34).
+func (c *Connector) republishStale(ctx context.Context, subject string, topicMap map[string]PointConfig, now time.Time) {
+	for _, topic := range c.dueForRepublish(now) {
+		p, ok := topicMap[topic]
+		if !ok {
+			continue
+		}
+		c.lkvMu.Lock()
+		st := c.lkv[topic]
+		// Re-verify still due under the re-lock: a broker update landing between
+		// selection and here resets lastEmit, so re-publishing would emit a
+		// same-value duplicate. Skip it (also guards a future lkv eviction → nil).
+		if st == nil || now.Sub(st.lastEmit) < c.cfg.FreshnessInterval {
+			c.lkvMu.Unlock()
+			continue
+		}
+		value := st.value
+		c.lkvMu.Unlock()
+		c.publishValue(ctx, subject, p, value, now)
+	}
 }
 
 func respond(msg *nats.Msg, reply WriteReply) {
