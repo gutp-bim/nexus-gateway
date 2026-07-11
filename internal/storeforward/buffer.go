@@ -38,6 +38,7 @@ type Buffer struct {
 	written     atomic.Int64
 	dropped     atomic.Int64
 	sent        atomic.Int64
+	accepted    atomic.Int64
 	checkpoints atomic.Int64
 	sendErrors  atomic.Int64
 
@@ -158,6 +159,11 @@ func (b *Buffer) Write(f *pb.TelemetryFrame) error {
 // RecordSent adds n to the count of frames acked-as-sent to Building OS.
 func (b *Buffer) RecordSent(n int64) { b.sent.Add(n) }
 
+// RecordAccepted adds n to the count of frames Building OS acknowledged as
+// accepted (the cumulative StreamAck delta for a checkpoint). accepted <= sent;
+// the shortfall is drift (#47 pipeline figures).
+func (b *Buffer) RecordAccepted(n int64) { b.accepted.Add(n) }
+
 // RecordCheckpoint counts one successful ack-checkpoint (ADR-0002) and stamps the
 // checkpoint clock used by the staleness metric (#23).
 func (b *Buffer) RecordCheckpoint() {
@@ -176,6 +182,9 @@ func (b *Buffer) Dropped() int64 { return b.dropped.Load() }
 
 // Sent returns the total frames acked-as-sent to Building OS.
 func (b *Buffer) Sent() int64 { return b.sent.Load() }
+
+// Accepted returns the total frames Building OS acknowledged as accepted.
+func (b *Buffer) Accepted() int64 { return b.accepted.Load() }
 
 // Checkpoints returns the total successful ack-checkpoints.
 func (b *Buffer) Checkpoints() int64 { return b.checkpoints.Load() }

@@ -419,6 +419,7 @@ bacnet:<provisioning-connector-id>.`)
 		Catalog:           catalogSrc,
 		PointList:         resolver,
 		Telemetry:         buf,
+		StreamStats:       eventsStreamStats{js: js},
 		Recent:            recentStore,
 		Logger:            connMgr,
 		AllowAdhocUpgrade: *allowAdhocUpgrade,
@@ -464,6 +465,22 @@ bacnet:<provisioning-connector-id>.`)
 	}
 	pumpWg.Wait()
 	buf.Close()
+}
+
+// eventsStreamStats adapts the JetStream EVENTS stream to adminapi.StreamStatSource
+// so the telemetry payload can surface ingest backlog end-to-end (#47).
+type eventsStreamStats struct{ js jetstream.JetStream }
+
+func (e eventsStreamStats) StreamStats(ctx context.Context) (msgs, bytes uint64, err error) {
+	s, err := e.js.Stream(ctx, "EVENTS")
+	if err != nil {
+		return 0, 0, err
+	}
+	info, err := s.Info(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	return info.State.Msgs, info.State.Bytes, nil
 }
 
 // startDevSim registers and runs the in-process sim connector (dev/smoke only).

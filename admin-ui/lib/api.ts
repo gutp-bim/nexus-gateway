@@ -9,6 +9,7 @@ export type GatewayHealth = {
   UptimeSeconds: number;
   GoRoutines: number;
   MemAllocMB: number;
+  CPUPercent: number;
   DiskUsedMB: number;
   DiskTotalMB: number;
   Connectors: ConnectorHealth[] | null;
@@ -104,8 +105,18 @@ export type PointEntry = {
 };
 
 export type TelemetryStats = {
+  received: number;
+  sent: number;
+  accepted: number;
   buffer_depth: number;
+  dropped: number;
+  checkpoints: number;
+  send_errors: number;
   drifts: Record<string, number>;
+  drift_total: number;
+  uplink_connected: boolean;
+  last_checkpoint_unix: number;
+  events_stream?: { msgs: number; bytes: number };
 };
 
 export type ConnectorLogs = {

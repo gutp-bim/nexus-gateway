@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -172,7 +173,6 @@ type mockPointListSource struct {
 }
 
 func (m *mockPointListSource) Snapshot() []pointlist.Entry { return m.entries }
-
 
 type mockCatalogSource struct {
 	manifests  []catalog.Manifest
@@ -455,6 +455,7 @@ type mockTelemetrySource struct {
 	depth          int64
 	written        int64
 	sent           int64
+	accepted       int64
 	dropped        int64
 	checkpoints    int64
 	sendErrors     int64
@@ -466,11 +467,23 @@ func (m *mockTelemetrySource) Drifts() map[string]int64  { return m.drifts }
 func (m *mockTelemetrySource) Depth() int64              { return m.depth }
 func (m *mockTelemetrySource) Written() int64            { return m.written }
 func (m *mockTelemetrySource) Sent() int64               { return m.sent }
+func (m *mockTelemetrySource) Accepted() int64           { return m.accepted }
 func (m *mockTelemetrySource) Dropped() int64            { return m.dropped }
 func (m *mockTelemetrySource) Checkpoints() int64        { return m.checkpoints }
 func (m *mockTelemetrySource) SendErrors() int64         { return m.sendErrors }
 func (m *mockTelemetrySource) DriftTotal() int64         { return m.driftTotal }
 func (m *mockTelemetrySource) LastCheckpointUnix() int64 { return m.lastCheckpoint }
+
+// mockStreamStats is a fake adminapi.StreamStatSource for the telemetry payload.
+type mockStreamStats struct {
+	msgs  uint64
+	bytes uint64
+	err   error
+}
+
+func (m mockStreamStats) StreamStats(context.Context) (uint64, uint64, error) {
+	return m.msgs, m.bytes, m.err
+}
 
 // /metrics must expose the store-and-forward series when a TelemetrySource is wired.
 func TestMetrics_IncludesStorefwd(t *testing.T) {
@@ -548,6 +561,7 @@ func TestMetrics_IncludesConnectivityAndConnectorUp(t *testing.T) {
 		"# TYPE gateway_connector_up gauge",
 		"nats_connected 1",
 		"uplink_connected 0",
+		"gateway_cpu_percent ",
 	} {
 		assert.Contains(t, body, want)
 	}
@@ -603,6 +617,68 @@ func TestTelemetry_ReturnsDriftAndDepth(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, float64(3), drifts["p-001"])
 	assert.Equal(t, float64(0), drifts["p-002"])
+}
+
+// The telemetry payload is a single document carrying the full pipeline figures
+// plus EVENTS stream usage and uplink state (#47).
+func TestTelemetry_ExtendedPayload(t *testing.T) {
+	metrics.SetUplinkConnected(true)
+	t.Cleanup(func() { metrics.SetUplinkConnected(false) })
+
+	src := &mockTelemetrySource{
+		drifts: map[string]int64{"p-001": 2}, depth: 5,
+		written: 1000, sent: 990, accepted: 988, dropped: 3, checkpoints: 20, sendErrors: 1,
+		driftTotal: 2, lastCheckpoint: 1700000000,
+	}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{
+		Telemetry:   src,
+		StreamStats: mockStreamStats{msgs: 4321, bytes: 987654},
+	})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/telemetry")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.Equal(t, float64(1000), body["received"])
+	assert.Equal(t, float64(990), body["sent"])
+	assert.Equal(t, float64(988), body["accepted"])
+	assert.Equal(t, float64(5), body["buffer_depth"])
+	assert.Equal(t, float64(3), body["dropped"])
+	assert.Equal(t, float64(20), body["checkpoints"])
+	assert.Equal(t, float64(1), body["send_errors"])
+	assert.Equal(t, float64(2), body["drift_total"])
+	assert.Equal(t, true, body["uplink_connected"])
+	assert.Equal(t, float64(1700000000), body["last_checkpoint_unix"])
+	stream, ok := body["events_stream"].(map[string]any)
+	require.True(t, ok, "events_stream present when a StreamStatSource is wired")
+	assert.Equal(t, float64(4321), stream["msgs"])
+	assert.Equal(t, float64(987654), stream["bytes"])
+}
+
+// A JetStream error (or no StreamStatSource) omits events_stream but still serves
+// the rest of the payload — the stream figure is best-effort.
+func TestTelemetry_OmitsEventsStreamOnError(t *testing.T) {
+	src := &mockTelemetrySource{depth: 1}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{
+		Telemetry:   src,
+		StreamStats: mockStreamStats{err: errors.New("jetstream down")},
+	})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/telemetry")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	_, present := body["events_stream"]
+	assert.False(t, present, "events_stream omitted when the stream source errors")
+	assert.Equal(t, float64(1), body["buffer_depth"])
 }
 
 func TestTelemetry_NilSource_Returns404(t *testing.T) {
