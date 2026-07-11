@@ -7,12 +7,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
+import sys
 
 import nats
 from nats.js import JetStreamContext
 
 from bacnet_connector.bacnet_client import Bacpypes3Client
-from bacnet_connector.config import Config
+from bacnet_connector.config import Config, ConfigError
 from bacnet_connector.connector import Connector
 from bacnet_connector.health import start_health_server
 from bacnet_connector.write_handler import WriteHandler
@@ -74,7 +75,12 @@ async def _run(cfg: Config) -> None:
 
 
 def main() -> None:
-    cfg = Config.from_env()
+    try:
+        cfg = Config.from_env()
+    except ConfigError as exc:
+        # Fail fast with a single operator-facing line, not a raw traceback.
+        logger.error("bacnet: configuration error: %s", exc)
+        sys.exit(1)
     asyncio.run(_run(cfg))
 
 
