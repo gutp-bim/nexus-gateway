@@ -8,6 +8,7 @@
 // caller renders it directly instead of dumping a raw technical string, and
 // gets a retry affordance for load failures.
 
+import { useTranslations } from "next-intl";
 import { ApiError } from "@/lib/apiClient";
 
 /** Human-readable text for any caught value (ApiError message, Error message, else String). */
@@ -26,6 +27,7 @@ export function ErrorBanner({
   onRetry?: () => void;
   label?: string;
 }) {
+  const t = useTranslations("errorBanner");
   const message = messageFor(error);
   return (
     <div
@@ -60,7 +62,7 @@ export function ErrorBanner({
             fontSize: "0.8125rem",
           }}
         >
-          Retry
+          {t("retry")}
         </button>
       )}
     </div>

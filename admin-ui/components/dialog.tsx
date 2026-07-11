@@ -11,6 +11,7 @@
 // the (inert) page behind it.
 
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 type Props = {
   open: boolean;
@@ -25,6 +26,7 @@ const FOCUSABLE =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 export function Dialog({ open, title, onClose, children, titleId = "dialog-title" }: Props) {
+  const t = useTranslations("dialog");
   const panelRef = useRef<HTMLDivElement>(null);
   // The element focused before the dialog opened, so focus can be restored on close.
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -116,7 +118,7 @@ export function Dialog({ open, title, onClose, children, titleId = "dialog-title
           </h2>
           <button
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t("close")}
             style={{ border: "none", background: "transparent", fontSize: "1.25rem", lineHeight: 1, cursor: "pointer", color: "#6b7280" }}
           >
             ×

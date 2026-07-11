@@ -11,6 +11,7 @@
 // (ADR-0006: catalog-driven by default).
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { CatalogEntry } from "@/lib/api";
 import { Dialog, DialogButton } from "@/components/dialog";
 
@@ -65,32 +66,33 @@ export function UpgradeDialog({
   onUpgrade,
   onCancel,
 }: Props) {
+  const t = useTranslations("upgradeDialog");
   const [adhocImage, setAdhocImage] = useState(currentImage);
   const check = validateImageRef(adhocImage);
 
   return (
-    <Dialog open={open} title={`Upgrade ${connectorId}`} onClose={onCancel} titleId="upgrade-dialog-title">
+    <Dialog open={open} title={t("title", { id: connectorId })} onClose={onCancel} titleId="upgrade-dialog-title">
       <div style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "1rem", wordBreak: "break-all" }}>
-        Current image: <span style={{ fontFamily: "monospace", color: "#374151" }}>{currentImage || "—"}</span>
+        {t("currentImage")} <span style={{ fontFamily: "monospace", color: "#374151" }}>{currentImage || "—"}</span>
       </div>
 
       {/* Primary path: catalog-driven update. */}
       <section style={{ marginBottom: allowAdhoc ? "1.25rem" : 0 }}>
-        <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: "0 0 0.5rem" }}>Catalog version</h3>
+        <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: "0 0 0.5rem" }}>{t("catalogVersion")}</h3>
         {catalogEntry ? (
           <>
             <table style={{ fontSize: "0.85rem", width: "100%", borderCollapse: "collapse", marginBottom: "0.75rem" }}>
               <tbody>
-                <Row label="Name" value={catalogEntry.name} />
-                <Row label="Version" value={catalogEntry.version} />
-                <Row label="Digest" value={<span title={catalogEntry.digest} style={{ fontFamily: "monospace" }}>{shortDigest(catalogEntry.digest)}</span>} />
+                <Row label={t("rowName")} value={catalogEntry.name} />
+                <Row label={t("rowVersion")} value={catalogEntry.version} />
+                <Row label={t("rowDigest")} value={<span title={catalogEntry.digest} style={{ fontFamily: "monospace" }}>{shortDigest(catalogEntry.digest)}</span>} />
               </tbody>
             </table>
-            <DialogButton label={`Update to ${catalogEntry.version}`} onClick={onUpdate} variant="primary" />
+            <DialogButton label={t("updateTo", { version: catalogEntry.version })} onClick={onUpdate} variant="primary" />
           </>
         ) : (
           <p style={{ fontSize: "0.85rem", color: "#9ca3af", margin: 0 }}>
-            No catalog entry matches this connector.
+            {t("noCatalog")}
           </p>
         )}
       </section>
@@ -98,13 +100,13 @@ export function UpgradeDialog({
       {/* Escape hatch: ad-hoc image, only when the server allows it. */}
       {allowAdhoc && (
         <section style={{ borderTop: "1px solid #e5e7eb", paddingTop: "1rem" }}>
-          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: "0 0 0.25rem" }}>Ad-hoc image (advanced)</h3>
+          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, margin: "0 0 0.25rem" }}>{t("adhocTitle")}</h3>
           <p style={{ fontSize: "0.78rem", color: "#6b7280", margin: "0 0 0.5rem" }}>
-            Dev-only override. Prefer the catalog version above for production.
+            {t("adhocNote")}
           </p>
           <input
             type="text"
-            aria-label="Ad-hoc image reference"
+            aria-label={t("adhocAria")}
             value={adhocImage}
             onChange={(e) => setAdhocImage(e.target.value)}
             placeholder="registry/image@sha256:…"
@@ -120,15 +122,15 @@ export function UpgradeDialog({
           />
           {adhocImage.trim() !== "" && !check.valid && (
             <p role="alert" style={{ fontSize: "0.78rem", color: "#dc2626", margin: "0.4rem 0 0" }}>
-              Not a valid image reference.
+              {t("invalidRef")}
             </p>
           )}
           {check.valid && check.warning && (
-            <p style={{ fontSize: "0.78rem", color: "#d97706", margin: "0.4rem 0 0" }}>⚠ {check.warning}</p>
+            <p style={{ fontSize: "0.78rem", color: "#d97706", margin: "0.4rem 0 0" }}>⚠ {t("notPinnedWarning")}</p>
           )}
           <div style={{ marginTop: "0.6rem" }}>
             <DialogButton
-              label="Upgrade to this image"
+              label={t("submit")}
               onClick={() => onUpgrade(adhocImage.trim())}
               variant="danger"
               disabled={!check.valid}
@@ -138,7 +140,7 @@ export function UpgradeDialog({
       )}
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.25rem" }}>
-        <DialogButton label="Cancel" onClick={onCancel} variant="default" />
+        <DialogButton label={t("cancel")} onClick={onCancel} variant="default" />
       </div>
     </Dialog>
   );

@@ -4,6 +4,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { GatewayHealth } from "@/lib/api";
 import { apiFetch, isRecord } from "@/lib/apiClient";
 import { usePolling } from "@/lib/use-polling";
@@ -36,6 +37,8 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("dashboard");
+  const tc = useTranslations("common");
   const fetchHealth = useCallback(
     () => apiFetch<GatewayHealth>("/api/gateway/health", undefined, isRecord),
     []
@@ -46,9 +49,9 @@ export default function DashboardPage() {
 
   // Only blank the screen before the very first result. After that a failed
   // poll keeps the last-known health with a stale badge instead of a wipe.
-  if (loading && !health) return <p>Loading…</p>;
-  if (error && !health) return <ErrorBanner error={error} onRetry={refresh} label="Failed to load health" />;
-  if (!health) return <p>Loading…</p>;
+  if (loading && !health) return <p>{tc("loading")}</p>;
+  if (error && !health) return <ErrorBanner error={error} onRetry={refresh} label={t("loadError")} />;
+  if (!health) return <p>{tc("loading")}</p>;
 
   const uptimeSec = health.UptimeSeconds;
   const h = Math.floor(uptimeSec / 3600);
@@ -65,21 +68,30 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>Gateway Dashboard</h1>
+      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>{t("title")}</h1>
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
-        <StatCard label="Status" value={running === total && total > 0 ? "✓ OK" : total === 0 ? "No connectors" : `${running}/${total} running`} />
-        <StatCard label="Uptime" value={uptimeStr} />
-        <StatCard label="Memory" value={`${fmt(health.MemAllocMB)} MB`} />
-        <StatCard label="CPU" value={`${fmt(health.CPUPercent ?? 0)}%`} />
-        <StatCard label="Goroutines" value={String(health.GoRoutines)} />
         <StatCard
-          label="Disk"
+          label={t("statusLabel")}
+          value={
+            running === total && total > 0
+              ? t("statusOk")
+              : total === 0
+                ? t("statusNoConnectors")
+                : t("statusRunning", { running, total })
+          }
+        />
+        <StatCard label={t("uptime")} value={uptimeStr} />
+        <StatCard label={t("memory")} value={`${fmt(health.MemAllocMB)} MB`} />
+        <StatCard label={t("cpu")} value={`${fmt(health.CPUPercent ?? 0)}%`} />
+        <StatCard label={t("goroutines")} value={String(health.GoRoutines)} />
+        <StatCard
+          label={t("disk")}
           value={health.DiskTotalMB > 0 ? `${fmt(health.DiskUsedMB / 1024)} / ${fmt(health.DiskTotalMB / 1024)} GB (${diskPct}%)` : "—"}
         />
       </div>
       {stale && (
         <div style={{ marginBottom: "0.75rem" }}>
-          <ErrorBanner error={error} onRetry={refresh} label="Refresh failed" />
+          <ErrorBanner error={error} onRetry={refresh} label={t("refreshFailed")} />
         </div>
       )}
       <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
