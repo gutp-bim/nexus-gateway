@@ -26,7 +26,6 @@ import (
 	dockerclient "github.com/docker/docker/client"
 
 	"nexus-gateway/connector/sim"
-	pb "nexus-gateway/gen"
 	"nexus-gateway/internal/adminapi"
 	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/dispatch"
@@ -323,7 +322,7 @@ bacnet:<provisioning-connector-id>.`)
 	// Fan-out normalizer frames: drive the S&F pump and update the recent-value
 	// store in parallel so the Admin API can serve live "last known value" data.
 	recentStore := adminapi.NewRecentStore()
-	fanIn := make(chan *pb.TelemetryFrame, 256)
+	fanIn := make(chan storeforward.FrameMsg, 256)
 	var pumpWg sync.WaitGroup
 	pumpWg.Add(1)
 	go func() {
@@ -333,10 +332,13 @@ bacnet:<provisioning-connector-id>.`)
 	pumpWg.Add(1)
 	go func() {
 		defer pumpWg.Done()
-		for f := range norm.Frames() {
-			recentStore.Record(f)
+		for fm := range norm.Frames() {
+			// recentStore is ack-agnostic (live "last known value" only); the
+			// source msg rides only the Pump branch, which owns the ack after a
+			// durable write (#28).
+			recentStore.Record(fm.Frame)
 			select {
-			case fanIn <- f:
+			case fanIn <- fm:
 			case <-ctx.Done():
 				return
 			}

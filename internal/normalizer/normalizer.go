@@ -17,6 +17,7 @@ import (
 	"nexus-gateway/internal/common"
 	"nexus-gateway/internal/metrics"
 	"nexus-gateway/internal/pointlist"
+	"nexus-gateway/internal/storeforward"
 )
 
 // Outcome classifies a Common Event so the consume loop can drop-and-meter
@@ -36,6 +37,9 @@ type EventMsg interface {
 	Ack() error
 	Term() error
 	Nak() error
+	// NakWithDelay redelivers after d; the Pump uses it to back off a frame whose
+	// durable buffer write failed (#28). jetstream.Msg satisfies it directly.
+	NakWithDelay(d time.Duration) error
 }
 
 // EventSource is the seam over the durable JetStream pull consumer: it yields the
@@ -52,7 +56,7 @@ type EventSource interface {
 // It resolves native LocalID → canonical PointID via the resolver, then emits
 // TelemetryFrames downstream. Unknown local_ids are skipped and metered.
 type Normalizer struct {
-	frames chan *pb.TelemetryFrame
+	frames chan storeforward.FrameMsg
 }
 
 // New wires the Normalizer to the live JetStream EVENTS stream (ADR-0005),
@@ -74,13 +78,14 @@ func New(ctx context.Context, js jetstream.JetStream, resolver pointlist.Resolve
 // NewWithSource starts a Normalizer over an arbitrary EventSource. This is the
 // testable seam; New is the production wrapper over JetStream.
 func NewWithSource(ctx context.Context, src EventSource, resolver pointlist.Resolver, gatewayID string) *Normalizer {
-	n := &Normalizer{frames: make(chan *pb.TelemetryFrame, 256)}
+	n := &Normalizer{frames: make(chan storeforward.FrameMsg, 256)}
 	go n.consume(ctx, src, resolver, gatewayID)
 	return n
 }
 
-// Frames returns the channel of normalized TelemetryFrames.
-func (n *Normalizer) Frames() <-chan *pb.TelemetryFrame {
+// Frames returns the channel of normalized TelemetryFrames, each paired with its
+// source message so the downstream Pump acks only after a durable write (#28).
+func (n *Normalizer) Frames() <-chan storeforward.FrameMsg {
 	return n.frames
 }
 
@@ -105,9 +110,11 @@ func (n *Normalizer) consume(ctx context.Context, src EventSource, resolver poin
 				_ = msg.Term()
 				continue
 			}
+			// Hand the frame downstream WITH its source msg; the Pump acks only
+			// after a durable buffer write (#28). Do not ack here — a write failure
+			// after an enqueue-time ack would silently lose an already-acked frame.
 			select {
-			case n.frames <- frame:
-				_ = msg.Ack()
+			case n.frames <- storeforward.FrameMsg{Frame: frame, Msg: msg}:
 			case <-ctx.Done():
 				_ = msg.Nak()
 				return

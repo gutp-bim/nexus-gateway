@@ -32,6 +32,12 @@ func (m *fakeMsg) Data() []byte { return m.data }
 func (m *fakeMsg) Ack() error   { m.mu.Lock(); m.ack = true; m.mu.Unlock(); return nil }
 func (m *fakeMsg) Term() error  { m.mu.Lock(); m.term = true; m.mu.Unlock(); return nil }
 func (m *fakeMsg) Nak() error   { m.mu.Lock(); m.nak = true; m.mu.Unlock(); return nil }
+func (m *fakeMsg) NakWithDelay(_ time.Duration) error {
+	m.mu.Lock()
+	m.nak = true
+	m.mu.Unlock()
+	return nil
+}
 func (m *fakeMsg) acked() bool  { m.mu.Lock(); defer m.mu.Unlock(); return m.ack }
 func (m *fakeMsg) termed() bool { m.mu.Lock(); defer m.mu.Unlock(); return m.term }
 
@@ -85,10 +91,14 @@ func eventJSON(t *testing.T, connectorID, localID string, value float64) []byte 
 	return b
 }
 
-func resolverWith(entries ...pointlist.Entry) pointlist.Resolver { return pointlist.NewFixture(entries) }
+func resolverWith(entries ...pointlist.Entry) pointlist.Resolver {
+	return pointlist.NewFixture(entries)
+}
 
-// A resolved Common Event becomes a TelemetryFrame on Frames() and is Acked.
-func TestNormalizer_OKEmitsFrameAndAcks(t *testing.T) {
+// A resolved Common Event becomes a TelemetryFrame on Frames() that carries its
+// source message, and is NOT acked on enqueue — durability requires the Pump to
+// ack only after a successful buffer write (#28).
+func TestNormalizer_OKEmitsFrameCarryingMsgWithoutAcking(t *testing.T) {
 	msg := &fakeMsg{data: eventJSON(t, "c1", "l1", 1.5)}
 	src := &fakeSource{batches: [][]normalizer.EventMsg{{msg}}}
 	r := resolverWith(pointlist.Entry{ConnectorID: "c1", LocalID: "l1", PointID: "p1"})
@@ -96,14 +106,17 @@ func TestNormalizer_OKEmitsFrameAndAcks(t *testing.T) {
 	n := startNormalizer(t, src, r)
 
 	select {
-	case f := <-n.Frames():
-		assert.Equal(t, "p1", f.PointId)
-		assert.Equal(t, "gw-1", f.GatewayId)
-		assert.Equal(t, 1.5, f.Value)
+	case fm := <-n.Frames():
+		assert.Equal(t, "p1", fm.Frame.PointId)
+		assert.Equal(t, "gw-1", fm.Frame.GatewayId)
+		assert.Equal(t, 1.5, fm.Frame.Value)
+		assert.True(t, fm.Msg == msg, "frame must carry its source msg so the Pump can ack after the durable write")
 	case <-time.After(2 * time.Second):
 		t.Fatal("expected a TelemetryFrame")
 	}
-	assert.Eventually(t, msg.acked, time.Second, 10*time.Millisecond, "OK event must be Acked")
+	// Give the consume loop time to (wrongly) ack, then assert it did not.
+	time.Sleep(50 * time.Millisecond)
+	assert.False(t, msg.acked(), "normalizer must not ack before the durable write")
 }
 
 // Unparseable payload → no frame, Term (drop-and-meter, ADR-0002).
