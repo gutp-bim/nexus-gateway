@@ -85,6 +85,12 @@ type ConnectorLogger interface {
 	Logs(ctx context.Context, connectorID string, tail int) ([]string, error)
 }
 
+// GatewayLogSource provides recent gateway (self) log lines for the Logs
+// screen's Gateway source (#42). A nil source disables GET /logs/gateway.
+type GatewayLogSource interface {
+	Lines(tail int) []string
+}
+
 // ServerOptions holds all optional feature sources. A nil field disables the
 // corresponding endpoints. Use with NewServer (no auth) or NewSecureServer (JWT).
 type ServerOptions struct {
@@ -95,6 +101,7 @@ type ServerOptions struct {
 	StreamStats StreamStatSource
 	Recent      *RecentStore
 	Logger      ConnectorLogger
+	GatewayLogs GatewayLogSource
 	// AllowAdhocUpgrade enables the dev-only POST /connectors/{id}/upgrade?image=<ref>
 	// action. The MVP update path is catalog-driven (ADR-0006); when false (default)
 	// the upgrade action returns 501 Not Implemented.
@@ -131,6 +138,7 @@ type Server struct {
 	streamStats StreamStatSource   // nil if JetStream usage is not available
 	recent      *RecentStore       // nil if recent-value tracking is not configured
 	logger      ConnectorLogger    // nil if log streaming is not configured
+	gatewayLogs GatewayLogSource   // nil if gateway self-logs are not captured
 	monitor     HealthSnapshotter
 	shutdown    context.CancelFunc // stops the JWKS cache refresh goroutine
 
@@ -177,6 +185,7 @@ func buildServer(mgr ConnectorManager, monitor HealthSnapshotter, opts ServerOpt
 		streamStats: opts.StreamStats,
 		recent:      opts.Recent,
 		logger:      opts.Logger,
+		gatewayLogs: opts.GatewayLogs,
 		monitor:     monitor,
 
 		allowAdhocUpgrade: opts.AllowAdhocUpgrade,
@@ -213,6 +222,10 @@ func (s *Server) registerRoutes(authenticated bool) {
 	}
 	if s.recent != nil {
 		s.mux.HandleFunc("GET /recent", require(RoleViewer, s.handleRecent))
+	}
+	if s.gatewayLogs != nil {
+		// More specific than /logs/{id} (Go 1.22 mux), so it wins for id "gateway".
+		s.mux.HandleFunc("GET /logs/gateway", require(RoleViewer, s.handleGatewayLogs))
 	}
 	if s.logger != nil {
 		s.mux.HandleFunc("GET /logs/{id}", require(RoleViewer, s.handleLogs))
@@ -257,6 +270,23 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		lines = []string{}
 	}
 	writeJSON(w, logResponse{ConnectorID: id, Lines: lines})
+}
+
+// handleGatewayLogs serves the gateway's own recent log lines (#42) as the
+// "gateway" source alongside per-connector logs. Lines are JSON so the Logs
+// screen can filter by the structured severity field. Same RBAC as /logs/{id}.
+func (s *Server) handleGatewayLogs(w http.ResponseWriter, r *http.Request) {
+	tail := 100
+	if q := r.URL.Query().Get("tail"); q != "" {
+		if n, err := fmt.Sscanf(q, "%d", &tail); n != 1 || err != nil || tail <= 0 {
+			tail = 100
+		}
+	}
+	lines := s.gatewayLogs.Lines(tail)
+	if lines == nil {
+		lines = []string{}
+	}
+	writeJSON(w, logResponse{ConnectorID: "gateway", Lines: lines})
 }
 
 type eventsStreamUsage struct {
