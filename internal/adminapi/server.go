@@ -61,6 +61,7 @@ type TelemetrySource interface {
 	Sent() int64
 	Accepted() int64
 	Dropped() int64
+	WriteErrors() int64
 	Checkpoints() int64
 	SendErrors() int64
 	// DriftTotal is the running sum of per-point drift, so designed loss is
@@ -499,6 +500,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "# HELP storefwd_dropped_total Frames evicted by drop-oldest at capacity (ADR-0002).\n")
 		fmt.Fprintf(w, "# TYPE storefwd_dropped_total counter\n")
 		fmt.Fprintf(w, "storefwd_dropped_total %d\n", t.Dropped())
+		fmt.Fprintf(w, "# HELP storefwd_write_error_total Buffer write attempts that failed to persist (full disk / SQLite error); a frame under persistent failure counts once per redelivery. Distinct from capacity drops.\n")
+		fmt.Fprintf(w, "# TYPE storefwd_write_error_total counter\n")
+		fmt.Fprintf(w, "storefwd_write_error_total %d\n", t.WriteErrors())
 		fmt.Fprintf(w, "# HELP storefwd_checkpoint_total Successful uplink ack-checkpoints.\n")
 		fmt.Fprintf(w, "# TYPE storefwd_checkpoint_total counter\n")
 		fmt.Fprintf(w, "storefwd_checkpoint_total %d\n", t.Checkpoints())
