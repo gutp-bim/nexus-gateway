@@ -37,6 +37,7 @@ type Buffer struct {
 	// (sent/checkpoints/sendErrors), read from the Admin API handler goroutine.
 	written     atomic.Int64
 	dropped     atomic.Int64
+	writeErrors atomic.Int64
 	sent        atomic.Int64
 	accepted    atomic.Int64
 	checkpoints atomic.Int64
@@ -179,6 +180,14 @@ func (b *Buffer) Written() int64 { return b.written.Load() }
 
 // Dropped returns the total frames evicted by drop-oldest at capacity (ADR-0002).
 func (b *Buffer) Dropped() int64 { return b.dropped.Load() }
+
+// RecordWriteError counts one frame that failed to persist (full disk / SQLite
+// error). Distinct from Dropped (capacity eviction of already-written rows) — a
+// write error means the frame never landed (#28).
+func (b *Buffer) RecordWriteError() { b.writeErrors.Add(1) }
+
+// WriteErrors returns the total frames lost to buffer write failures.
+func (b *Buffer) WriteErrors() int64 { return b.writeErrors.Load() }
 
 // Sent returns the total frames acked-as-sent to Building OS.
 func (b *Buffer) Sent() int64 { return b.sent.Load() }

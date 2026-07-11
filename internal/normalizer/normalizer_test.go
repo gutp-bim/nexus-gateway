@@ -41,9 +41,9 @@ func TestNormalizer_ResolvesLocalIDToPointID(t *testing.T) {
 
 	select {
 	case frame := <-norm.Frames():
-		assert.Equal(t, "gw-test", frame.GatewayId)
-		assert.Equal(t, "zone_a/temp", frame.PointId)
-		assert.InDelta(t, 21.5, frame.Value, 0.001)
+		assert.Equal(t, "gw-test", frame.Frame.GatewayId)
+		assert.Equal(t, "zone_a/temp", frame.Frame.PointId)
+		assert.InDelta(t, 21.5, frame.Frame.Value, 0.001)
 	case <-ctx.Done():
 		t.Fatal("timeout waiting for frame")
 	}
@@ -93,7 +93,7 @@ func TestNormalizer_BoolValueNormalisedToNumeric(t *testing.T) {
 
 	select {
 	case frame := <-norm.Frames():
-		assert.Equal(t, 1.0, frame.Value, "bool true must arrive as 1.0")
+		assert.Equal(t, 1.0, frame.Frame.Value, "bool true must arrive as 1.0")
 	case <-ctx.Done():
 		t.Fatal("timeout")
 	}
