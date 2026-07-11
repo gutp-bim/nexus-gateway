@@ -1,0 +1,109 @@
+name: Quickstart smoke
+
+# Keeps the documented first-run quickstart honest forever (#44): boot the compose
+# dev stack, obtain a token via the documented password grant against the bundled
+# dev realm, and read one Admin API endpoint expecting HTTP 200. Deliberately
+# minimal — no browser automation — so it stays fast and unflaky.
+#
+# The load-bearing assertion is the token grant: it fails red on a realm whose
+# admin-ui client has directAccessGrantsEnabled=false (the pre-#18 state), and
+# green once the realm is fixed. The stack runs in its documented DEFAULT
+# (auth-free) mode, so the Admin API 200 check mirrors the getting-started curl
+# verbatim; enforcement of token validation itself is covered by the adminapi
+# unit tests (internal/adminapi/jwt*_test.go).
+#
+# Scoped to the surfaces that can break the quickstart: compose files, fixtures
+# (realm + point list + catalog), and the gateway's admin/auth surface.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "docker-compose*.yml"
+      - "Dockerfile.gateway"
+      - "Dockerfile.mockbos"
+      - "fixtures/**"
+      - "internal/adminapi/**"
+      - "cmd/gateway/**"
+      - ".github/workflows/quickstart-smoke.yml"
+  pull_request:
+    paths:
+      - "docker-compose*.yml"
+      - "Dockerfile.gateway"
+      - "Dockerfile.mockbos"
+      - "fixtures/**"
+      - "internal/adminapi/**"
+      - "cmd/gateway/**"
+      - ".github/workflows/quickstart-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Pin the compose project name so container names are deterministic for docker inspect.
+  COMPOSE_PROJECT_NAME: nexus-gateway
+
+jobs:
+  smoke:
+    name: compose up → token grant → Admin API 200
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Boot the dev stack
+        run: docker compose up -d --build nats mock-bos keycloak gateway
+
+      - name: Wait for Keycloak healthy and the gateway serving
+        run: |
+          set -euo pipefail
+          echo "Waiting for Keycloak to become healthy…"
+          timeout 240 bash -c '
+            until docker inspect nexus-gateway-keycloak-1 \
+                --format "{{.State.Health.Status}}" 2>/dev/null | grep -q healthy; do sleep 3; done
+          ' || { echo "::error::Stack boot failed — Keycloak did not become healthy in time."; exit 1; }
+          echo "Waiting for the gateway liveness endpoint…"
+          timeout 90 bash -c '
+            until curl -sf http://localhost:18080/health/live | grep -q "\"status\":\"ok\""; do sleep 2; done
+          ' || { echo "::error::Stack boot failed — gateway /health/live never reported ok."; exit 1; }
+          echo "Stack up: Keycloak healthy, gateway serving."
+
+      - name: Request a token via the documented password grant
+        id: token
+        run: |
+          set -euo pipefail
+          TOKEN=$(curl -s http://localhost:18090/realms/nexus-gateway/protocol/openid-connect/token \
+            -d grant_type=password \
+            -d client_id=admin-ui -d client_secret=admin-ui-secret \
+            -d username=operator -d password=operator | jq -r '.access_token // empty')
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Token grant failed — the dev realm issued no access token. Check directAccessGrantsEnabled on the admin-ui client (regression of #18)."
+            exit 1
+          fi
+          # A real JWT has three dot-separated segments; guard against a non-token string slipping through.
+          if [ "$(printf '%s' "$TOKEN" | awk -F. '{print NF}')" -ne 3 ]; then
+            echo "::error::Token grant returned a value that is not a well-formed JWT."
+            exit 1
+          fi
+          echo "Token grant OK (${#TOKEN} chars, JWT-shaped)."
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticated Admin API read returns 200
+        run: |
+          set -euo pipefail
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            http://localhost:18080/connectors \
+            -H "Authorization: Bearer ${{ steps.token.outputs.token }}")
+          if [ "$CODE" != "200" ]; then
+            echo "::error::Admin API read failed — GET /connectors returned $CODE (expected 200)."
+            exit 1
+          fi
+          echo "Admin API read OK (GET /connectors → 200)."
+
+      - name: Dump gateway + Keycloak logs on failure
+        if: failure()
+        run: docker compose logs --tail=80 gateway keycloak
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
