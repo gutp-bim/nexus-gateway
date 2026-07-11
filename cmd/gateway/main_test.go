@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -234,4 +235,20 @@ func newTestNATS(t *testing.T, ctx context.Context) (*nats.Conn, jetstream.JetSt
 	})
 	require.NoError(t, err)
 	return nc, js
+}
+
+// waitTimeout returns true when the group completes before the deadline.
+func TestWaitTimeout_CompletesBeforeDeadline(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() { time.Sleep(20 * time.Millisecond); wg.Done() }()
+	assert.True(t, waitTimeout(&wg, time.Second), "should report completion")
+}
+
+// waitTimeout returns false when a goroutine outlives the grace period, so a hung
+// pipeline cannot block shutdown indefinitely (#27).
+func TestWaitTimeout_ReturnsFalseOnTimeout(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(1) // never Done — simulates a hung goroutine
+	assert.False(t, waitTimeout(&wg, 30*time.Millisecond), "should time out")
 }

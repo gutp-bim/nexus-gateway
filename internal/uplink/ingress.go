@@ -26,6 +26,11 @@ type Config struct {
 // DefaultConfig is the production default: send immediately, checkpoint every 5s/1000 frames.
 var DefaultConfig = Config{CheckpointSize: 1000, CheckpointAge: 5 * time.Second}
 
+// drainGrace bounds the clean-shutdown final flush (#27). It must be shorter than
+// the gateway's overall shutdown grace so the pipeline join does not wait on it,
+// and both must fit inside the container SIGTERM→SIGKILL window (Docker default 10s).
+const drainGrace = 4 * time.Second
+
 // Ingress streams TelemetryFrames from a storeforward.Buffer to the Building OS
 // GatewayIngress service. Frames are sent immediately as they are read; the stream
 // is half-closed every CheckpointSize frames or CheckpointAge (whichever comes first)
@@ -62,6 +67,19 @@ func (u *Ingress) Run(ctx context.Context) {
 		} else {
 			bo.Reset()
 		}
+	}
+
+	// Clean-shutdown final flush (#27): ctx (and the streams bound to it) are dead,
+	// so a fresh sink + a fresh bounded context re-send the un-acked frames and
+	// checkpoint them, advancing the cursor so the replay window stays small on the
+	// next boot. It always runs (before the deferred conn.Close): with an empty
+	// backlog it is a no-op, and a hung/unreachable Building OS link is bounded by
+	// drainGrace so it never blocks shutdown past the grace period.
+	flushCtx, cancel := context.WithTimeout(context.Background(), drainGrace)
+	defer cancel()
+	fwd := NewForwarder(u.buf, &grpcSink{client: client}, u.cfg)
+	if err := fwd.DrainOnce(flushCtx); err != nil {
+		slog.Warn("ingress: final drain failed on shutdown", "err", err)
 	}
 }
 
