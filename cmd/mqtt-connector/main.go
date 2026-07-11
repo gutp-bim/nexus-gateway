@@ -19,6 +19,7 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 
 	mqttconn "nexus-gateway/connector/mqtt"
+	"nexus-gateway/connector/sdk"
 )
 
 // pointEnv is the JSON schema for one entry in MQTT_POINTS (snake_case for shell-friendliness).
@@ -32,11 +33,12 @@ type pointEnv struct {
 }
 
 func main() {
-	// Register signal handler before starting goroutines so a SIGTERM that
-	// arrives during the startup window is captured, not handled by Go's
-	// default handler (which exits immediately, skipping deferred cleanup).
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	// Register the signal handler before starting goroutines so a SIGTERM that
+	// arrives during the startup window (including the EVENTS stream wait below)
+	// is captured, not handled by Go's default handler (which exits immediately,
+	// skipping deferred cleanup). Cancelling sigCtx unblocks AwaitStream too.
+	sigCtx, stopNotify := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stopNotify()
 
 	natsURL := envOrDefault("NATS_URL", nats.DefaultURL)
 	connID := envOrDefault("CONNECTOR_ID", "mqtt-01")
@@ -142,9 +144,24 @@ func main() {
 		FreshnessInterval:     freshness,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(sigCtx)
+	defer cancel()
 
 	connector := mqttconn.New(cfg, nc, js)
+
+	// Health endpoint (#35): /health reports ok only while the broker session is up.
+	healthAddr := ":" + envOrDefault("HEALTH_PORT", "8080")
+	health := sdk.StartHealthServer(healthAddr, connector.Healthy)
+
+	// Wait for the gateway-owned EVENTS stream before publishing (#35) so early
+	// Common Events are not dropped into a missing stream. Interruptible via signal.
+	if err := sdk.AwaitStream(ctx, js, "EVENTS", 5*time.Second); err != nil {
+		slog.Info("mqtt-connector: shutting down before the EVENTS stream was ready")
+		health.Shutdown(context.Background())
+		nc.Close()
+		return
+	}
+
 	// Track the Run goroutine so an unexpected exit (e.g. broker URL parse
 	// error, NATS subscribe failure) causes the process to exit rather than
 	// silently becoming a zombie that Docker never restarts.
@@ -157,10 +174,11 @@ func main() {
 	slog.Info("mqtt-connector started", "connector_id", connID, "nats", natsURL, "broker", brokerURL, "points", len(points))
 
 	select {
-	case <-stop:
+	case <-ctx.Done():
 		slog.Info("mqtt-connector shutting down")
 	case <-done:
 		slog.Error("mqtt-connector Run exited unexpectedly")
+		health.Shutdown(context.Background())
 		cancel()
 		nc.Close()
 		os.Exit(1)

@@ -12,6 +12,9 @@ public interface OpcUaClientFacade {
 
     void connect() throws Exception;
 
+    /** True once {@link #connect()} has succeeded and before {@link #close()}; false otherwise. */
+    boolean isConnected();
+
     /** Subscribe to monitored items; callback fires on each value change. */
     void subscribe(List<String> nodeIds, BiConsumer<String, OpcValue> onValue) throws Exception;
 

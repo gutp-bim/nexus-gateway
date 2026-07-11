@@ -31,7 +31,8 @@ class ConnectorTest {
         boolean closed;
 
         @Override public void connect() { connected = true; }
-        @Override public void close()   { closed = true; }
+        @Override public boolean isConnected() { return connected; }
+        @Override public void close()   { connected = false; closed = true; }
 
         @Override
         public void subscribe(List<String> nodeIds, BiConsumer<String, OpcValue> onValue) {

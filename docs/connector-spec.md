@@ -305,6 +305,7 @@ Reply **before** the request context deadline. The gateway's default request tim
 |----------|----------|-------------|
 | `CONNECTOR_ID` | **Yes** | Unique connector identifier. Must match the `CONNECTOR_MAP` value for this protocol. Used as the subject suffix for both `evt.*` and `cmd.*`. |
 | `NATS_URL` | **Yes** | NATS server URL. Default: `nats://localhost:4222`. Injected by the gateway at container start. |
+| `HEALTH_PORT` | No | TCP port for the connector's HTTP `/health` endpoint (§5.5). Default: `8080`. |
 
 ### 5.2 Protocol-specific environment variables
 
@@ -370,9 +371,27 @@ Field device connectivity (BACnet UDP broadcast, OPC-UA TCP, MQTT TCP) requires 
 
 ### 5.5 Health check
 
-Docker health check: the gateway inspects the container state. Connectors may expose a minimal HTTP `/health` endpoint that returns `{"status":"ok"}`, though it is not strictly required — container `running` state is the primary liveness signal.
+Container `running` state is the primary liveness signal (the gateway inspects it).
+On top of that, every reference connector (BACnet, OPC-UA, MQTT) serves a minimal
+HTTP `/health` endpoint on `HEALTH_PORT` (default `8080`, §5.1) that reflects
+**protocol-session readiness**, not just process liveness:
 
-If implemented, the health response must include the literal string `"status":"ok"` for the gateway's health monitor grep to detect it.
+- **Session established** → `200` with body `{"status":"ok"}`.
+- **Session not (yet) established or lost** — broker unreachable (MQTT), server not
+  connected (OPC-UA), or no successful device read in the latest poll cycle (BACnet,
+  which is connectionless) → `503` with body `{"status":"degraded"}`.
+
+The healthy body must include the literal string `"status":"ok"` for the gateway's
+health monitor grep to detect it; the degraded body deliberately omits it, so a
+wedged-but-running connector (equipment/broker unreachable) is distinguishable from
+a healthy one. A bind failure on `HEALTH_PORT` is logged and non-fatal — the
+connector keeps running without the health surface rather than crashing.
+
+**Startup — EVENTS stream readiness.** The `EVENTS` stream is owned by the gateway
+(§2.1). Before publishing, a connector waits (polling with backoff) for that stream
+to exist rather than publishing into a void and spamming errors. All reference
+connectors do this, so a connector started before the gateway has provisioned the
+stream produces neither dropped events nor error spam — it waits, then proceeds.
 
 ### 5.6 Graceful shutdown
 
@@ -609,7 +628,8 @@ Keep at least the last **1000** `control_id` → WriteReply entries. Evict the o
 | Log to stdout/stderr | **Must** |
 | Handle SIGTERM within 10 s | **Must** |
 | Publish `"Bad"` quality on device comm failure | **Should** |
-| Expose `GET /health` → `{"status":"ok"}` | **Should** |
+| Wait for the gateway-owned `EVENTS` stream before publishing (backoff, no spam) | **Should** |
+| Serve `GET /health` on `HEALTH_PORT` reflecting protocol-session readiness (`200 {"status":"ok"}` / `503 {"status":"degraded"}`) | **Should** |
 | Avoid unbounded in-memory event buffering | **Should** |
 | Implement BACnet COV subscriptions (in addition to poll) | **May** |
 
