@@ -57,10 +57,13 @@ export default function TelemetryPage() {
   const stats = data?.stats;
   const recent = data?.recent ?? [];
 
-  const totalDrift = stats ? Object.values(stats.drifts).reduce((a, b) => a + b, 0) : 0;
+  // Prefer the backend's authoritative total; fall back to summing the per-point
+  // map so an older gateway payload (no drift_total) still shows a real figure
+  // consistent with the per-point table below.
   const driftEntries = stats
-    ? Object.entries(stats.drifts).sort(([, a], [, b]) => b - a)
+    ? Object.entries(stats.drifts ?? {}).sort(([, a], [, b]) => b - a)
     : [];
+  const totalDrift = stats?.drift_total ?? driftEntries.reduce((sum, [, v]) => sum + v, 0);
 
   return (
     <div>
@@ -71,10 +74,37 @@ export default function TelemetryPage() {
         </div>
       )}
 
+      {/* Pipeline throughput + uplink health (#47). */}
+      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+        <StatCard label="Received" value={fmtInt(stats?.received)} unit="frames" />
+        <StatCard label="Sent" value={fmtInt(stats?.sent)} unit="frames" />
+        <StatCard label="Accepted" value={fmtInt(stats?.accepted)} unit="frames" />
+        <StatCard
+          label="Uplink"
+          value={
+            stats == null
+              ? "—"
+              : stats.uplink_connected === undefined
+                ? "Unknown"
+                : stats.uplink_connected
+                  ? "Connected"
+                  : "Disconnected"
+          }
+          alert={stats?.uplink_connected === false}
+        />
+        <StatCard label="Last Checkpoint" value={fmtAgo(stats?.last_checkpoint_unix)} />
+      </div>
+
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-        <StatCard label="S&F Buffer Depth" value={String(stats?.buffer_depth ?? 0)} unit="frames" />
-        <StatCard label="Total Drift" value={String(totalDrift)} unit="frames" alert={totalDrift > 0} />
-        <StatCard label="Points w/ Drift" value={String(driftEntries.filter(([, v]) => v > 0).length)} unit={`/ ${driftEntries.length}`} />
+        <StatCard label="S&F Buffer Depth" value={fmtInt(stats?.buffer_depth)} unit="frames" />
+        <StatCard label="Total Drift" value={fmtInt(totalDrift)} unit="frames" alert={totalDrift > 0} />
+        <StatCard label="Dropped" value={fmtInt(stats?.dropped)} unit="frames" alert={(stats?.dropped ?? 0) > 0} />
+        <StatCard label="Send Errors" value={fmtInt(stats?.send_errors)} alert={(stats?.send_errors ?? 0) > 0} />
+        <StatCard
+          label="EVENTS Stream"
+          value={stats?.events_stream ? fmtInt(stats.events_stream.msgs) : "—"}
+          unit={stats?.events_stream ? `msgs · ${fmtBytes(stats.events_stream.bytes)}` : undefined}
+        />
         <StatCard label="Live Points" value={String(recent.length)} unit="points" />
       </div>
 
@@ -146,6 +176,32 @@ export default function TelemetryPage() {
       <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
     </div>
   );
+}
+
+function fmtInt(n: number | undefined): string {
+  return (n ?? 0).toLocaleString();
+}
+
+function fmtBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let v = bytes / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(1)} ${units[i]}`;
+}
+
+/** Relative "N ago" for a unix-seconds checkpoint clock (0 / undefined = never). */
+function fmtAgo(unix: number | undefined): string {
+  if (!unix || unix <= 0) return "never";
+  const secs = Math.max(0, Math.floor(Date.now() / 1000 - unix));
+  if (secs < 60) return `${secs}s ago`;
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
 }
 
 function StatCard({ label, value, unit, alert }: { label: string; value: string; unit?: string; alert?: boolean }) {

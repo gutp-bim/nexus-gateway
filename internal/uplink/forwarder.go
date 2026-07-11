@@ -81,6 +81,7 @@ func (f *Forwarder) Run(ctx context.Context) error {
 			return fmt.Errorf("checkpoint: %w", err)
 		}
 		f.buf.RecordSent(sent)
+		f.buf.RecordAccepted(accepted)
 		f.buf.RecordCheckpoint()
 		// A completed ack round-trip is the definitive "uplink healthy" signal (#23).
 		// An idle gateway (no frames to checkpoint) holds the last-known state.
