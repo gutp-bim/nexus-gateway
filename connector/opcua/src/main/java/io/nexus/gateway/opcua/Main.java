@@ -24,13 +24,7 @@ public class Main {
 
         int healthPort = healthPortFromEnv();
 
-        Options natsOpts = new Options.Builder()
-            .server(cfg.natsUrl())
-            .connectionListener((conn, type) -> log.info("nats: {}", type))
-            .errorListener(new io.nats.client.ErrorListener() {})
-            .build();
-
-        Connection nats = Nats.connect(natsOpts);
+        Connection nats = Nats.connect(natsOptions(cfg.natsUrl()));
         var js = nats.jetStream();
 
         Connector.Publisher publisher = (subject, data) -> js.publish(subject, data);
@@ -64,6 +58,21 @@ public class Main {
         health.stop();
         try { dispatcher.unsubscribe(cmdSubject); } catch (Exception ignored) {}
         nats.close();
+    }
+
+    /**
+     * NATS connection options with unlimited reconnects + backoff (#30). jnats defaults to ~60
+     * reconnect attempts, so an outage longer than ~2 minutes would leave the connector permanently
+     * silent until manual restart; unlimited reconnects match the MQTT/sim connectors.
+     */
+    static Options natsOptions(String natsUrl) {
+        return new Options.Builder()
+            .server(natsUrl)
+            .maxReconnects(-1)                     // -1 = reconnect indefinitely
+            .reconnectWait(Duration.ofSeconds(2))  // backoff between attempts
+            .connectionListener((conn, type) -> log.info("nats: {}", type))
+            .errorListener(new io.nats.client.ErrorListener() {})
+            .build();
     }
 
     /** {@code HEALTH_PORT} env var (default 8080). Kept off the Config record to preserve its constructor. */

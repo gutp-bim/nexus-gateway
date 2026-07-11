@@ -58,10 +58,14 @@ public class WriteHandler {
         WriteReply sentinel = new WriteReply(false, IN_FLIGHT);
         WriteReply previous = dedup.putIfAbsent(cmd.controlId(), sentinel);
         if (previous != null) {
-            if (!IN_FLIGHT.equals(previous.response())) {
+            if (IN_FLIGHT.equals(previous.response())) {
+                // In-flight duplicate: reply immediately with the standard in_flight token so the
+                // Command Channel does not stall to its timeout (#30). The original request still
+                // replies with its real result when it completes.
+                send(replyTo, new WriteReply(false, "in_flight"));
+            } else {
                 send(replyTo, previous);
             }
-            // else: in-flight duplicate — drop silently; retry will arrive after result is stored
             return;
         }
 

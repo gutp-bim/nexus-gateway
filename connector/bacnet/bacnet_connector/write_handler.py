@@ -43,7 +43,13 @@ class WriteHandler:
             cached = self._dedup[cmd.control_id]
             if cached is not None:
                 await msg.respond(cached.encode())  # type: ignore[union-attr]
-            return  # in-flight duplicate: drop silently
+            else:
+                # In-flight duplicate: reply immediately with the standard in_flight
+                # token so the Command Channel does not stall to its timeout (#30).
+                await msg.respond(  # type: ignore[union-attr]
+                    WriteReply(success=False, response="in_flight").encode()
+                )
+            return
 
         self._dedup[cmd.control_id] = None  # type: ignore[assignment]  # reserve slot
         result = await self._execute(cmd)
