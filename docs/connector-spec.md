@@ -335,6 +335,18 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `OPCUA_POLL_INTERVAL` | `60` | Seconds between periodic re-polls, run alongside the change-driven subscription as the freshness floor (§3.6, #110). |
 | `OPCUA_DEVICE_REF` | `opcua-server` | Device reference echoed in emitted events. |
 | `OPCUA_WRITE_TIMEOUT` | `10` | Device write timeout in seconds. |
+| `OPCUA_SECURITY_POLICY` | `None` | Channel security policy: `None`, `Basic128Rsa15`, `Basic256`, or `Basic256Sha256`. The connector selects the server endpoint matching this policy. Default `None` keeps the dev/simulator path unchanged. |
+| `OPCUA_SECURITY_MODE` | `None`/`SignAndEncrypt` | Message security mode: `None`, `Sign`, or `SignAndEncrypt`. Defaults to `None` when the policy is `None`, otherwise `SignAndEncrypt`. `Sign`/`SignAndEncrypt` with policy `None` is rejected. |
+| `OPCUA_CLIENT_CERT_FILE` | _(empty)_ | PEM path to the client application-instance certificate. **Required when `OPCUA_SECURITY_POLICY` is not `None`** (a secured channel needs an application certificate); also the X509 user token when `OPCUA_IDENTITY=x509`. |
+| `OPCUA_CLIENT_KEY_FILE` | _(empty)_ | PEM path (PKCS#8) to the private key paired with `OPCUA_CLIENT_CERT_FILE`. Required whenever the certificate is. |
+| `OPCUA_IDENTITY` | `anonymous` | User identity token: `anonymous` (default), `username` (uses `OPCUA_USERNAME`/`OPCUA_PASSWORD`), or `x509` (uses `OPCUA_CLIENT_CERT_FILE`/`OPCUA_CLIENT_KEY_FILE`). |
+| `OPCUA_USERNAME` | _(empty)_ | Username for `OPCUA_IDENTITY=username`. Must be paired with `OPCUA_PASSWORD`. |
+| `OPCUA_PASSWORD` | _(empty)_ | Password for `OPCUA_IDENTITY=username`. Must be paired with `OPCUA_USERNAME`. |
+
+> Invalid combinations fail fast at startup with a one-line error naming the offending
+> variable: an unknown policy/mode value, a message mode without a real policy, a secured
+> policy without a client certificate/key, a username without a password (or vice-versa),
+> or an identity mode missing its required credentials.
 
 **MQTT connector:**
 
@@ -438,14 +450,21 @@ The point list tells a connector which data points to poll and how to address th
 
 ```json
 {
-  "local_id":   "ns=2;s=Temperature",
-  "device_ref": "opcua-device-01",
-  "unit":       "degC",
-  "writable":   false
+  "local_id":       "ns=2;s=Temperature",
+  "device_ref":     "opcua-device-01",
+  "unit":           "degC",
+  "writable":       false,
+  "method_node_id": ""
 }
 ```
 
-`local_id` is the OPC-UA NodeId string as returned by the Browse service.
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `local_id` | string | **Yes** | OPC-UA NodeId string as returned by the Browse service, e.g. `ns=2;s=Temperature`. |
+| `device_ref` | string | No | Opaque device reference echoed in events (defaults to `OPCUA_DEVICE_REF`). |
+| `unit` | string | No | Engineering unit echoed in events. |
+| `writable` | boolean | No | Whether the gateway may send write commands for this point. Default `false`. |
+| `method_node_id` | string | No | NodeId of an OPC-UA **method** to invoke for writes instead of a direct node write. When set, a write calls this method (with the point's node as the object and the value as the single argument) rather than writing the `local_id` node's Value attribute — for servers that expose setpoints only through methods. When omitted, writes use the standard Write service on `local_id`. |
 
 ### 6.3 MQTT point config (per element of `MQTT_POINTS`)
 
