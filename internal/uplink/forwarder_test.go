@@ -231,6 +231,8 @@ func TestForwarder_RecordsCheckpointClockAndDriftTotal(t *testing.T) {
 
 	assert.Eventually(t, func() bool { return buf.DriftTotal() == 1 }, 2*time.Second, 20*time.Millisecond)
 	assert.GreaterOrEqual(t, buf.LastCheckpointUnix(), before, "checkpoint clock is stamped on a successful ack")
+	assert.Equal(t, int64(2), buf.Accepted(), "accepted reflects the StreamAck cumulative count")
+	assert.Equal(t, int64(3), buf.Sent(), "sent counts all forwarded frames")
 }
 
 // A checkpoint (CloseAndRecv) failure must also leave the cursor un-advanced.

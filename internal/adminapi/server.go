@@ -59,6 +59,7 @@ type TelemetrySource interface {
 	Depth() int64
 	Written() int64
 	Sent() int64
+	Accepted() int64
 	Dropped() int64
 	Checkpoints() int64
 	SendErrors() int64
@@ -67,6 +68,13 @@ type TelemetrySource interface {
 	// last successful ack-checkpoint, feeding a staleness metric (#23); 0 = never.
 	DriftTotal() int64
 	LastCheckpointUnix() int64
+}
+
+// StreamStatSource exposes JetStream usage for the EVENTS stream (msg/byte counts)
+// so the telemetry payload can show ingest backlog end-to-end (#47). A nil source
+// omits events_stream from the payload (the buffer has no NATS access itself).
+type StreamStatSource interface {
+	StreamStats(ctx context.Context) (msgs, bytes uint64, err error)
 }
 
 // ConnectorLogger provides recent log lines for a connector container.
@@ -78,12 +86,13 @@ type ConnectorLogger interface {
 // ServerOptions holds all optional feature sources. A nil field disables the
 // corresponding endpoints. Use with NewServer (no auth) or NewSecureServer (JWT).
 type ServerOptions struct {
-	Installer ConnectorInstaller
-	Catalog   CatalogSource
-	PointList PointListSource
-	Telemetry TelemetrySource
-	Recent    *RecentStore
-	Logger    ConnectorLogger
+	Installer   ConnectorInstaller
+	Catalog     CatalogSource
+	PointList   PointListSource
+	Telemetry   TelemetrySource
+	StreamStats StreamStatSource
+	Recent      *RecentStore
+	Logger      ConnectorLogger
 	// AllowAdhocUpgrade enables the dev-only POST /connectors/{id}/upgrade?image=<ref>
 	// action. The MVP update path is catalog-driven (ADR-0006); when false (default)
 	// the upgrade action returns 501 Not Implemented.
@@ -100,7 +109,6 @@ type JWTConfig struct {
 	Issuer   string
 }
 
-
 // HealthSnapshotter produces gateway health snapshots.
 type HealthSnapshotter interface {
 	Snapshot(ctx context.Context) lifecycle.GatewayHealth
@@ -108,17 +116,18 @@ type HealthSnapshotter interface {
 
 // Server is the Admin HTTP API server.
 type Server struct {
-	mux       *http.ServeMux
-	auth      *JWTMiddleware
-	mgr       ConnectorManager
-	installer ConnectorInstaller // nil if catalog is not configured
-	catalog   CatalogSource      // nil if catalog browsing/update is not configured
-	devices   PointListSource    // nil if point list is not configured
-	telemetry TelemetrySource    // nil if S&F telemetry is not configured
-	recent    *RecentStore       // nil if recent-value tracking is not configured
-	logger    ConnectorLogger    // nil if log streaming is not configured
-	monitor   HealthSnapshotter
-	shutdown  context.CancelFunc // stops the JWKS cache refresh goroutine
+	mux         *http.ServeMux
+	auth        *JWTMiddleware
+	mgr         ConnectorManager
+	installer   ConnectorInstaller // nil if catalog is not configured
+	catalog     CatalogSource      // nil if catalog browsing/update is not configured
+	devices     PointListSource    // nil if point list is not configured
+	telemetry   TelemetrySource    // nil if S&F telemetry is not configured
+	streamStats StreamStatSource   // nil if JetStream usage is not available
+	recent      *RecentStore       // nil if recent-value tracking is not configured
+	logger      ConnectorLogger    // nil if log streaming is not configured
+	monitor     HealthSnapshotter
+	shutdown    context.CancelFunc // stops the JWKS cache refresh goroutine
 
 	allowAdhocUpgrade bool // dev-only upgrade?image= action (ADR-0006: catalog-driven by default)
 }
@@ -152,23 +161,23 @@ func (s *Server) Shutdown() {
 // routes. authenticated controls whether operator routes go through the JWT middleware.
 func buildServer(mgr ConnectorManager, monitor HealthSnapshotter, opts ServerOptions, auth *JWTMiddleware, authenticated bool) *Server {
 	s := &Server{
-		mux:       http.NewServeMux(),
-		auth:      auth,
-		mgr:       mgr,
-		installer: opts.Installer,
-		catalog:   opts.Catalog,
-		devices:   opts.PointList,
-		telemetry: opts.Telemetry,
-		recent:    opts.Recent,
-		logger:    opts.Logger,
-		monitor:   monitor,
+		mux:         http.NewServeMux(),
+		auth:        auth,
+		mgr:         mgr,
+		installer:   opts.Installer,
+		catalog:     opts.Catalog,
+		devices:     opts.PointList,
+		telemetry:   opts.Telemetry,
+		streamStats: opts.StreamStats,
+		recent:      opts.Recent,
+		logger:      opts.Logger,
+		monitor:     monitor,
 
 		allowAdhocUpgrade: opts.AllowAdhocUpgrade,
 	}
 	s.registerRoutes(authenticated)
 	return s
 }
-
 
 func (s *Server) registerRoutes(authenticated bool) {
 	require := func(role string, h http.HandlerFunc) http.HandlerFunc {
@@ -242,16 +251,56 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, logResponse{ConnectorID: id, Lines: lines})
 }
 
-type telemetryResponse struct {
-	BufferDepth int64            `json:"buffer_depth"`
-	Drifts      map[string]int64 `json:"drifts"`
+type eventsStreamUsage struct {
+	Msgs  uint64 `json:"msgs"`
+	Bytes uint64 `json:"bytes"`
 }
 
-func (s *Server) handleTelemetry(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, telemetryResponse{
-		BufferDepth: s.telemetry.Depth(),
-		Drifts:      s.telemetry.Drifts(),
-	})
+// telemetryResponse is the single-document pipeline view for the Telemetry screen
+// (#47): ingest→forward→ack throughput, buffer/loss figures, EVENTS stream usage,
+// and uplink health. buffer_depth + drifts keep their names/shape for backward
+// compatibility with the existing screen.
+type telemetryResponse struct {
+	Received           int64              `json:"received"` // frames written into the buffer
+	Sent               int64              `json:"sent"`     // frames streamed to Building OS
+	Accepted           int64              `json:"accepted"` // frames Building OS acknowledged
+	BufferDepth        int64              `json:"buffer_depth"`
+	Dropped            int64              `json:"dropped"`
+	Checkpoints        int64              `json:"checkpoints"`
+	SendErrors         int64              `json:"send_errors"`
+	Drifts             map[string]int64   `json:"drifts"`
+	DriftTotal         int64              `json:"drift_total"`
+	UplinkConnected    bool               `json:"uplink_connected"`
+	LastCheckpointUnix int64              `json:"last_checkpoint_unix"`
+	EventsStream       *eventsStreamUsage `json:"events_stream,omitempty"`
+}
+
+func (s *Server) handleTelemetry(w http.ResponseWriter, r *http.Request) {
+	t := s.telemetry
+	resp := telemetryResponse{
+		Received:           t.Written(),
+		Sent:               t.Sent(),
+		Accepted:           t.Accepted(),
+		BufferDepth:        t.Depth(),
+		Dropped:            t.Dropped(),
+		Checkpoints:        t.Checkpoints(),
+		SendErrors:         t.SendErrors(),
+		Drifts:             t.Drifts(),
+		DriftTotal:         t.DriftTotal(),
+		UplinkConnected:    metrics.UplinkConnected(),
+		LastCheckpointUnix: t.LastCheckpointUnix(),
+	}
+	// EVENTS stream usage is best-effort: a JetStream hiccup must not fail the
+	// whole telemetry read, so on error/nil source the field is simply omitted.
+	// A short deadline keeps /telemetry snappy even if NATS is unreachable.
+	if s.streamStats != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if msgs, bytes, err := s.streamStats.StreamStats(ctx); err == nil {
+			resp.EventsStream = &eventsStreamUsage{Msgs: msgs, Bytes: bytes}
+		}
+	}
+	writeJSON(w, resp)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -407,6 +456,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "gateway_uptime_seconds %g\n", h.UptimeSeconds)
 	fmt.Fprintf(w, "gateway_goroutines %d\n", h.GoRoutines)
 	fmt.Fprintf(w, "gateway_mem_alloc_mb %g\n", h.MemAllocMB)
+	fmt.Fprintf(w, "gateway_cpu_percent %g\n", h.CPUPercent)
 	fmt.Fprintf(w, "gateway_connectors_total %d\n", len(h.Connectors))
 	fmt.Fprintf(w, "gateway_connectors_running %d\n", running)
 	// Per-connector lifecycle state as labeled series (#24) so monitoring can name
