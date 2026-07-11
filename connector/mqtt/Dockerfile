@@ -12,4 +12,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /mqtt-connector /mqtt-connector
 
+# Minimal health surface (#35): GET /health on HEALTH_PORT (default 8080).
+EXPOSE 8080
+
 ENTRYPOINT ["/mqtt-connector"]

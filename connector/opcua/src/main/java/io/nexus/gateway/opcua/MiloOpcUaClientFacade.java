@@ -4,6 +4,8 @@
 package io.nexus.gateway.opcua;
 
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
+import org.eclipse.milo.opcua.sdk.client.SessionActivityListener;
+import org.eclipse.milo.opcua.sdk.client.api.UaSession;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaMonitoredItem;
 import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscription;
 import org.eclipse.milo.opcua.stack.core.AttributeId;
@@ -28,6 +30,7 @@ public class MiloOpcUaClientFacade implements OpcUaClientFacade {
 
     private final String endpointUrl;
     private OpcUaClient miloClient;
+    private volatile boolean connected;
 
     public MiloOpcUaClientFacade(String endpointUrl) {
         this.endpointUrl = endpointUrl;
@@ -35,9 +38,36 @@ public class MiloOpcUaClientFacade implements OpcUaClientFacade {
 
     @Override
     public void connect() throws Exception {
-        miloClient = OpcUaClient.create(endpointUrl);
-        miloClient.connect().get();
-        log.info("opcua: connected to {}", endpointUrl);
+        connected = false;
+        try {
+            miloClient = OpcUaClient.create(endpointUrl);
+            // Track live session state so /health flips to degraded when the session
+            // drops after startup (server down / partition), not just on close (#35).
+            // Registered before connect() so no early transition is missed.
+            miloClient.addSessionActivityListener(new SessionActivityListener() {
+                @Override
+                public void onSessionActive(UaSession session) {
+                    connected = true;
+                }
+
+                @Override
+                public void onSessionInactive(UaSession session) {
+                    connected = false;
+                    log.warn("opcua: session inactive — /health now degraded until reconnect");
+                }
+            });
+            miloClient.connect().get();
+            connected = true;
+            log.info("opcua: connected to {}", endpointUrl);
+        } catch (Exception e) {
+            connected = false;
+            throw e;
+        }
+    }
+
+    @Override
+    public boolean isConnected() {
+        return connected;
     }
 
     @Override
@@ -167,6 +197,7 @@ public class MiloOpcUaClientFacade implements OpcUaClientFacade {
 
     @Override
     public void close() throws Exception {
+        connected = false;
         if (miloClient != null) {
             miloClient.disconnect().get();
             log.info("opcua: disconnected from {}", endpointUrl);

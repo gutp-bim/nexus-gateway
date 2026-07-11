@@ -15,4 +15,7 @@ WORKDIR /app
 
 COPY --from=build /build/build/install/nexus-opcua-connector/ .
 
+# Health endpoint (GET /health); overridable via HEALTH_PORT env.
+EXPOSE 8080
+
 ENTRYPOINT ["bin/nexus-opcua-connector"]
