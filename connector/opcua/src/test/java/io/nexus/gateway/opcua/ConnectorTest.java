@@ -289,6 +289,65 @@ class ConnectorTest {
             "periodic re-poll must publish repeatedly for static values; got " + pub.published.size());
     }
 
+    // #36: a configured point yielding a non-numeric value must WARN (rate-limited
+    // per node id) instead of silently dropping, and must not publish the value.
+    @Test
+    void nonNumericConfiguredPointWarnsOnceWithinWindowAndDoesNotPublish() {
+        MockClient client = new MockClient();
+        RecordingPublisher pub = new RecordingPublisher();
+        Connector connector = new Connector(onePointConfig(), client, pub.asPublisher());
+
+        String nodeId = "ns=2;i=1001";
+        // Non-numeric value → toDouble() returns null.
+        OpcValue nonNumeric = OpcValue.good("not-a-number");
+        assertNull(nonNumeric.toDouble(), "precondition: value is non-numeric");
+
+        // Repeated deliveries within the (default 300 s) window: WARN due exactly once.
+        int warnDue = 0;
+        for (int i = 0; i < 10; i++) {
+            if (connector.shouldWarnNonNumeric(nodeId)) warnDue++;
+        }
+        assertEquals(1, warnDue, "non-numeric WARN must be rate-limited to once per window");
+
+        // Nothing was published for the non-numeric point.
+        assertEquals(0, pub.published.size(), "non-numeric value must not be published");
+    }
+
+    @Test
+    void nonNumericWarnFiresAgainAfterWindowElapses() throws Exception {
+        MockClient client = new MockClient();
+        RecordingPublisher pub = new RecordingPublisher();
+        Connector connector = new Connector(onePointConfig(), client, pub.asPublisher());
+        // Tiny window so the second WARN becomes due almost immediately.
+        connector.nonNumericWarnWindowMs = 10L;
+
+        String nodeId = "ns=2;i=1001";
+        assertTrue(connector.shouldWarnNonNumeric(nodeId), "first WARN is due");
+        assertFalse(connector.shouldWarnNonNumeric(nodeId), "immediate repeat is suppressed");
+        Thread.sleep(20L);
+        assertTrue(connector.shouldWarnNonNumeric(nodeId), "WARN is due again after the window elapses");
+    }
+
+    @Test
+    void nonNumericValueViaSubscriptionIsNotPublished() throws Exception {
+        MockClient client = new MockClient();
+        // Poll returns nothing so only the subscription notification drives onValue.
+        RecordingPublisher pub = new RecordingPublisher();
+        Connector connector = new Connector(onePointConfig(), client, pub.asPublisher());
+        Future<?> task = startAsync(connector);
+
+        awaitSubscribed(client);
+        // Repeatedly deliver a non-numeric value for the configured point.
+        for (int i = 0; i < 5; i++) {
+            client.subscriber.accept("ns=2;i=1001", OpcValue.good("NaN-text"));
+        }
+
+        connector.stop();
+        task.get(2, TimeUnit.SECONDS);
+
+        assertEquals(0, pub.published.size(), "non-numeric subscription values must not be published");
+    }
+
     @Test
     void nodeIdNeverAppearsInNatsSubject() throws Exception {
         MockClient client = new MockClient();
