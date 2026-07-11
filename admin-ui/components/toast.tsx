@@ -16,6 +16,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslations } from "next-intl";
 
 export type ToastVariant = "success" | "error" | "info";
 export type Toast = { id: number; message: string; variant: ToastVariant };
@@ -112,6 +113,7 @@ export function useToast(): ToastApi {
 }
 
 function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: number) => void }) {
+  const t = useTranslations("toast");
   return (
     // aria-live=polite announces new toasts to screen readers without stealing
     // focus; individual error toasts escalate to role=alert below.
@@ -128,12 +130,12 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
         maxWidth: "24rem",
       }}
     >
-      {toasts.map((t) => {
-        const c = COLORS[t.variant];
+      {toasts.map((toast) => {
+        const c = COLORS[toast.variant];
         return (
           <div
-            key={t.id}
-            role={t.variant === "error" ? "alert" : "status"}
+            key={toast.id}
+            role={toast.variant === "error" ? "alert" : "status"}
             style={{
               display: "flex",
               alignItems: "flex-start",
@@ -147,7 +149,7 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            <span aria-hidden="true">{GLYPH[t.variant]}</span>
+            <span aria-hidden="true">{GLYPH[toast.variant]}</span>
             {/* Visually-hidden variant word so a screen reader hears
                 "Success"/"Error"/"Info", not just the message + role urgency. */}
             <span
@@ -160,12 +162,12 @@ function ToastViewport({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id:
                 whiteSpace: "nowrap",
               }}
             >
-              {t.variant === "success" ? "Success" : t.variant === "error" ? "Error" : "Info"}:
+              {t(toast.variant)}:
             </span>
-            <span style={{ flex: 1 }}>{t.message}</span>
+            <span style={{ flex: 1 }}>{toast.message}</span>
             <button
-              onClick={() => onDismiss(t.id)}
-              aria-label="Dismiss notification"
+              onClick={() => onDismiss(toast.id)}
+              aria-label={t("dismiss")}
               style={{
                 border: "none",
                 background: "transparent",

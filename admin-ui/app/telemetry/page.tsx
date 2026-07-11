@@ -4,6 +4,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { TelemetryStats } from "@/lib/api";
 import { apiFetch, isRecord } from "@/lib/apiClient";
 import { usePolling } from "@/lib/use-polling";
@@ -25,6 +26,8 @@ type TelemetryData = {
 };
 
 export default function TelemetryPage() {
+  const t = useTranslations("telemetry");
+  const tc = useTranslations("common");
   const fetchData = useCallback(async (): Promise<TelemetryData> => {
     const stats = await apiFetch<TelemetryStats>("/api/gateway/telemetry", undefined, isRecord);
 
@@ -52,7 +55,7 @@ export default function TelemetryPage() {
     intervalMs: POLL_MS,
   });
 
-  if (loading && !data) return <p>Loading…</p>;
+  if (loading && !data) return <p>{tc("loading")}</p>;
 
   const stats = data?.stats;
   const recent = data?.recent ?? [];
@@ -67,62 +70,62 @@ export default function TelemetryPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>Telemetry Monitor</h1>
+      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>{t("title")}</h1>
       {error != null && (
         <div style={{ marginBottom: "0.75rem" }}>
-          <ErrorBanner error={error} onRetry={refresh} label="Failed to load" />
+          <ErrorBanner error={error} onRetry={refresh} label={t("loadError")} />
         </div>
       )}
 
       {/* Pipeline throughput + uplink health (#47). */}
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-        <StatCard label="Received" value={fmtInt(stats?.received)} unit="frames" />
-        <StatCard label="Sent" value={fmtInt(stats?.sent)} unit="frames" />
-        <StatCard label="Accepted" value={fmtInt(stats?.accepted)} unit="frames" />
+        <StatCard label={t("received")} value={fmtInt(stats?.received)} unit={t("unitFrames")} />
+        <StatCard label={t("sent")} value={fmtInt(stats?.sent)} unit={t("unitFrames")} />
+        <StatCard label={t("accepted")} value={fmtInt(stats?.accepted)} unit={t("unitFrames")} />
         <StatCard
-          label="Uplink"
+          label={t("uplink")}
           value={
             stats == null
               ? "—"
               : stats.uplink_connected === undefined
-                ? "Unknown"
+                ? t("uplinkUnknown")
                 : stats.uplink_connected
-                  ? "Connected"
-                  : "Disconnected"
+                  ? t("uplinkConnected")
+                  : t("uplinkDisconnected")
           }
           alert={stats?.uplink_connected === false}
         />
-        <StatCard label="Last Checkpoint" value={fmtAgo(stats?.last_checkpoint_unix)} />
+        <StatCard label={t("lastCheckpoint")} value={fmtAgo(t, stats?.last_checkpoint_unix)} />
       </div>
 
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-        <StatCard label="S&F Buffer Depth" value={fmtInt(stats?.buffer_depth)} unit="frames" />
-        <StatCard label="Total Drift" value={fmtInt(totalDrift)} unit="frames" alert={totalDrift > 0} />
-        <StatCard label="Dropped" value={fmtInt(stats?.dropped)} unit="frames" alert={(stats?.dropped ?? 0) > 0} />
-        <StatCard label="Send Errors" value={fmtInt(stats?.send_errors)} alert={(stats?.send_errors ?? 0) > 0} />
+        <StatCard label={t("bufferDepth")} value={fmtInt(stats?.buffer_depth)} unit={t("unitFrames")} />
+        <StatCard label={t("totalDrift")} value={fmtInt(totalDrift)} unit={t("unitFrames")} alert={totalDrift > 0} />
+        <StatCard label={t("dropped")} value={fmtInt(stats?.dropped)} unit={t("unitFrames")} alert={(stats?.dropped ?? 0) > 0} />
+        <StatCard label={t("sendErrors")} value={fmtInt(stats?.send_errors)} alert={(stats?.send_errors ?? 0) > 0} />
         <StatCard
-          label="EVENTS Stream"
+          label={t("eventsStream")}
           value={stats?.events_stream ? fmtInt(stats.events_stream.msgs) : "—"}
-          unit={stats?.events_stream ? `msgs · ${fmtBytes(stats.events_stream.bytes)}` : undefined}
+          unit={stats?.events_stream ? `${t("unitMsgs")} · ${fmtBytes(stats.events_stream.bytes)}` : undefined}
         />
-        <StatCard label="Live Points" value={String(recent.length)} unit="points" />
+        <StatCard label={t("livePoints")} value={String(recent.length)} unit={t("unitPoints")} />
       </div>
 
       {recent.length > 0 && (
         <>
           <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-            Latest Values{" "}
+            {t("latestValues")}{" "}
             <span style={{ fontWeight: 400, fontSize: "0.8rem", color: "#9ca3af" }}>
-              (refreshes every 5 s - ephemeral, lost on restart)
+              {t("latestValuesNote", { seconds: Math.round(POLL_MS / 1000) })}
             </span>
           </h2>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem" }}>Point ID</th>
-                <th style={{ textAlign: "right", padding: "0.4rem 0.75rem" }}>Value</th>
-                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem" }}>Timestamp</th>
-                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem", color: "#9ca3af" }}>Received At</th>
+                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem" }}>{t("headerPointId")}</th>
+                <th style={{ textAlign: "right", padding: "0.4rem 0.75rem" }}>{t("headerValue")}</th>
+                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem" }}>{t("headerTimestamp")}</th>
+                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem", color: "#9ca3af" }}>{t("headerReceivedAt")}</th>
               </tr>
             </thead>
             <tbody>
@@ -139,17 +142,17 @@ export default function TelemetryPage() {
         </>
       )}
       {recent.length === 0 && !error && (
-        <p style={{ color: "#9ca3af", marginBottom: "1.5rem" }}>No live values yet - waiting for telemetry events...</p>
+        <p style={{ color: "#9ca3af", marginBottom: "1.5rem" }}>{t("noLiveValues")}</p>
       )}
 
       {driftEntries.length > 0 && (
         <>
-          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem" }}>Per-Point Drift</h2>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.5rem" }}>{t("perPointDrift")}</h2>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem" }}>Point ID</th>
-                <th style={{ textAlign: "right", padding: "0.4rem 0.75rem" }}>Drift (frames)</th>
+                <th style={{ textAlign: "left", padding: "0.4rem 0.75rem" }}>{t("headerPointId")}</th>
+                <th style={{ textAlign: "right", padding: "0.4rem 0.75rem" }}>{t("headerDriftFrames")}</th>
               </tr>
             </thead>
             <tbody>
@@ -171,7 +174,7 @@ export default function TelemetryPage() {
         </>
       )}
       {driftEntries.length === 0 && recent.length > 0 && (
-        <p style={{ color: "#9ca3af" }}>No drift - all points accepted by Building OS</p>
+        <p style={{ color: "#9ca3af" }}>{t("noDrift")}</p>
       )}
       <LastUpdated at={lastUpdated} stale={stale} intervalMs={POLL_MS} />
     </div>
@@ -195,13 +198,13 @@ function fmtBytes(bytes: number): string {
 }
 
 /** Relative "N ago" for a unix-seconds checkpoint clock (0 / undefined = never). */
-function fmtAgo(unix: number | undefined): string {
-  if (!unix || unix <= 0) return "never";
+function fmtAgo(t: ReturnType<typeof useTranslations>, unix: number | undefined): string {
+  if (!unix || unix <= 0) return t("never");
   const secs = Math.max(0, Math.floor(Date.now() / 1000 - unix));
-  if (secs < 60) return `${secs}s ago`;
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
-  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
-  return `${Math.floor(secs / 86400)}d ago`;
+  if (secs < 60) return t("secondsAgo", { n: secs });
+  if (secs < 3600) return t("minutesAgo", { n: Math.floor(secs / 60) });
+  if (secs < 86400) return t("hoursAgo", { n: Math.floor(secs / 3600) });
+  return t("daysAgo", { n: Math.floor(secs / 86400) });
 }
 
 function StatCard({ label, value, unit, alert }: { label: string; value: string; unit?: string; alert?: boolean }) {

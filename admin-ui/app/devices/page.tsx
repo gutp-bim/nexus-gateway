@@ -4,6 +4,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { PointEntry } from "@/lib/api";
 import { apiFetch, isArrayOf } from "@/lib/apiClient";
 import { usePolling } from "@/lib/use-polling";
@@ -25,6 +26,8 @@ function groupByConnector(entries: PointEntry[]): Group[] {
 }
 
 export default function DevicesPage() {
+  const t = useTranslations("devices");
+  const tc = useTranslations("common");
   const fetchData = useCallback(
     () => apiFetch<PointEntry[]>("/api/gateway/devices", undefined, isArrayOf()),
     []
@@ -33,20 +36,20 @@ export default function DevicesPage() {
     intervalMs: POLL_MS,
   });
 
-  if (loading && !entries) return <p>Loading…</p>;
+  if (loading && !entries) return <p>{tc("loading")}</p>;
 
   const groups: Group[] = entries ? groupByConnector(entries) : [];
 
   return (
     <div>
-      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>Devices & Points</h1>
+      <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1.25rem" }}>{t("title")}</h1>
       {error != null && (
         <div style={{ marginBottom: "0.75rem" }}>
-          <ErrorBanner error={error} onRetry={refresh} label="Failed to load" />
+          <ErrorBanner error={error} onRetry={refresh} label={t("loadError")} />
         </div>
       )}
       {entries && groups.length === 0 && !error && (
-        <p style={{ color: "#9ca3af" }}>No points in Point List</p>
+        <p style={{ color: "#9ca3af" }}>{t("empty")}</p>
       )}
       {groups.map((g) => (
         <div key={g.connectorID} style={{ marginBottom: "1.5rem" }}>
@@ -59,7 +62,13 @@ export default function DevicesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                {["Point ID", "Local ID", "Device", "Unit", "Writable"].map((h) => (
+                {[
+                  t("headerPointId"),
+                  t("headerLocalId"),
+                  t("headerDevice"),
+                  t("headerUnit"),
+                  t("headerWritable"),
+                ].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "0.4rem 0.75rem", whiteSpace: "nowrap", color: "#374151" }}>{h}</th>
                 ))}
               </tr>
@@ -73,9 +82,15 @@ export default function DevicesPage() {
                   <td style={{ padding: "0.4rem 0.75rem" }}>{e.unit ?? "—"}</td>
                   <td style={{ padding: "0.4rem 0.75rem" }}>
                     {e.writable ? (
-                      <span style={{ color: "#2563eb", fontWeight: 600, fontSize: "0.75rem" }}>✓</span>
+                      <span style={{ color: "#2563eb", fontWeight: 600, fontSize: "0.75rem" }} title={t("writableYes")}>
+                        <span aria-hidden="true">✓ </span>
+                        {t("writableYes")}
+                      </span>
                     ) : (
-                      <span style={{ color: "#d1d5db" }}>—</span>
+                      <span style={{ color: "#6b7280", fontSize: "0.75rem" }} title={t("writableNo")}>
+                        <span aria-hidden="true">— </span>
+                        {t("writableNo")}
+                      </span>
                     )}
                   </td>
                 </tr>

@@ -2,9 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 // @vitest-environment jsdom
 
+import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { renderWithIntl } from "@/lib/i18n/test-utils";
 import LogsPage from "./page";
+
+// Wrap in the default (English) intl provider so useTranslations() resolves.
+const render = (ui: ReactElement) => renderWithIntl(ui);
 
 vi.mock("next-auth/react", () => ({
   signIn: vi.fn(),
