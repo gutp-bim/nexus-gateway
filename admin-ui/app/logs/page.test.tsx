@@ -25,7 +25,38 @@ function stubLogFetch() {
     return Promise.resolve({
       ok: true,
       status: 200,
-      json: async () => ({ id: "bacnet-01", lines: ["line one", "line two"] }),
+      json: async () => ({ connector_id: "bacnet-01", lines: ["line one", "line two"] }),
+    });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+// Structured (JSON) log lines. The INFO line's *message* deliberately contains
+// the word "error" to prove severity is read from the parsed `level` field, not
+// from a substring of the raw line.
+const STRUCTURED_LINES = [
+  JSON.stringify({ time: "2026-07-11T00:00:00Z", level: "INFO", msg: "recovered from error cleanly" }),
+  JSON.stringify({ timestamp: "2026-07-11T00:00:01Z", level: "WARN", message: "disk near capacity" }),
+  JSON.stringify({ time: "2026-07-11T00:00:02Z", level: "ERROR", msg: "connection refused" }),
+  JSON.stringify({ time: "2026-07-11T00:00:03Z", level: "INFO", msg: "startup complete" }),
+];
+
+// Like stubLogFetch but the log source returns structured JSON lines. Records
+// every requested URL so tests can assert which source was fetched.
+function stubStructuredFetch() {
+  const fetchMock = vi.fn((url: string) => {
+    if (url.includes("/connectors")) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => [{ id: "bacnet-01", image: "img", running: true }],
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ connector_id: "gateway", lines: STRUCTURED_LINES }),
     });
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -66,8 +97,8 @@ describe("LogsPage", () => {
     const fetchMock = stubLogFetch();
     render(<LogsPage />);
 
-    // Selecting the first connector (auto-selected on mount) fetches its logs
-    // once, regardless of the tail toggle.
+    // A source is selected on mount, so its logs are fetched once regardless of
+    // the tail toggle. Non-JSON lines render verbatim.
     await waitFor(() => expect(screen.getByText("line one")).toBeDefined());
     const logCallsBefore = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/logs/")).length;
     expect(logCallsBefore).toBeGreaterThanOrEqual(1);
@@ -82,5 +113,62 @@ describe("LogsPage", () => {
       const after = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/logs/")).length;
       expect(after).toBeGreaterThan(logCallsBefore);
     });
+  });
+
+  it("offers Gateway as a source and fetches /logs/gateway when it is selected (#42)", async () => {
+    const fetchMock = stubStructuredFetch();
+    render(<LogsPage />);
+
+    const sourceSelect = screen.getByLabelText("Log source") as HTMLSelectElement;
+    // Gateway is offered as an option even with connectors present.
+    const optionValues = Array.from(sourceSelect.options).map((o) => o.value);
+    expect(optionValues).toContain("gateway");
+
+    // Switch to a connector, then back to Gateway, and confirm the gateway log
+    // endpoint is requested.
+    fireEvent.change(sourceSelect, { target: { value: "bacnet-01" } });
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some((c) => String(c[0]).includes("/logs/bacnet-01"))).toBe(true)
+    );
+
+    fireEvent.change(sourceSelect, { target: { value: "gateway" } });
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some((c) => String(c[0]).includes("/logs/gateway"))).toBe(true)
+    );
+  });
+
+  it("filters by parsed `level`, not by substring: warnings-only hides an INFO line whose message contains 'error' (#42)", async () => {
+    stubStructuredFetch();
+    render(<LogsPage />);
+
+    // All lines show under the default "All" filter, including the human-readable
+    // message text of each structured line.
+    await waitFor(() => expect(screen.getByText("recovered from error cleanly")).toBeDefined());
+    expect(screen.getByText("disk near capacity")).toBeDefined();
+    expect(screen.getByText("connection refused")).toBeDefined();
+    expect(screen.getByText("startup complete")).toBeDefined();
+
+    // Switch to warnings & errors only.
+    const severitySelect = screen.getByLabelText("Severity filter") as HTMLSelectElement;
+    fireEvent.change(severitySelect, { target: { value: "warn" } });
+
+    await waitFor(() => {
+      // WARN and ERROR lines remain.
+      expect(screen.getByText("disk near capacity")).toBeDefined();
+      expect(screen.getByText("connection refused")).toBeDefined();
+    });
+    // The INFO line whose *message text* contains "error" is HIDDEN — proving
+    // severity comes from the JSON `level` field, not a substring match.
+    expect(screen.queryByText("recovered from error cleanly")).toBeNull();
+    // The plain INFO line is hidden too.
+    expect(screen.queryByText("startup complete")).toBeNull();
+  });
+
+  it("labels both the source selector and the severity control (accessibility, #42)", async () => {
+    stubStructuredFetch();
+    render(<LogsPage />);
+
+    expect(screen.getByLabelText("Log source")).toBeDefined();
+    expect(screen.getByLabelText("Severity filter")).toBeDefined();
   });
 });
