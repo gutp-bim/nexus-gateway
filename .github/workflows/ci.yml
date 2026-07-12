@@ -48,7 +48,7 @@ jobs:
       - name: Checkout opcua-sim-gateway (sibling)
         uses: actions/checkout@v7
         with:
-          repository: gutp-bim/opcua-sim-gateway
+          repository: takashikasuya/opcua-sim-gateway
           path: opcua-sim-gateway
 
       - uses: actions/setup-go@v6
@@ -126,7 +126,7 @@ jobs:
       - name: Checkout bacnet-sim-gateway (sibling)
         uses: actions/checkout@v7
         with:
-          repository: gutp-bim/bacnet-sim-gateway
+          repository: takashikasuya/bacnet-sim-gateway
           path: bacnet-sim-gateway
 
       - uses: actions/setup-go@v6

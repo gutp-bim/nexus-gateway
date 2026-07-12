@@ -8,13 +8,12 @@ protocol stacks (no field hardware), terminating at the mock Building OS.
 
 Check out the simulator repos **next to this one** (the compose build contexts
 are `../bacnet-sim-gateway` / `../opcua-sim-gateway`, so they must be siblings of
-the `nexus-gateway/` checkout). They are published under the same GitHub
-organization as nexus-gateway:
+the `nexus-gateway/` checkout):
 
 ```bash
 # from the parent directory that already contains nexus-gateway/
-git clone https://github.com/gutp-bim/bacnet-sim-gateway   # bbc-sim — BACnet/IP B-BC
-git clone https://github.com/gutp-bim/opcua-sim-gateway    # opcua-sim — OPC UA server
+git clone https://github.com/takashikasuya/bacnet-sim-gateway   # bbc-sim — BACnet/IP B-BC
+git clone https://github.com/takashikasuya/opcua-sim-gateway    # opcua-sim — OPC UA server
 ```
 
 If a sibling is missing, the profile's `up` fails with a build-context error

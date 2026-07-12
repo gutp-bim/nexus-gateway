@@ -276,13 +276,12 @@ curl -s http://localhost:18080/telemetry -H "Authorization: Bearer $TOKEN" | jq
 2 つのシミュレータ姉妹リポジトリで、ハードウェアなしに実プロトコルコネクタを動かせます。
 これらは**本リポジトリの隣にチェックアウトする必要がある別リポジトリ**です — 同じ親
 ディレクトリの下に sibling として clone します(compose のビルドコンテキストは
-`../bacnet-sim-gateway` と `../opcua-sim-gateway`)。nexus-gateway と同じ GitHub
-organization で公開されています:
+`../bacnet-sim-gateway` と `../opcua-sim-gateway`):
 
 ```bash
 # nexus-gateway/ を既に含む親ディレクトリで
-git clone https://github.com/gutp-bim/bacnet-sim-gateway
-git clone https://github.com/gutp-bim/opcua-sim-gateway
+git clone https://github.com/takashikasuya/bacnet-sim-gateway
+git clone https://github.com/takashikasuya/opcua-sim-gateway
 ```
 
 sibling ディレクトリが無い場合、`docker compose … --profile opcua up` はプロトコル
