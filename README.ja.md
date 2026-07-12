@@ -3,7 +3,7 @@
 [![CI](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**ビル設備(BMS・IoT・フィールドプロトコル)を [Building OS](https://github.com/gutp-bim/gutp-building-os-oss) に接続するエッジ統合ゲートウェイ。**
+**ビル設備(BMS・IoT・フィールドプロトコル)を [Building OS](https://github.com/gutp-bim/gutp-building-os-ri) に接続するエッジ統合ゲートウェイ。**
 
 *[English](README.md) / 日本語*
 
