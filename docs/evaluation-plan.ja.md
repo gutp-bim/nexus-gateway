@@ -19,7 +19,7 @@
 | NATS JetStream | `nats:2.10-alpine` |
 | BACnet シミュレータ | `../bacnet-sim-gateway` |
 | OPC-UA シミュレータ | `../opcua-sim-gateway` |
-| Building OS モック | `../gutp-building-os-oss`（GatewayIngress gRPC スタブ） |
+| Building OS モック | `../gutp-building-os-ri`（GatewayIngress gRPC スタブ） |
 | Go | 1.25 |
 | SQLite | `modernc.org/sqlite` 組み込み |
 

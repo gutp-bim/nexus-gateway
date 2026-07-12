@@ -3,7 +3,7 @@
 [![CI](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/gutp-bim/nexus-gateway/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**An edge integration gateway that connects building equipment (BMS, IoT, field protocols) to [Building OS](https://github.com/gutp-bim/gutp-building-os-oss).**
+**An edge integration gateway that connects building equipment (BMS, IoT, field protocols) to [Building OS](https://github.com/gutp-bim/gutp-building-os-ri).**
 
 *English / [日本語](README.ja.md)*
 
@@ -244,8 +244,8 @@ docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile
 Point the gateway at the real Building OS stack instead of mock-bos:
 
 ```bash
-# Building OS OSS stack (see github.com/gutp-bim/gutp-building-os-oss)
-docker compose -f /path/to/gutp-building-os-oss/docker-compose.oss.yaml up -d
+# Building OS OSS stack (see github.com/gutp-bim/gutp-building-os-ri)
+docker compose -f /path/to/gutp-building-os-ri/docker-compose.oss.yaml up -d
 
 # Start gateway with the SPLIT BOS ingress + egress addresses and the SoS Point List.
 # Telemetry ingress and the control-plane egress terminate on DISTINCT ports
@@ -277,6 +277,19 @@ service via an override file) but sits idle — the gateway no longer talks to
 it. See the comment header in `docker-compose.live-bos.yml` for the Linux
 `host.docker.internal` caveat (Docker Engine ≥ 20.10 needed for the
 `extra_hosts: host-gateway` mapping this overlay adds).
+
+**Connecting to Building OS's own SoS demo?** (#81) This repo's default
+namespace (`GATEWAY_ID=gw-001`, points `supply_air_temp`/`fan_run`) does
+**not** match the `GATEWAY_ID=GW-SOS-001` / `SOS-PT-*` twin that Building
+OS's own OSS stack auto-seeds by default — pointing the default gateway at
+it means every frame is skipped as unknown-point. Layer on
+[`docker-compose.sos-demo.yml`](docker-compose.sos-demo.yml) as well (needs a
+sibling checkout of `gutp-building-os-ri`, see its comment header):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.live-bos.yml \
+  -f docker-compose.sos-demo.yml up --build
+```
 
 #### Production: TLS/mTLS to Building OS (ADR-0007)
 

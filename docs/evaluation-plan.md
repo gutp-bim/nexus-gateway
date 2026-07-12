@@ -20,7 +20,7 @@ The corresponding test scaffolds are under `test/e2e/eval_e*.go` (build tag `e2e
 | NATS JetStream | `nats:2.10-alpine` |
 | BACnet simulator | `../bacnet-sim-gateway` |
 | OPC-UA simulator | `../opcua-sim-gateway` |
-| Building OS mock | `../gutp-building-os-oss` (GatewayIngress gRPC stub) |
+| Building OS mock | `../gutp-building-os-ri` (GatewayIngress gRPC stub) |
 | Go | 1.25 |
 | SQLite | bundled via `modernc.org/sqlite` |
 
