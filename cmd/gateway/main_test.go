@@ -252,3 +252,17 @@ func TestWaitTimeout_ReturnsFalseOnTimeout(t *testing.T) {
 	wg.Add(1) // never Done — simulates a hung goroutine
 	assert.False(t, waitTimeout(&wg, 30*time.Millisecond), "should time out")
 }
+
+func TestEnvOrDefaultDuration(t *testing.T) {
+	t.Setenv("TEST_EVENTS_MAX_AGE", "")
+	assert.Equal(t, 48*time.Hour, envOrDefaultDuration("TEST_EVENTS_MAX_AGE", 48*time.Hour))
+	t.Setenv("TEST_EVENTS_MAX_AGE", "72h")
+	assert.Equal(t, 72*time.Hour, envOrDefaultDuration("TEST_EVENTS_MAX_AGE", 48*time.Hour))
+}
+
+func TestEnvOrDefaultInt64(t *testing.T) {
+	t.Setenv("TEST_EVENTS_MAX_BYTES", "")
+	assert.Equal(t, int64(2<<30), envOrDefaultInt64("TEST_EVENTS_MAX_BYTES", 2<<30))
+	t.Setenv("TEST_EVENTS_MAX_BYTES", "1073741824")
+	assert.Equal(t, int64(1<<30), envOrDefaultInt64("TEST_EVENTS_MAX_BYTES", 2<<30))
+}

@@ -165,10 +165,25 @@ func Normalize(data []byte, resolver pointlist.Resolver, gatewayID string) (*pb.
 	if ts == "" {
 		ts = time.Now().UTC().Format(time.RFC3339)
 	}
+	// Unit and quality unification: ride in attributes (additive, merged into
+	// the validated telemetry data object downstream). "Good" is the implied
+	// default quality, so only deviations (Bad/Uncertain) are carried — this
+	// keeps the steady-state frame lean.
+	var attrs map[string]string
+	if evt.Unit != "" || (evt.Quality != "" && evt.Quality != "Good") {
+		attrs = make(map[string]string, 2)
+		if evt.Unit != "" {
+			attrs["unit"] = evt.Unit
+		}
+		if evt.Quality != "" && evt.Quality != "Good" {
+			attrs["quality"] = evt.Quality
+		}
+	}
 	return &pb.TelemetryFrame{
-		GatewayId: gatewayID,
-		PointId:   pointID,
-		Value:     evt.Value,
-		Timestamp: ts,
+		GatewayId:  gatewayID,
+		PointId:    pointID,
+		Value:      evt.Value,
+		Timestamp:  ts,
+		Attributes: attrs,
 	}, OutcomeOK
 }
