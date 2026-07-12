@@ -1,0 +1,27 @@
+# Overlay for wiring `gateway` to a REAL Building OS stack running on the same
+# machine, instead of the bundled `mock-bos`:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.live-bos.yml up --build
+#
+# Building OS's GatewayIngress (ConnectorWorker, telemetry) and GatewayEgress
+# (GatewayBridge, control) are DISTINCT services on DISTINCT ports — 5051 and
+# 5052 respectively — so both must be set; if only one is, egress silently
+# falls back to the ingress address and Control Commands never connect
+# (nexus-gateway's own resolveBOSAddr() fallback in cmd/gateway/main.go).
+#
+# `mock-bos` still starts alongside this overlay (Compose has no way to drop a
+# base-file service from an override file — depends_on entries can only be
+# added to or replaced, not removed) but sits idle: `gateway` no longer talks
+# to it once BOS_INGRESS_ADDR/BOS_EGRESS_ADDR below are set. This is harmless —
+# no port collision — so there is nothing further to do about it.
+#
+# `host.docker.internal` resolves to the host machine from inside a container.
+# Docker Desktop (Mac/Windows) provides this automatically; on Linux Docker
+# Engine it needs the extra_hosts mapping below (supported since 20.10).
+services:
+  gateway:
+    environment:
+      - BOS_INGRESS_ADDR=host.docker.internal:5051
+      - BOS_EGRESS_ADDR=host.docker.internal:5052
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

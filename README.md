@@ -261,6 +261,23 @@ go run ./cmd/gateway
 > `BOS_INSECURE=true` (plaintext h2c) is **dev/CI only** — it is for local runs
 > with no edge proxy. Do not use it in production.
 
+#### Docker Compose instead of `go run`
+
+Running both stacks as Docker Compose on the same machine, use the
+[`docker-compose.live-bos.yml`](docker-compose.live-bos.yml) overlay, which
+points the `gateway` service's ingress/egress at `host.docker.internal:5051`/
+`:5052` instead of `mock-bos`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.live-bos.yml up --build
+```
+
+`mock-bos` still starts alongside it (Compose can't selectively drop a base
+service via an override file) but sits idle — the gateway no longer talks to
+it. See the comment header in `docker-compose.live-bos.yml` for the Linux
+`host.docker.internal` caveat (Docker Engine ≥ 20.10 needed for the
+`extra_hosts: host-gateway` mapping this overlay adds).
+
 #### Production: TLS/mTLS to Building OS (ADR-0007)
 
 In production the gateway↔Building OS gRPC link is **mTLS terminated at the
