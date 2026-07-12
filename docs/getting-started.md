@@ -55,6 +55,11 @@ docker compose ps
 > dev stack (ADR-0006/ADR-0007) — see [SECURITY.md](../SECURITY.md) before any
 > non-lab deployment.
 
+The `gateway` service also runs a built-in **sim connector** (`sim-01`, dev/CI
+only) out of the box, so telemetry is already flowing by the time the stack
+reports healthy — see §3/§5 below to watch it. No extra setup needed for the
+"~10 minutes, no equipment" experience this guide promises.
+
 ---
 
 ## 3. Verify the gateway is alive
@@ -156,6 +161,9 @@ you opted into Keycloak in §4; in the default (Basic-auth) mode `$TOKEN` is
 unset and the Admin API ignores the header (it isn't checking tokens at all),
 so the same commands work either way.
 
+Because the built-in `sim-01` connector (§2) is already running, every
+command below returns real data immediately — no extra setup needed.
+
 ### See the Point List (devices & points)
 
 ```bash
@@ -196,12 +204,23 @@ Connectors are distributed as **signed OCI images** and installed through the
 Connector Catalog, never pulled by tag (ADR-0006). The compose stack uses a
 file-backed catalog (`fixtures/catalog.json`); `GET /catalog` lists it.
 
+> **Catalog install won't work out of the box.** The bundled
+> `fixtures/catalog.json` entries carry placeholder digests
+> (`sha256:0000…0000`) — Install always fails until you point the catalog at
+> a real, reachable OCI registry with actually-published, signed images. This
+> is expected for a dev fixture, not a bug to work around locally. For a
+> working connector with no registry needed, use the built-in `sim-01` (§2)
+> or add your own Device/Point over MQTT (§7).
+
 ---
 
 ## 6. Run the gateway directly (no equipment, no Docker)
 
-For fast iteration on the Go code, run the gateway with an in-process **sim
-connector** that synthesizes Common Events — no protocol connectors, no equipment.
+§2's compose stack already runs the sim connector for you — this section is
+for **fast iteration on the Go code itself**: run the gateway binary directly
+against a bare NATS broker, no Docker image rebuild needed. Same in-process
+**sim connector** that synthesizes Common Events, no protocol connectors, no
+equipment.
 
 **Prerequisite:** a JetStream-enabled NATS broker must be running — the gateway
 provisions the `EVENTS` stream on startup and exits if it can't connect. Start a
