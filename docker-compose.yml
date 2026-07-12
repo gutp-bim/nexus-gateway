@@ -13,6 +13,11 @@
 #   OPC-UA sim   : 4840    (no building-os conflict)
 #   BACnet sim   : host-network (UDP 47808)
 
+# Pins the Compose project name regardless of the clone directory's actual name (e.g. a GitHub
+# zip download unpacks to `nexus-gateway-main`, not `nexus-gateway`) — CONNECTOR_NETWORK below
+# assumes the default network is deterministically `nexus-gateway_default` (#77).
+name: nexus-gateway
+
 services:
   nats:
     image: nats:2.10-alpine
@@ -102,6 +107,11 @@ services:
       #- KEYCLOAK_ISSUER=http://localhost:18090/realms/nexus-gateway
       #- KEYCLOAK_AUDIENCE=account
       - BOS_INSECURE=true
+      # Runs an in-process sim connector on startup so telemetry flows out of the box (#77) —
+      # dev/CI only, non-production (ADR-0001). Publishes the two points already in
+      # fixtures/point_list.json's sim-01 entries (supply_air_temp, fan_run) every 60s. Set to
+      # an empty string to disable if you want a clean-slate /connectors on first boot.
+      - DEV_SIM=true
     ports:
       - "18080:8080"
     volumes:
