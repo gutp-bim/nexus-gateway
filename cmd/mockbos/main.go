@@ -29,6 +29,10 @@ func main() {
 
 	srv := grpc.NewServer()
 	pb.RegisterGatewayIngressServer(srv, mockbos.NewServer())
+	// The gateway dials GatewayEgress on the same address when no separate
+	// egress endpoint is configured (the default compose wiring), so serve a
+	// no-op egress too — otherwise it reconnects on Unimplemented forever (#74).
+	pb.RegisterGatewayEgressServer(srv, mockbos.NewEgressServer())
 
 	slog.Info("mock BOS listening", "addr", *addr)
 	go func() {
