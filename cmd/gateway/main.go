@@ -231,12 +231,23 @@ bacnet:<provisioning-connector-id>.`)
 		os.Exit(1)
 	}
 
-	// Provision EVENTS stream (ADR-0005)
+	// Provision EVENTS stream (ADR-0005). Limits default to the ADR values
+	// (48 h / 2 GB / DiscardOld) and are configurable via env for deployments
+	// with different retention needs. Non-positive values are rejected: JetStream
+	// treats 0 as *unlimited*, which on an edge device means unbounded disk
+	// growth with DiscardOld never engaging — fail fast instead (#26).
+	eventsMaxAge := envOrDefaultDuration("EVENTS_MAX_AGE", 48*time.Hour)
+	eventsMaxBytes := envOrDefaultInt64("EVENTS_MAX_BYTES", 2*1024*1024*1024)
+	if eventsMaxAge <= 0 || eventsMaxBytes <= 0 {
+		slog.Error("EVENTS stream limits must be positive (0 would mean unlimited — unbounded disk growth)",
+			"EVENTS_MAX_AGE", eventsMaxAge.String(), "EVENTS_MAX_BYTES", eventsMaxBytes)
+		os.Exit(1)
+	}
 	if _, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name:      "EVENTS",
 		Subjects:  []string{"evt.>"},
-		MaxAge:    48 * time.Hour,
-		MaxBytes:  2 * 1024 * 1024 * 1024,
+		MaxAge:    eventsMaxAge,
+		MaxBytes:  eventsMaxBytes,
 		Discard:   jetstream.DiscardOld,
 		Storage:   jetstream.FileStorage,
 		Retention: jetstream.LimitsPolicy,
@@ -582,6 +593,35 @@ func envOrDefaultInt(key string, def int) int {
 		os.Exit(1)
 	}
 	return n
+}
+
+// envOrDefaultInt64 is envOrDefaultInt for 64-bit values (byte sizes).
+func envOrDefaultInt64(key string, def int64) int64 {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	n, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		slog.Error("invalid integer environment variable", "key", key, "value", v, "err", err)
+		os.Exit(1)
+	}
+	return n
+}
+
+// envOrDefaultDuration reads a Go duration (e.g. "72h") from env, falling back
+// to def when unset; a set-but-unparseable value fails fast (#26).
+func envOrDefaultDuration(key string, def time.Duration) time.Duration {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		slog.Error("invalid duration environment variable", "key", key, "value", v, "err", err)
+		os.Exit(1)
+	}
+	return d
 }
 
 // wantsVersion reports whether -version/--version appears among the args before

@@ -1,6 +1,6 @@
 # EP-001: Core Agent & Connector Lifecycle
 
-**Status:** Prod
+**Status:** Prod — backlog audited & closed 2026-07-12 (residuals/deferred items marked inline)
 **Priority:** P0
 
 ## Goal
@@ -11,18 +11,18 @@ The Core Agent is the Go orchestration brain of the gateway. It manages connecto
 
 ## Acceptance Criteria
 
-- [ ] Core Agent runs as a single Go binary and manages connector containers via the Docker Engine SDK.
-- [ ] Core Agent provisions the `EVENTS` JetStream stream on bring-up with ADR-0005 limits (maxAge 48 h, maxBytes 2 GB, DiscardOld — all configurable).
-- [ ] Connector Registry tracks installed connectors and their versions.
-- [ ] Lifecycle Manager supports Start, Stop, Restart, and Upgrade of connectors. (Production upgrades are catalog-driven and signature-verified — EP-007 builds on this.)
-- [ ] Config Manager persists and distributes gateway + connector configuration.
-- [ ] Health Monitor reports gateway uptime, CPU, memory, disk, and per-connector liveness.
-- [ ] Admin API exposes the above operations, protected by Keycloak OIDC/OAuth2.
+- [x] Core Agent runs as a single Go binary and manages connector containers via the Docker Engine SDK.
+- [x] Core Agent provisions the `EVENTS` JetStream stream on bring-up with ADR-0005 limits (maxAge 48 h, maxBytes 2 GB, DiscardOld — all configurable via `EVENTS_MAX_AGE` / `EVENTS_MAX_BYTES`).
+- [x] Connector Registry tracks installed connectors and their versions.
+- [x] Lifecycle Manager supports Start, Stop, Restart, and Upgrade of connectors. (Production upgrades are catalog-driven and signature-verified — EP-007 builds on this.)
+- [~] Config Manager persists and distributes gateway + connector configuration. — *Partial: distribution works (flags/env for the gateway, env injection at container create for connectors, point-list persistence); a persistent Config Manager component is **deferred** — config source of truth stays env/flags + catalog, and the in-memory registry is rebuilt on restart.*
+- [x] Health Monitor reports gateway uptime, CPU, memory, disk, and per-connector liveness.
+- [x] Admin API exposes the above operations, protected by Keycloak OIDC/OAuth2.
 
 ## Child Features
 
-- [ ] FEAT-001: Connector Registry
-- [ ] FEAT-002: Lifecycle Manager (Docker SDK)
-- [ ] FEAT-003: Config Manager
-- [ ] FEAT-004: Health Monitor
-- [ ] FEAT-005: Admin API + Keycloak auth
+- [x] FEAT-001: Connector Registry (`internal/lifecycle/registry.go`)
+- [x] FEAT-002: Lifecycle Manager (Docker SDK) (`internal/lifecycle/manager.go`)
+- [~] FEAT-003: Config Manager — *deferred: see the Config Manager acceptance criterion above.*
+- [x] FEAT-004: Health Monitor (`internal/lifecycle/health.go` + `evaluate.go`)
+- [x] FEAT-005: Admin API + Keycloak auth (`internal/adminapi`: JWKS validation + operator/viewer RBAC)

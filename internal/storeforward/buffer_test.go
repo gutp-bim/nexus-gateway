@@ -290,3 +290,27 @@ func TestBuffer_PersistsCursor(t *testing.T) {
 	require.Len(t, batch2, 1)
 	assert.Equal(t, "p2", batch2[0].Frame.PointId)
 }
+
+// Attributes must survive the SQLite round-trip: the buffer is the only path
+// from the Normalizer to the uplink, so dropping them here would silently undo
+// the unit/quality unification (EP-003).
+func TestBuffer_RoundTripsAttributes(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 100)
+	require.NoError(t, err)
+	defer buf.Close()
+
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{
+		GatewayId: "gw", PointId: "p1", Value: 21.5, Timestamp: "2025-01-01T00:00:00Z",
+		Attributes: map[string]string{"unit": "Cel", "quality": "Bad"},
+	}))
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{
+		GatewayId: "gw", PointId: "p2", Value: 1.0, Timestamp: "2025-01-01T00:00:01Z",
+	}))
+
+	batch, err := buf.ReadBatch(0, 10)
+	require.NoError(t, err)
+	require.Len(t, batch, 2)
+	assert.Equal(t, map[string]string{"unit": "Cel", "quality": "Bad"}, batch[0].Frame.Attributes,
+		"attributes must round-trip through the buffer")
+	assert.Empty(t, batch[1].Frame.Attributes, "absent attributes stay absent")
+}

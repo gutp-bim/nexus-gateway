@@ -5,6 +5,7 @@ package storeforward
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -122,9 +123,19 @@ func (b *Buffer) Write(f *pb.TelemetryFrame) error {
 	}
 	defer tx.Rollback() //nolint:errcheck
 
+	// Attributes (unit / non-Good quality, EP-003) ride as a JSON column so
+	// they survive the buffer round-trip; NULL when the frame carries none.
+	var attrs any
+	if len(f.Attributes) > 0 {
+		encoded, err := json.Marshal(f.Attributes)
+		if err != nil {
+			return fmt.Errorf("storeforward: encode attributes: %w", err)
+		}
+		attrs = string(encoded)
+	}
 	_, err = tx.Exec(
-		`INSERT INTO frames (gateway_id, point_id, value, timestamp) VALUES (?, ?, ?, ?)`,
-		f.GatewayId, f.PointId, f.Value, f.Timestamp,
+		`INSERT INTO frames (gateway_id, point_id, value, timestamp, attributes) VALUES (?, ?, ?, ?, ?)`,
+		f.GatewayId, f.PointId, f.Value, f.Timestamp, attrs,
 	)
 	if err != nil {
 		return err
@@ -216,7 +227,7 @@ func (b *Buffer) LastCheckpointUnix() int64 { return b.lastCheckpointUnix.Load()
 // ReadBatch returns up to limit frames with seq > afterSeq, in ascending order.
 func (b *Buffer) ReadBatch(afterSeq int64, limit int) ([]StoredFrame, error) {
 	rows, err := b.db.Query(
-		`SELECT seq, gateway_id, point_id, value, timestamp FROM frames WHERE seq > ? ORDER BY seq ASC LIMIT ?`,
+		`SELECT seq, gateway_id, point_id, value, timestamp, attributes FROM frames WHERE seq > ? ORDER BY seq ASC LIMIT ?`,
 		afterSeq, limit,
 	)
 	if err != nil {
@@ -227,9 +238,17 @@ func (b *Buffer) ReadBatch(afterSeq int64, limit int) ([]StoredFrame, error) {
 	var batch []StoredFrame
 	for rows.Next() {
 		var sf StoredFrame
+		var attrs sql.NullString
 		sf.Frame = &pb.TelemetryFrame{}
-		if err := rows.Scan(&sf.Seq, &sf.Frame.GatewayId, &sf.Frame.PointId, &sf.Frame.Value, &sf.Frame.Timestamp); err != nil {
+		if err := rows.Scan(&sf.Seq, &sf.Frame.GatewayId, &sf.Frame.PointId, &sf.Frame.Value, &sf.Frame.Timestamp, &attrs); err != nil {
 			return nil, err
+		}
+		if attrs.Valid && attrs.String != "" {
+			if err := json.Unmarshal([]byte(attrs.String), &sf.Frame.Attributes); err != nil {
+				// A corrupt attributes blob must not wedge the whole uplink:
+				// deliver the frame without its ancillary attributes.
+				slog.Warn("storeforward: dropping unreadable frame attributes", "seq", sf.Seq, "err", err)
+			}
 		}
 		batch = append(batch, sf)
 	}
@@ -289,7 +308,7 @@ func (b *Buffer) Drifts() map[string]int64 {
 // schemaVersion is the on-disk buffer schema this binary understands, tracked via
 // SQLite's PRAGMA user_version (#29). Bump it and append a migration step below
 // whenever the schema changes.
-const schemaVersion = 1
+const schemaVersion = 2
 
 // migrations[i] upgrades the schema from version i to version i+1. Each step must
 // be idempotent (a re-run, or a pre-stamp v0 database whose tables already exist,
@@ -312,6 +331,23 @@ var migrations = []func(*sql.DB) error{
 				seq INTEGER NOT NULL DEFAULT 0
 			);
 		`)
+		return err
+	},
+	// 1 -> 2: attributes column (JSON map; NULL = none) so unit/quality survive
+	// the buffer round-trip (EP-003 unification). ALTER..ADD COLUMN is not
+	// idempotent in SQLite, so probe table_info first (a pre-stamp database
+	// whose column already exists must converge).
+	func(db *sql.DB) error {
+		var n int
+		if err := db.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('frames') WHERE name = 'attributes'`,
+		).Scan(&n); err != nil {
+			return err
+		}
+		if n > 0 {
+			return nil
+		}
+		_, err := db.Exec(`ALTER TABLE frames ADD COLUMN attributes TEXT`)
 		return err
 	},
 }
