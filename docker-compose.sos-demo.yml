@@ -1,0 +1,29 @@
+# Overlay for the cross-repo "SoS" demo namespace, layered on top of
+# docker-compose.live-bos.yml (#80):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.live-bos.yml \
+#     -f docker-compose.sos-demo.yml up --build
+#
+# Why this exists (#81): this repo's own default namespace (GATEWAY_ID=gw-001,
+# points supply_air_temp/fan_run from fixtures/point_list.json) does NOT match
+# Building OS's default OSS-stack twin seed, which uses GATEWAY_ID=GW-SOS-001
+# and points SOS-PT-001..008 (gutp-building-os-ri's fixtures/e2e/twin.ttl,
+# auto-seeded since #124). Pointing the gw-001 default at a GW-SOS-001-seeded
+# Building OS means every ingress frame is skipped as unknown-point/non-owner
+# — the live-bos.yml overlay alone is NOT enough for the SoS demo; this one
+# switches the gateway to the matching namespace.
+#
+# Requires a sibling checkout of gutp-building-os-ri (../gutp-building-os-ri,
+# same convention as the bacnet-sim-gateway/opcua-sim-gateway siblings in
+# docs/getting-started.md §8) for its shared fixtures/e2e/pointlist.csv — the
+# exact point set the twin seed uses, so no fixture duplication here.
+services:
+  gateway:
+    environment:
+      - GATEWAY_ID=GW-SOS-001
+      # Disabled: the default sim connector's points (supply_air_temp, fan_run)
+      # don't exist in the SoS twin and would just be skipped as unknown-point.
+      - DEV_SIM=
+      - PROVISIONING_FILE=/fixtures-bos-e2e/pointlist.csv
+    volumes:
+      - ../gutp-building-os-ri/fixtures/e2e:/fixtures-bos-e2e:ro
