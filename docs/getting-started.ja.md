@@ -197,8 +197,17 @@ curl -s "http://localhost:18080/logs/<id>?tail=50" -H "Authorization: Bearer $TO
 ゲートウェイのバイナリを直接実行します。Common Event を合成する同じ in-process の
 **sim コネクタ**付きで起動します — NATS コネクタも機器も不要:
 
+**前提:** JetStream 対応の NATS ブローカーが起動している必要があります —
+ゲートウェイは起動時に `EVENTS` ストリームを準備し、接続できない場合は終了します。
+単体で起動するか、compose スタックのブローカー(host port 14222)を再利用してください:
+
 ```bash
-go run ./cmd/gateway --dev-sim
+# 選択肢 A — 既定ポート(4222)で単体の JetStream ブローカーを起動:
+docker run --rm -p 4222:4222 nats:2.10-alpine -js
+go run ./cmd/gateway --dev-sim                            # 既定 NATS_URL=nats://localhost:4222
+
+# 選択肢 B — compose スタックの NATS を再利用(host port 14222):
+NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 ```
 
 sim の発行間隔は既定 60 秒(1 分フレッシュネスフロア)です。ローカルで素早く確認したい
@@ -391,6 +400,11 @@ docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up mqtt-connecto
 
 ## 9. 次のステップ
 
+- **実際の Building OS に接続する** — 本ガイドは `mock-bos` のみを使います。
+  実 BOS へ向ける手順は [README.md(英語)の "Running with a live Building OS"
+  節](../README.md#running-with-a-live-building-os)を参照してください
+  (`docker-compose.live-bos.yml` オーバーレイ、Building OS 側が既定で auto-seed
+  する SoS デモ名前空間に揃える `docker-compose.sos-demo.yml` オーバーレイ)。
 - **設計を理解する** — [アーキテクチャ節](../README.ja.md)と 7 本の
   [ADR](adr/) に、すべての load-bearing な決定が記録されています。
 - **ドメイン語彙** — [CONTEXT.md](../CONTEXT.md) が用語集です。用語(Connector,

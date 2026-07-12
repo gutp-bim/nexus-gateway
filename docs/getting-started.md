@@ -426,6 +426,11 @@ See the `pointEnv` struct in
 
 ## 9. Where to go next
 
+- **Connect to a real Building OS** — this guide only exercises `mock-bos`.
+  See [README.md's "Running with a live Building OS"](../README.md#running-with-a-live-building-os)
+  section for the `docker-compose.live-bos.yml` overlay (and
+  `docker-compose.sos-demo.yml` if you want to match Building OS's own
+  auto-seeded SoS demo namespace).
 - **Understand the design** — the [architecture section](../README.md#architecture)
   and the seven [ADRs](adr/) record every load-bearing decision.
 - **Speak the domain** — [CONTEXT.md](../CONTEXT.md) is the glossary; use its
