@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
+
+	pb "nexus-gateway/gen"
 )
 
 func readUserVersion(t *testing.T, db *sql.DB) int {
@@ -84,4 +86,46 @@ func TestMigrate_TooNewAborts(t *testing.T) {
 	_, err = Open(path, 100)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "newer")
+}
+
+// A v1 database (no attributes column) migrates in place to v2, keeps its
+// frames, and accepts attribute-carrying writes afterwards.
+func TestMigrate_V1MigratesToV2KeepingFrames(t *testing.T) {
+	path := t.TempDir() + "/sf.db"
+	raw, err := sql.Open("sqlite", path)
+	require.NoError(t, err)
+	_, err = raw.Exec(`
+		CREATE TABLE frames (
+			seq        INTEGER PRIMARY KEY AUTOINCREMENT,
+			gateway_id TEXT NOT NULL DEFAULT '',
+			point_id   TEXT NOT NULL,
+			value      REAL NOT NULL,
+			timestamp  TEXT NOT NULL
+		);
+		CREATE TABLE cursor (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL DEFAULT 0);
+		INSERT INTO frames (gateway_id, point_id, value, timestamp)
+			VALUES ('gw-1', 'p-1', 1.5, '2026-01-01T00:00:00Z');
+		PRAGMA user_version = 1;
+	`)
+	require.NoError(t, err)
+	require.NoError(t, raw.Close())
+
+	buf, err := Open(path, 100)
+	require.NoError(t, err)
+	t.Cleanup(func() { buf.Close() })
+
+	assert.Equal(t, schemaVersion, readUserVersion(t, buf.db))
+	batch, err := buf.ReadBatch(0, 10)
+	require.NoError(t, err)
+	require.Len(t, batch, 1, "v1 frame must survive the v2 migration")
+	assert.Empty(t, batch[0].Frame.Attributes)
+
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{
+		GatewayId: "gw-1", PointId: "p-2", Value: 2.0, Timestamp: "2026-01-01T00:00:01Z",
+		Attributes: map[string]string{"unit": "%RH"},
+	}))
+	batch, err = buf.ReadBatch(0, 10)
+	require.NoError(t, err)
+	require.Len(t, batch, 2)
+	assert.Equal(t, "%RH", batch[1].Frame.Attributes["unit"])
 }
