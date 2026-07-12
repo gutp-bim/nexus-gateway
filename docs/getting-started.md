@@ -48,6 +48,13 @@ Wait until every service reports healthy:
 docker compose ps
 ```
 
+> **Expected in dev mode:** `docker compose logs gateway` prints three yellow
+> `WARN` lines on every startup — `Building OS link is plaintext h2c
+> (--bos-insecure)`, `catalog: cosign verification disabled`, and `admin: JWT
+> auth disabled`. All three are intentional for this unauthenticated, TLS-less
+> dev stack (ADR-0006/ADR-0007) — see [SECURITY.md](../SECURITY.md) before any
+> non-lab deployment.
+
 ---
 
 ## 3. Verify the gateway is alive
@@ -234,6 +241,13 @@ walkthrough does it end-to-end over MQTT — the one protocol you can drive by h
 with no simulator — from a **Point List** entry to visible **Telemetry**. It
 assumes the stack from §2 is up.
 
+> **Just want a working example with zero setup?** §8's [MQTT](#mqtt) subsection
+> below already ships a bundled broker plus a matching Point List entry
+> (`room1_temperature`/`room1_setpoint`) — no external broker, no manual edits.
+> This walkthrough instead teaches the *general* pattern for onboarding a **new**
+> Device/Point of your own, using a different example (`lobby_temperature`) so it
+> doesn't collide with §8's pre-populated one — expect the naming to differ.
+
 ### Step 1 — describe the Point in the Point List
 
 The **Point List** is the single source of truth that maps each protocol-native
@@ -268,7 +282,14 @@ Add one entry for a new Point on a new Device:
 
 Bring up the MQTT Connector with a matching `MQTT_POINTS` entry (its `topic` must
 equal the Point List `local_id`). Point `MQTT_BROKER_URL` at any reachable MQTT
-5.0 broker (e.g. a local [Mosquitto](https://mosquitto.org/)):
+5.0 broker (e.g. a local [Mosquitto](https://mosquitto.org/)) — or, with no broker
+of your own, reuse the bundled one from §8's [MQTT](#mqtt) subsection instead of
+standing up external infrastructure:
+
+```bash
+# no broker of your own? bring up just the bundled one first:
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up -d mqtt-broker
+```
 
 ```bash
 MQTT_BROKER_URL=mqtt://your-broker:1883 \
@@ -278,7 +299,9 @@ docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up -d mqtt-conne
 
 ### Step 3 — publish a reading
 
-Publish a value to the topic (the connector normalizes it to a Common Event):
+Publish a value to the topic (the connector normalizes it to a Common Event).
+Substitute your broker's host — `localhost -p 11883` if you're reusing the
+bundled one from Step 2:
 
 ```bash
 mosquitto_pub -h your-broker -t sensors/lobby/temp -m '21.4'
@@ -353,11 +376,17 @@ curl -s http://localhost:18080/devices   -H "Authorization: Bearer $TOKEN" | jq 
 ```
 
 Drive the **writable** point through the Command Channel (the publisher subscribes
-to the setpoint command topic and echoes writes to its own log):
+to the setpoint command topic and echoes writes to its own log). No live Building
+OS is needed here: publish directly to the connector's `command_topic` — the same
+topic the gateway publishes to on a real Command Channel write — and watch it
+echo:
 
 ```bash
-# send a control for room1_setpoint, then watch it arrive at the broker
+# in one terminal, watch for the echoed write
 docker compose -f docker-compose.yml -f docker-compose.mqtt.yml logs -f mqtt-publisher
+
+# in another terminal, send the write (host port 11883 is the bundled broker)
+mosquitto_pub -h localhost -p 11883 -t actuators/room1/setpoint/set -m '22.0'
 ```
 
 **External broker instead of the bundled one:** override `MQTT_BROKER_URL` and start
