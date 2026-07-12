@@ -24,7 +24,9 @@ on:
       - "Dockerfile.mockbos"
       - "fixtures/**"
       - "internal/adminapi/**"
+      - "internal/mockbos/**"
       - "cmd/gateway/**"
+      - "cmd/mockbos/**"
       - ".github/workflows/quickstart-smoke.yml"
   pull_request:
     paths:
@@ -33,7 +35,9 @@ on:
       - "Dockerfile.mockbos"
       - "fixtures/**"
       - "internal/adminapi/**"
+      - "internal/mockbos/**"
       - "cmd/gateway/**"
+      - "cmd/mockbos/**"
       - ".github/workflows/quickstart-smoke.yml"
   workflow_dispatch:
 
