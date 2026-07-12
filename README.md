@@ -220,14 +220,13 @@ NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 
 The sibling repos `../bacnet-sim-gateway` and `../opcua-sim-gateway` provide
 standard-compliant BACnet/IP and OPC-UA simulators. Clone them next to this
-checkout (they are published under the same GitHub organization as nexus-gateway;
-a missing sibling surfaces as a `../…-sim-gateway: no such file or directory`
-build-context error):
+checkout (a missing sibling surfaces as a `../…-sim-gateway: no such file or
+directory` build-context error):
 
 ```bash
 # from the parent directory that already contains nexus-gateway/
-git clone https://github.com/gutp-bim/bacnet-sim-gateway
-git clone https://github.com/gutp-bim/opcua-sim-gateway
+git clone https://github.com/takashikasuya/bacnet-sim-gateway
+git clone https://github.com/takashikasuya/opcua-sim-gateway
 ```
 
 See [`fixtures/integration/`](fixtures/integration/README.md):

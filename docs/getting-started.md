@@ -308,13 +308,12 @@ but no reading flows, the `topic` in `MQTT_POINTS` does not match the `local_id`
 Two simulator siblings let you exercise the real protocol connectors without
 hardware. They live in **separate repositories that must be checked out next to
 this one** — cloned as siblings under the same parent directory (the compose
-build contexts are `../bacnet-sim-gateway` and `../opcua-sim-gateway`), published
-under the same GitHub organization as nexus-gateway:
+build contexts are `../bacnet-sim-gateway` and `../opcua-sim-gateway`):
 
 ```bash
 # from the parent directory that already contains nexus-gateway/
-git clone https://github.com/gutp-bim/bacnet-sim-gateway
-git clone https://github.com/gutp-bim/opcua-sim-gateway
+git clone https://github.com/takashikasuya/bacnet-sim-gateway
+git clone https://github.com/takashikasuya/opcua-sim-gateway
 ```
 
 If the sibling directory is missing, `docker compose … --profile opcua up` fails
