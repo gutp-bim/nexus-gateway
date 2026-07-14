@@ -11,10 +11,10 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL(".", import.meta.url)) },
   },
   // tsconfig.json sets "jsx": "preserve" (Next.js's own bundler applies the
-  // React 19 automatic runtime); vitest's esbuild transform needs the same
-  // told explicitly, or a .tsx file using JSX without an explicit React
-  // import fails with "React is not defined".
-  esbuild: { jsx: "automatic" },
+  // React 19 automatic runtime); vitest's oxc transform (esbuild → oxc in
+  // Vite 8) needs the same told explicitly, or a .tsx file using JSX without
+  // an explicit React import fails with "React is not defined".
+  oxc: { jsx: { runtime: "automatic" } },
   test: {
     environment: "node",
     // Auto-unmount rendered components after each test (jsdom files); harmless
