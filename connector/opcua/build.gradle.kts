@@ -18,7 +18,7 @@ repositories {
 
 val miloVersion = "0.6.16"
 val natsVersion = "2.25.3"
-val jacksonVersion = "2.22.0"
+val jacksonVersion = "2.22.1"
 
 dependencies {
     implementation("org.eclipse.milo:sdk-client:$miloVersion")
