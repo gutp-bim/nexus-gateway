@@ -1,9 +1,9 @@
 [
   {
     "name": "sim-connector",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "image": "ghcr.io/gutp-bim/nexus-gateway/sim-connector",
-    "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "digest": "sha256:963ed4b0d1639c6ae75a1ab269abf6306a3e5371b788dd610b287c0d2530bdb6",
     "min_gateway_version": "0.1.0",
     "permissions": {
       "network": [],
