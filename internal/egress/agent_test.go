@@ -28,6 +28,8 @@ type mockEgressServer struct {
 	downMsgs []*pb.EgressDown
 	// results collects ControlResults sent up by the agent.
 	results chan *pb.ControlResult
+	// statuses collects Status frames sent up by the agent (nil = don't capture).
+	statuses chan *pb.GatewayStatus
 }
 
 func (s *mockEgressServer) Connect(stream pb.GatewayEgress_ConnectServer) error {
@@ -42,7 +44,7 @@ func (s *mockEgressServer) Connect(stream pb.GatewayEgress_ConnectServer) error 
 			return err
 		}
 	}
-	// Collect results until stream closes
+	// Collect results/statuses until stream closes
 	for {
 		up, err := stream.Recv()
 		if err != nil {
@@ -50,6 +52,9 @@ func (s *mockEgressServer) Connect(stream pb.GatewayEgress_ConnectServer) error 
 		}
 		if r := up.GetResult(); r != nil {
 			s.results <- r
+		}
+		if st := up.GetStatus(); st != nil && s.statuses != nil {
+			s.statuses <- st
 		}
 	}
 }
@@ -164,6 +169,57 @@ func TestAgent_ReconnectsAfterServerSupersedesStream(t *testing.T) {
 	assert.GreaterOrEqual(t, srv.connects.Load(), int32(2), "agent must reconnect after supersede")
 	require.Len(t, exec.commands, 1)
 	assert.Equal(t, "pt-b", exec.commands[0].PointId)
+}
+
+// stubRevision is a fixed RevisionProvider for status-reporting tests.
+type stubRevision string
+
+func (s stubRevision) AppliedRevision() string { return string(s) }
+
+func TestAgent_ReportsAppliedRevisionStatus(t *testing.T) {
+	exec := &mockExecutor{}
+	srv := &mockEgressServer{
+		results:  make(chan *pb.ControlResult, 4),
+		statuses: make(chan *pb.GatewayStatus, 4),
+	}
+	addr := startMockEgress(t, srv)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// A provider set → the agent reports its applied revision right after Hello (#230 Phase 2b).
+	go egress.New(addr, "gw-test", exec, insecure.NewCredentials(), nil).
+		WithRevisionProvider(stubRevision("\"sha256:abc\"")).
+		Run(ctx)
+
+	select {
+	case st := <-srv.statuses:
+		assert.Equal(t, "\"sha256:abc\"", st.GetAppliedRevision())
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for Status frame")
+	}
+}
+
+func TestAgent_NoRevisionProvider_SendsNoStatus(t *testing.T) {
+	exec := &mockExecutor{}
+	srv := &mockEgressServer{
+		results:  make(chan *pb.ControlResult, 4),
+		statuses: make(chan *pb.GatewayStatus, 4),
+	}
+	addr := startMockEgress(t, srv)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// No provider → no Status frames (old-gateway behaviour; sync state stays unknown server-side).
+	go egress.New(addr, "gw-test", exec, insecure.NewCredentials(), nil).Run(ctx)
+
+	select {
+	case st := <-srv.statuses:
+		t.Fatalf("unexpected Status frame: %q", st.GetAppliedRevision())
+	case <-time.After(300 * time.Millisecond):
+		// expected: nothing sent
+	}
 }
 
 func TestAgent_PointListUpdate_SignalsRevalidate(t *testing.T) {
