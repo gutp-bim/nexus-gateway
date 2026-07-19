@@ -287,6 +287,9 @@ bacnet:<provisioning-connector-id>.`)
 
 	// revalidatePL is signalled by the egress agent on EgressDown.point_list_update (#224/push).
 	revalidatePL := make(chan struct{}, 1)
+	// revProvider lets the egress agent report the applied point-list ETag up the stream (#230 Phase 2b);
+	// only the real sync loop tracks a revision, so it stays nil in the fixture path (sync state unknown).
+	var revProvider egress.RevisionProvider
 	if provClient != nil {
 		// Real sync loop against the provisioning source (ADR-0003)
 		syncLoop := pointsync.New(
@@ -294,6 +297,7 @@ bacnet:<provisioning-connector-id>.`)
 			resolver,
 			pointsync.Config{Interval: *syncInterval, PersistPath: *plPersist},
 		).WithRevalidate(revalidatePL)
+		revProvider = syncLoop
 		go syncLoop.Run(ctx)
 		// Wait for the first sync to complete (Ready() closes on success or failure).
 		select {
@@ -378,7 +382,8 @@ bacnet:<provisioning-connector-id>.`)
 
 	// Start Egress agent (control path, ADR-0004); also signals revalidatePL on PointListUpdate.
 	d := dispatch.New(nc, resolver, 5*time.Second)
-	egressAgent := egress.New(*bosEgressAddr, *gatewayID, d, bosCreds, revalidatePL)
+	egressAgent := egress.New(*bosEgressAddr, *gatewayID, d, bosCreds, revalidatePL).
+		WithRevisionProvider(revProvider)
 	pipelineWg.Add(1)
 	go func() {
 		defer pipelineWg.Done()
