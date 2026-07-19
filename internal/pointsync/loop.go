@@ -6,6 +6,7 @@ package pointsync
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	"nexus-gateway/internal/pointlist"
@@ -27,6 +28,9 @@ type Loop struct {
 	cfg        Config
 	revalidate <-chan struct{} // optional push signals (EgressDown.point_list_update)
 	ready      chan struct{}   // closed when first sync attempt completes
+
+	mu          sync.RWMutex // guards appliedETag
+	appliedETag string       // ETag currently applied to the resolver ("" until the first successful sync)
 }
 
 // New creates a Loop.
@@ -46,6 +50,15 @@ func (l *Loop) Ready() <-chan struct{} {
 func (l *Loop) WithRevalidate(ch <-chan struct{}) *Loop {
 	l.revalidate = ch
 	return l
+}
+
+// AppliedRevision returns the point-list ETag currently applied to the resolver, or "" if no sync
+// has succeeded yet. Thread-safe: the egress agent reads it to report sync state up the stream
+// (#230 Phase 2b, ADR-0004 option A), so it satisfies egress.RevisionProvider.
+func (l *Loop) AppliedRevision() string {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.appliedETag
 }
 
 // Run polls the provisioning API until ctx is cancelled.
@@ -107,6 +120,9 @@ func (l *Loop) sync(ctx context.Context, s *syncState) {
 
 	l.resolver.Update(s.entries)
 	s.etag = result.ETag
+	l.mu.Lock()
+	l.appliedETag = result.ETag
+	l.mu.Unlock()
 	slog.Info("pointsync: point list updated", "etag", result.ETag, "count", len(s.entries))
 
 	if l.cfg.PersistPath != "" {

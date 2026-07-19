@@ -37,6 +37,25 @@ func TestLoop_InitialFetch_LoadsResolver(t *testing.T) {
 	assert.Equal(t, "p1", pid)
 }
 
+// TestLoop_AppliedRevision_TracksETag verifies AppliedRevision() is empty before any sync and
+// equals the applied ETag afterwards (#230 Phase 2b — the egress agent reports it up the stream).
+func TestLoop_AppliedRevision_TracksETag(t *testing.T) {
+	mock := provisioning.NewMock([]pointlist.Entry{
+		{ConnectorID: "c1", Protocol: "sim", LocalID: "l1", PointID: "p1"},
+	})
+	resolver := pointlist.NewSynced(nil)
+	cfg := pointsync.Config{Interval: 100 * time.Millisecond}
+
+	loop := pointsync.New(mock, resolver, cfg)
+	assert.Empty(t, loop.AppliedRevision(), "no revision before the first sync")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	loop.Run(ctx)
+
+	assert.Equal(t, mock.CurrentETag(), loop.AppliedRevision(), "revision must match the applied ETag")
+}
+
 // TestLoop_NoUpdateWhenETagUnchanged verifies the resolver is not touched when
 // Fetch returns nil (304 — ETag unchanged between polls).
 func TestLoop_NoUpdateWhenETagUnchanged(t *testing.T) {
