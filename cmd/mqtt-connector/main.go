@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 
 	mqttconn "nexus-gateway/connector/mqtt"
+	"nexus-gateway/connector/sdk"
 )
 
 // pointEnv is the JSON schema for one entry in MQTT_POINTS (snake_case for shell-friendliness).
@@ -42,8 +44,8 @@ func main() {
 	// Register signal handler before starting goroutines so a SIGTERM that
 	// arrives during the startup window is captured, not handled by Go's
 	// default handler (which exits immediately, skipping deferred cleanup).
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	sigCtx, stopNotify := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stopNotify()
 
 	natsURL := envOrDefault("NATS_URL", nats.DefaultURL)
 	connID := envOrDefault("CONNECTOR_ID", "mqtt-01")
@@ -64,6 +66,11 @@ func main() {
 	}
 	keepAlive := uint16(keepAliveRaw)
 	sessionExpiry := uint32(envUint("MQTT_SESSION_EXPIRY", 0))
+	freshness, err := parseDurationDefault("MQTT_FRESHNESS_INTERVAL", 60*time.Second)
+	if err != nil {
+		slog.Error("MQTT_FRESHNESS_INTERVAL: invalid duration", "err", err)
+		os.Exit(1)
+	}
 	maxPayloadBytes := envUint("MQTT_MAX_PAYLOAD_BYTES", defaultMaxPayloadBytes)
 	if maxPayloadBytes == 0 {
 		slog.Error("MQTT_MAX_PAYLOAD_BYTES must be greater than zero")
@@ -112,13 +119,17 @@ func main() {
 	}
 
 	tlsConfig, err := mqttconn.LoadTLSConfig(
-		os.Getenv("MQTT_CA_FILE"),
-		os.Getenv("MQTT_CERT_FILE"),
-		os.Getenv("MQTT_KEY_FILE"),
+		envAlias("MQTT_TLS_CA_FILE", "MQTT_CA_FILE"),
+		envAlias("MQTT_TLS_CERT_FILE", "MQTT_CERT_FILE"),
+		envAlias("MQTT_TLS_KEY_FILE", "MQTT_KEY_FILE"),
 	)
 	if err != nil {
 		slog.Error("MQTT TLS configuration invalid", "err", err)
 		os.Exit(1)
+	}
+	if isTruthy(os.Getenv("MQTT_TLS_INSECURE_SKIP_VERIFY")) {
+		slog.Warn("MQTT_TLS_INSECURE_SKIP_VERIFY is set — broker certificate verification is DISABLED (dev only)")
+		tlsConfig.InsecureSkipVerify = true //nolint:gosec // explicit, documented development-only opt-in
 	}
 
 	nc, err := nats.Connect(natsURL,
@@ -139,23 +150,34 @@ func main() {
 	}
 
 	cfg := mqttconn.Config{
-		ConnectorID:     connID,
-		BrokerURL:       brokerURL,
-		ClientID:        clientID,
-		Username:        username,
-		Password:        password,
-		KeepAlive:       keepAlive,
-		SessionExpiry:   sessionExpiry,
-		MaxPayloadBytes: maxPayloadBytes,
-		TLSConfig:       tlsConfig,
-		Subscriptions:   subscriptions,
-		IgnoreTopics:    ignoreTopics,
-		Points:          points,
+		ConnectorID:       connID,
+		BrokerURL:         brokerURL,
+		ClientID:          clientID,
+		Username:          username,
+		Password:          password,
+		KeepAlive:         keepAlive,
+		SessionExpiry:     sessionExpiry,
+		MaxPayloadBytes:   maxPayloadBytes,
+		TLSConfig:         tlsConfig,
+		Subscriptions:     subscriptions,
+		IgnoreTopics:      ignoreTopics,
+		Points:            points,
+		FreshnessInterval: freshness,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(sigCtx)
+	defer cancel()
 
 	connector := mqttconn.New(cfg, nc, js)
+	healthAddr := ":" + envOrDefault("HEALTH_PORT", "8080")
+	health := sdk.StartHealthServer(healthAddr, connector.Healthy)
+
+	if err := sdk.AwaitStream(ctx, js, "EVENTS", 5*time.Second); err != nil {
+		slog.Info("mqtt-connector: shutting down before the EVENTS stream was ready")
+		health.Shutdown(context.Background())
+		nc.Close()
+		return
+	}
 	// Track the Run goroutine so an unexpected exit (e.g. broker URL parse
 	// error, NATS subscribe failure) causes the process to exit rather than
 	// silently becoming a zombie that Docker never restarts.
@@ -168,7 +190,7 @@ func main() {
 	slog.Info("mqtt-connector started", "connector_id", connID, "nats", natsURL, "broker", brokerURL, "points", len(points))
 
 	select {
-	case <-stop:
+	case <-ctx.Done():
 		slog.Info("mqtt-connector shutting down")
 	case <-done:
 		slog.Error("mqtt-connector Run exited unexpectedly")
@@ -184,6 +206,13 @@ func main() {
 	cancel()
 	<-done
 	nc.Close()
+}
+
+func envAlias(primary, alias string) string {
+	if value := os.Getenv(primary); value != "" {
+		return value
+	}
+	return os.Getenv(alias)
 }
 
 func parseStringListEnv(name, raw string) ([]string, error) {
@@ -247,4 +276,21 @@ func envUint(key string, def uint64) uint64 {
 		slog.Warn("invalid uint in env, using default", "key", key, "default", def)
 	}
 	return def
+}
+
+func parseDurationDefault(key string, def time.Duration) (time.Duration, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return def, nil
+	}
+	return time.ParseDuration(value)
+}
+
+func isTruthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }

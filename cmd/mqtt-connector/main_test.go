@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,4 +60,33 @@ func TestParseStringListEnv(t *testing.T) {
 
 func TestPayloadLimitDefault(t *testing.T) {
 	assert.Equal(t, uint64(1024), defaultMaxPayloadBytes)
+}
+
+func TestEnvAliasPrefersEstablishedName(t *testing.T) {
+	t.Setenv("MQTT_TLS_CA_FILE", "established.pem")
+	t.Setenv("MQTT_CA_FILE", "alias.pem")
+	assert.Equal(t, "established.pem", envAlias("MQTT_TLS_CA_FILE", "MQTT_CA_FILE"))
+}
+
+func TestEnvAliasFallsBackToAlias(t *testing.T) {
+	t.Setenv("MQTT_TLS_CA_FILE", "")
+	t.Setenv("MQTT_CA_FILE", "alias.pem")
+	assert.Equal(t, "alias.pem", envAlias("MQTT_TLS_CA_FILE", "MQTT_CA_FILE"))
+}
+
+func TestParseDurationDefault(t *testing.T) {
+	t.Setenv("MQTT_FRESHNESS_INTERVAL", "")
+	got, err := parseDurationDefault("MQTT_FRESHNESS_INTERVAL", time.Minute)
+	require.NoError(t, err)
+	assert.Equal(t, time.Minute, got)
+
+	t.Setenv("MQTT_FRESHNESS_INTERVAL", "15s")
+	got, err = parseDurationDefault("MQTT_FRESHNESS_INTERVAL", time.Minute)
+	require.NoError(t, err)
+	assert.Equal(t, 15*time.Second, got)
+}
+
+func TestIsTruthy(t *testing.T) {
+	assert.True(t, isTruthy("YES"))
+	assert.False(t, isTruthy("false"))
 }

@@ -72,10 +72,14 @@ type Connector struct {
 	js        jetstream.JetStream
 	readyOnce sync.Once
 	ready     chan struct{}
+	connected atomic.Bool
 	dedup     *sdk.CommandDedup
 	lkvMu     sync.Mutex
 	lkv       map[string]*lkvState
 }
+
+// Healthy reports whether the MQTT broker session is currently connected.
+func (c *Connector) Healthy() bool { return c.connected.Load() }
 
 type lkvState struct {
 	value    float64
@@ -206,6 +210,7 @@ func (c *Connector) Run(ctx context.Context) {
 		ConnectUsername:               c.cfg.Username,
 		ConnectPassword:               c.cfg.Password,
 		OnConnectError: func(err error) {
+			c.connected.Store(false)
 			slog.Warn("mqtt: broker connection failed", "broker", c.cfg.BrokerURL, "err", err)
 		},
 		OnConnectionUp: func(cm *autopaho.ConnectionManager, _ *paho.Connack) {
@@ -220,6 +225,7 @@ func (c *Connector) Run(ctx context.Context) {
 				}
 			}
 			slog.Info("mqtt: connected and subscriptions active", "broker", c.cfg.BrokerURL, "subscriptions", len(subs))
+			c.connected.Store(true)
 			// Signal that the first subscription is ready (subsequent reconnects are silently ignored).
 			c.readyOnce.Do(func() { close(c.ready) })
 		},
@@ -228,6 +234,8 @@ func (c *Connector) Run(ctx context.Context) {
 			// Manual acknowledgment: PUBACK is sent only after the event lands in JetStream,
 			// preventing data loss when NATS is temporarily unavailable (QoS 1 guarantee).
 			EnableManualAcknowledgment: true,
+			OnServerDisconnect:         func(*paho.Disconnect) { c.connected.Store(false) },
+			OnClientError:              func(error) { c.connected.Store(false) },
 			OnPublishReceived: []func(paho.PublishReceived) (bool, error){
 				func(pr paho.PublishReceived) (bool, error) {
 					if _, ignored := ignoredTopics[pr.Packet.Topic]; ignored {
