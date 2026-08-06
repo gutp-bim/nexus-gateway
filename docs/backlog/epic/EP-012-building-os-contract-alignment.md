@@ -1,16 +1,15 @@
 # EP-012: Building OS gRPC Contract Alignment & Typed Telemetry
 
-**Status:** In Progress
+**Status:** Complete
 **Priority:** P0
 
 ## Progress
 
-Implemented on `agent/typed-telemetry-contract`: the vendored/current proto and generated Go code,
+Implemented and live-stack verified on `agent/typed-telemetry-contract`: the vendored/current proto and generated Go code,
 typed Common Event and Normalizer, backward-compatible typed SQLite persistence, MQTT/BACnet/OPC-UA
 producer support, typed Admin API/UI display, Egress Point List revision heartbeat, semantic sibling-repo
-contract tests, Buf lint, and unit/integration coverage. The remaining release gate is running the
-environment-dependent SoS assertion against a live `gutp-building-os-ri` stack and verifying the three
-types through its hot telemetry persistence/API.
+contract tests, Buf lint, unit/integration coverage, and the environment-dependent SoS assertion against
+a live `gutp-building-os-ri` stack for all three types through its authenticated hot telemetry API.
 
 ## Goal
 
@@ -122,9 +121,9 @@ Building OS schemas, apart from the gateway-local `go_package` code-generation o
       delivery semantics or breaking peers that ignore the additive message.
 - [ ] A legacy numeric frame on field 3 is accepted as `value_num`, and a new numeric gateway remains
       interoperable with the current Building OS contract.
-- [ ] Real Building OS E2E proves numeric, string, and boolean values retain their type from connector to
+- [x] Real Building OS E2E proves numeric, string, and boolean values retain their type from connector to
       the hot telemetry API/persistence layer.
-- [ ] Buf lint, contract-drift checks, Go unit tests, integration tests, and applicable SoS tests pass.
+- [x] Buf lint, contract-drift checks, Go unit tests, integration tests, and applicable SoS tests pass.
 - [ ] Numeric-only design statements are removed or marked superseded in all maintained project docs.
 
 ## Child Features
@@ -140,7 +139,7 @@ Building OS schemas, apart from the gateway-local `go_package` code-generation o
 - [x] **FEAT-054: Typed recent telemetry and Admin UI** — preserve and render JSON scalar types safely.
 - [x] **FEAT-055: Egress GatewayStatus alignment** — report the applied Point List revision over the
       additive status heartbeat.
-- [~] **FEAT-056: Building OS typed-telemetry SoS test and documentation convergence** — exercise all three
+- [x] **FEAT-056: Building OS typed-telemetry SoS test and documentation convergence** — exercise all three
       values against the real stack and update superseded architecture/backlog statements.
 
 ## Dependencies
