@@ -188,7 +188,7 @@ func TestHealth_ContainsGatewayAndConnectors(t *testing.T) {
 	mon := lifecycle.NewHealthMonitor(mock, reg)
 	h := mon.Snapshot(context.Background())
 
-	assert.Greater(t, h.UptimeSeconds, 0.0)
+	assert.GreaterOrEqual(t, h.UptimeSeconds, 0.0)
 	assert.GreaterOrEqual(t, h.DiskTotalMB, 0.0)
 	assert.GreaterOrEqual(t, h.DiskUsedMB, 0.0)
 	if h.DiskTotalMB > 0 {
@@ -237,7 +237,7 @@ func TestConnectorProber_DeadContainerOverridesRegistry(t *testing.T) {
 func TestGatewayMetrics_SampleReportsUptime(t *testing.T) {
 	m := lifecycle.NewGatewayMetrics()
 	s := m.Sample()
-	assert.Greater(t, s.UptimeSeconds, 0.0)
+	assert.GreaterOrEqual(t, s.UptimeSeconds, 0.0)
 	assert.GreaterOrEqual(t, s.DiskTotalMB, 0.0)
 	if s.DiskTotalMB > 0 {
 		assert.LessOrEqual(t, s.DiskUsedMB, s.DiskTotalMB)

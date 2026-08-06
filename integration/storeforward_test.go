@@ -113,7 +113,7 @@ func TestSF_OutageSurvival(t *testing.T) {
 	for i := range 3 {
 		select {
 		case f := <-received:
-			vals = append(vals, f.Value)
+			vals = append(vals, f.GetValueNum())
 		case <-ctx.Done():
 			t.Fatalf("timeout waiting for buffered frame %d after restart", i)
 		}
@@ -303,7 +303,7 @@ func publish(t *testing.T, js jetstream.JetStream, connectorID, localID string, 
 	ctx := context.Background()
 	evt := common.Event{
 		Protocol: "sim", ConnectorID: connectorID, LocalID: localID,
-		DeviceRef: "dev", Value: val, Unit: "Cel", Quality: "Good",
+		DeviceRef: "dev", Value: common.NumberValue(val), Unit: "Cel", Quality: "Good",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
 	payload, err := json.Marshal(evt)

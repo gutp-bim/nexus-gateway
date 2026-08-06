@@ -23,14 +23,19 @@ _COV_BACKOFF_CAP = 300.0     # maximum backoff (5 minutes)
 _COV_GIVE_UP_AFTER = 5       # consecutive failures before abandoning COV for this point
 
 
-def _to_float(raw: object) -> float | None:
-    """Coerce a bacpypes3 primitive value to float, or return None."""
+def _to_scalar(raw: object) -> float | str | bool | None:
+    """Convert a bacpypes3 primitive to a supported telemetry JSON scalar."""
     if raw is None or isinstance(raw, (Null, ErrorType)):
         return None
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, str):
+        return raw
     try:
         return float(raw)  # type: ignore[arg-type]
     except (TypeError, ValueError):
-        return None
+        text = str(raw)
+        return text if text else None
 
 
 class Bacpypes3Client(BACnetClient):
@@ -64,7 +69,7 @@ class Bacpypes3Client(BACnetClient):
         address: str,
         device_id: int,
         requests: list[tuple[str, str]],
-    ) -> list[tuple[str, float | None, str | None]]:
+    ) -> list[tuple[str, float | str | bool | None, str | None]]:
         # bacpypes3 API: flat alternating list [obj_id, [props], obj_id, [props], ...]
         parameter_list = []
         for obj_id, prop_id in requests:
@@ -91,7 +96,7 @@ class Bacpypes3Client(BACnetClient):
         if raw and not isinstance(raw, ErrorRejectAbortNack):
             for obj_id_result, _prop_id, _index, value in raw:
                 key = str(obj_id_result)
-                results_by_obj[key] = _to_float(value)
+                results_by_obj[key] = _to_scalar(value)
 
         out = []
         for obj_id, _prop_id in requests:
@@ -105,7 +110,7 @@ class Bacpypes3Client(BACnetClient):
         address: str,
         device_id: int,
         obj_id: str,
-        callback: Callable[[str, float, str], Awaitable[None]],
+        callback: Callable[[str, float | str | bool, str], Awaitable[None]],
         lifetime: int = 300,
     ) -> None:
         key = (address, obj_id)
@@ -122,7 +127,7 @@ class Bacpypes3Client(BACnetClient):
         self,
         address: str,
         obj_id: str,
-        callback: Callable[[str, float, str], Awaitable[None]],
+        callback: Callable[[str, float | str | bool, str], Awaitable[None]],
         lifetime: int,
     ) -> None:
         """Maintain a COV subscription, renewing before it expires.
@@ -145,7 +150,7 @@ class Bacpypes3Client(BACnetClient):
                         # get_value() decodes the next PropertyValue from the queue.
                         prop_id, prop_value = await cov.get_value()
                         if str(prop_id) == "present-value":
-                            v = _to_float(prop_value)
+                            v = _to_scalar(prop_value)
                             if v is not None:
                                 await callback(obj_id, v, "")
             except asyncio.CancelledError:

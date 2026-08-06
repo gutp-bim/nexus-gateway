@@ -68,7 +68,7 @@ func newBuf(t *testing.T) *storeforward.Buffer {
 func writeFrames(t *testing.T, buf *storeforward.Buffer, pointIDs ...string) {
 	t.Helper()
 	for _, pid := range pointIDs {
-		require.NoError(t, buf.Write(&pb.TelemetryFrame{GatewayId: "gw-1", PointId: pid, Value: 1.0, Timestamp: "2026-01-01T00:00:00Z"}))
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{GatewayId: "gw-1", PointId: pid, Value: &pb.TelemetryFrame_ValueNum{ValueNum: 1.0}, Timestamp: "2026-01-01T00:00:00Z"}))
 	}
 }
 

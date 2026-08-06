@@ -121,7 +121,7 @@ func TestMigrate_V1MigratesToV2KeepingFrames(t *testing.T) {
 	assert.Empty(t, batch[0].Frame.Attributes)
 
 	require.NoError(t, buf.Write(&pb.TelemetryFrame{
-		GatewayId: "gw-1", PointId: "p-2", Value: 2.0, Timestamp: "2026-01-01T00:00:01Z",
+		GatewayId: "gw-1", PointId: "p-2", Value: &pb.TelemetryFrame_ValueNum{ValueNum: 2.0}, Timestamp: "2026-01-01T00:00:01Z",
 		Attributes: map[string]string{"unit": "%RH"},
 	}))
 	batch, err = buf.ReadBatch(0, 10)
