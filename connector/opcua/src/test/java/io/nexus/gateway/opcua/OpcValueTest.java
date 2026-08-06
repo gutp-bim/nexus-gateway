@@ -13,11 +13,11 @@ class OpcValueTest {
     @Test void goodFloat()    { assertEquals(21.5, OpcValue.good(21.5f).toDouble(), 0.001); }
     @Test void goodInt()      { assertEquals(42.0, OpcValue.good(42).toDouble()); }
     @Test void goodLong()     { assertEquals(1000.0, OpcValue.good(1000L).toDouble()); }
-    @Test void goodBoolTrue() { assertEquals(1.0, OpcValue.good(true).toDouble()); }
-    @Test void goodBoolFalse(){ assertEquals(0.0, OpcValue.good(false).toDouble()); }
-    @Test void goodString()   { assertEquals(3.14, OpcValue.good("3.14").toDouble(), 0.001); }
+    @Test void goodBoolTrue() { assertEquals(true, OpcValue.good(true).toTelemetryScalar()); }
+    @Test void goodBoolFalse(){ assertEquals(false, OpcValue.good(false).toTelemetryScalar()); }
+    @Test void goodString()   { assertEquals("running", OpcValue.good("running").toTelemetryScalar()); }
     @Test void badNullValue() { assertNull(OpcValue.bad().toDouble()); }
-    @Test void goodNonNumericString() { assertNull(OpcValue.good("not-a-number").toDouble()); }
+    @Test void goodNonNumericString() { assertEquals("not-a-number", OpcValue.good("not-a-number").toTelemetryScalar()); }
 
     @Test void qualityMapping() {
         assertEquals("Good",      OpcQuality.GOOD.toCommonQuality());

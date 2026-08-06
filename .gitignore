@@ -5,6 +5,7 @@
 nats-data/
 # Store-and-Forward SQLite DB + runtime point-list (created by the gateway/container)
 /data/
+/secrets/
 connector/bacnet/.venv/
 connector/bacnet/**/__pycache__/
 connector/bacnet/**/*.pyc
@@ -18,3 +19,4 @@ connector/bacnet/**/*.pyc
 
 # Claude Code local config (memory, worktrees, settings)
 .claude/
+/.tmp-go-cache/

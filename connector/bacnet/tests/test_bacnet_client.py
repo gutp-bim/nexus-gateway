@@ -8,7 +8,14 @@ import asyncio
 
 import pytest
 
-from bacnet_connector.bacnet_client import Bacpypes3Client
+from bacnet_connector.bacnet_client import Bacpypes3Client, _to_scalar
+
+
+def test_to_scalar_preserves_telemetry_types():
+    assert _to_scalar(12.5) == 12.5
+    assert _to_scalar(True) is True
+    assert _to_scalar(False) is False
+    assert _to_scalar("running") == "running"
 
 
 class HangingApp:
