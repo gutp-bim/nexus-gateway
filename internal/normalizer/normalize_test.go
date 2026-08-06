@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	pb "nexus-gateway/gen"
 	"nexus-gateway/internal/common"
 	"nexus-gateway/internal/normalizer"
 	"nexus-gateway/internal/pointlist"
@@ -24,7 +25,7 @@ func makeEvent(connID, localID string, value float64) []byte {
 	evt := common.Event{
 		ConnectorID: connID,
 		LocalID:     localID,
-		Value:       value,
+		Value:       common.NumberValue(value),
 		Timestamp:   "2025-01-01T00:00:00Z",
 	}
 	data, _ := json.Marshal(evt)
@@ -40,7 +41,7 @@ func TestNormalize_HappyPath(t *testing.T) {
 	require.NotNil(t, frame)
 	assert.Equal(t, "gw-x", frame.GatewayId)
 	assert.Equal(t, "p1", frame.PointId)
-	assert.InDelta(t, 42.5, frame.Value, 0.001)
+	assert.InDelta(t, 42.5, frame.GetValueNum(), 0.001)
 	assert.Equal(t, "2025-01-01T00:00:00Z", frame.Timestamp)
 }
 
@@ -48,7 +49,7 @@ func TestNormalize_MissingTimestampFilled(t *testing.T) {
 	resolver := pointlist.NewFixture([]pointlist.Entry{
 		{ConnectorID: "c1", LocalID: "l1", PointID: "p1"},
 	})
-	evt, _ := json.Marshal(common.Event{ConnectorID: "c1", LocalID: "l1", Value: 1.0})
+	evt, _ := json.Marshal(common.Event{ConnectorID: "c1", LocalID: "l1", Value: common.NumberValue(1.0)})
 	frame, out := normalizer.Normalize(evt, resolver, "gw-x")
 	assert.Equal(t, normalizer.OutcomeOK, out)
 	require.NotNil(t, frame)
@@ -86,7 +87,7 @@ func TestNormalize_LargeValue_Passthrough(t *testing.T) {
 	frame, out := normalizer.Normalize(makeEvent("c1", "l1", 1e15), resolver, "gw-x")
 	assert.Equal(t, normalizer.OutcomeOK, out)
 	require.NotNil(t, frame)
-	assert.InDelta(t, 1e15, frame.Value, 1)
+	assert.InDelta(t, 1e15, frame.GetValueNum(), 1)
 }
 
 func TestNormalize_TimestampPreserved(t *testing.T) {
@@ -95,7 +96,7 @@ func TestNormalize_TimestampPreserved(t *testing.T) {
 		{ConnectorID: "c1", LocalID: "l1", PointID: "p1"},
 	})
 	ts := "2024-06-01T12:00:00+09:00"
-	data, _ := json.Marshal(common.Event{ConnectorID: "c1", LocalID: "l1", Value: 1.0, Timestamp: ts})
+	data, _ := json.Marshal(common.Event{ConnectorID: "c1", LocalID: "l1", Value: common.NumberValue(1.0), Timestamp: ts})
 	frame, out := normalizer.Normalize(data, resolver, "gw-x")
 	assert.Equal(t, normalizer.OutcomeOK, out)
 	require.NotNil(t, frame)
@@ -103,45 +104,42 @@ func TestNormalize_TimestampPreserved(t *testing.T) {
 		"event timestamp must be passed through: got %q", frame.Timestamp)
 }
 
-func TestNormalize_CarriesUnitAndQualityInAttributes(t *testing.T) {
-	resolver := pointlist.NewFixture([]pointlist.Entry{
-		{ConnectorID: "c1", LocalID: "l1", PointID: "p1"},
+func TestNormalize_AttributesPreserved(t *testing.T) {
+	resolver := pointlist.NewFixture([]pointlist.Entry{{ConnectorID: "c1", LocalID: "l1", PointID: "p1"}})
+	evt, err := json.Marshal(common.Event{
+		ConnectorID: "c1", LocalID: "l1", Value: common.NumberValue(0),
+		Attributes: map[string]string{"value_text": "運転"},
 	})
-	evt, _ := json.Marshal(common.Event{
-		ConnectorID: "c1", LocalID: "l1", Value: 3.2,
-		Unit: "Cel", Quality: "Bad",
-		Timestamp: "2025-01-01T00:00:00Z",
-	})
+	require.NoError(t, err)
 	frame, out := normalizer.Normalize(evt, resolver, "gw-x")
-	assert.Equal(t, normalizer.OutcomeOK, out)
-	require.NotNil(t, frame)
-	assert.Equal(t, "Cel", frame.Attributes["unit"], "unit must ride in attributes")
-	assert.Equal(t, "Bad", frame.Attributes["quality"], "non-Good quality must ride in attributes")
+	require.Equal(t, normalizer.OutcomeOK, out)
+	assert.Equal(t, "運転", frame.Attributes["value_text"])
 }
 
-func TestNormalize_GoodQualityOmittedFromAttributes(t *testing.T) {
-	resolver := pointlist.NewFixture([]pointlist.Entry{
-		{ConnectorID: "c1", LocalID: "l1", PointID: "p1"},
-	})
-	evt, _ := json.Marshal(common.Event{
-		ConnectorID: "c1", LocalID: "l1", Value: 1.0,
-		Unit: "Cel", Quality: "Good",
-		Timestamp: "2025-01-01T00:00:00Z",
-	})
-	frame, out := normalizer.Normalize(evt, resolver, "gw-x")
-	assert.Equal(t, normalizer.OutcomeOK, out)
-	require.NotNil(t, frame)
-	assert.Equal(t, "Cel", frame.Attributes["unit"])
-	_, hasQuality := frame.Attributes["quality"]
-	assert.False(t, hasQuality, "Good is the implied default and must not inflate every frame")
-}
-
-func TestNormalize_NoUnitNoQuality_NoAttributes(t *testing.T) {
-	resolver := pointlist.NewFixture([]pointlist.Entry{
-		{ConnectorID: "c1", LocalID: "l1", PointID: "p1"},
-	})
-	frame, out := normalizer.Normalize(makeEvent("c1", "l1", 1.0), resolver, "gw-x")
-	assert.Equal(t, normalizer.OutcomeOK, out)
-	require.NotNil(t, frame)
-	assert.Empty(t, frame.Attributes, "no attributes when the event carries none")
+func TestNormalize_TypedValues(t *testing.T) {
+	resolver := pointlist.NewFixture([]pointlist.Entry{{ConnectorID: "c1", LocalID: "l1", PointID: "p1"}})
+	tests := []struct {
+		name  string
+		value common.Value
+	}{
+		{"number zero", common.NumberValue(0)},
+		{"empty string", common.StringValue("")},
+		{"false", common.BoolValue(false)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			data, err := json.Marshal(common.Event{ConnectorID: "c1", LocalID: "l1", Value: tc.value})
+			require.NoError(t, err)
+			frame, out := normalizer.Normalize(data, resolver, "gw")
+			require.Equal(t, normalizer.OutcomeOK, out)
+			switch tc.value.Kind() {
+			case common.ValueNumber:
+				assert.IsType(t, &pb.TelemetryFrame_ValueNum{}, frame.GetValue())
+			case common.ValueString:
+				assert.IsType(t, &pb.TelemetryFrame_ValueStr{}, frame.GetValue())
+			case common.ValueBool:
+				assert.IsType(t, &pb.TelemetryFrame_ValueBool{}, frame.GetValue())
+			}
+		})
+	}
 }

@@ -61,6 +61,10 @@ func (l *Loop) AppliedRevision() string {
 	return l.appliedETag
 }
 
+// CurrentRevision is kept as a compatibility alias for callers introduced with
+// the typed telemetry contract work.
+func (l *Loop) CurrentRevision() string { return l.AppliedRevision() }
+
 // Run polls the provisioning API until ctx is cancelled.
 // It syncs once on startup (blocking), then re-syncs on the ticker or revalidate signal.
 func (l *Loop) Run(ctx context.Context) {

@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"google.golang.org/protobuf/proto"
 	_ "modernc.org/sqlite"
 
 	pb "nexus-gateway/gen"
@@ -117,6 +118,10 @@ func (b *Buffer) Close() error {
 
 // Write appends a frame. If the buffer is at capacity, the oldest row is deleted first.
 func (b *Buffer) Write(f *pb.TelemetryFrame) error {
+	wire, err := proto.Marshal(f)
+	if err != nil {
+		return fmt.Errorf("storeforward: marshal frame: %w", err)
+	}
 	tx, err := b.db.Begin()
 	if err != nil {
 		return err
@@ -134,8 +139,8 @@ func (b *Buffer) Write(f *pb.TelemetryFrame) error {
 		attrs = string(encoded)
 	}
 	_, err = tx.Exec(
-		`INSERT INTO frames (gateway_id, point_id, value, timestamp, attributes) VALUES (?, ?, ?, ?, ?)`,
-		f.GatewayId, f.PointId, f.Value, f.Timestamp, attrs,
+		`INSERT INTO frames (gateway_id, point_id, value, timestamp, attributes, frame) VALUES (?, ?, ?, ?, ?, ?)`,
+		f.GatewayId, f.PointId, f.GetValueNum(), f.Timestamp, attrs, wire,
 	)
 	if err != nil {
 		return err
@@ -227,7 +232,7 @@ func (b *Buffer) LastCheckpointUnix() int64 { return b.lastCheckpointUnix.Load()
 // ReadBatch returns up to limit frames with seq > afterSeq, in ascending order.
 func (b *Buffer) ReadBatch(afterSeq int64, limit int) ([]StoredFrame, error) {
 	rows, err := b.db.Query(
-		`SELECT seq, gateway_id, point_id, value, timestamp, attributes FROM frames WHERE seq > ? ORDER BY seq ASC LIMIT ?`,
+		`SELECT seq, gateway_id, point_id, value, timestamp, attributes, frame FROM frames WHERE seq > ? ORDER BY seq ASC LIMIT ?`,
 		afterSeq, limit,
 	)
 	if err != nil {
@@ -238,12 +243,21 @@ func (b *Buffer) ReadBatch(afterSeq int64, limit int) ([]StoredFrame, error) {
 	var batch []StoredFrame
 	for rows.Next() {
 		var sf StoredFrame
+		var legacyValue float64
 		var attrs sql.NullString
+		var wire []byte
 		sf.Frame = &pb.TelemetryFrame{}
-		if err := rows.Scan(&sf.Seq, &sf.Frame.GatewayId, &sf.Frame.PointId, &sf.Frame.Value, &sf.Frame.Timestamp, &attrs); err != nil {
+		if err := rows.Scan(&sf.Seq, &sf.Frame.GatewayId, &sf.Frame.PointId, &legacyValue, &sf.Frame.Timestamp, &attrs, &wire); err != nil {
 			return nil, err
 		}
-		if attrs.Valid && attrs.String != "" {
+		if len(wire) > 0 {
+			if err := proto.Unmarshal(wire, sf.Frame); err != nil {
+				return nil, fmt.Errorf("storeforward: unmarshal frame: %w", err)
+			}
+		} else {
+			sf.Frame.Value = &pb.TelemetryFrame_ValueNum{ValueNum: legacyValue}
+		}
+		if len(wire) == 0 && attrs.Valid && attrs.String != "" {
 			if err := json.Unmarshal([]byte(attrs.String), &sf.Frame.Attributes); err != nil {
 				// A corrupt attributes blob must not wedge the whole uplink:
 				// deliver the frame without its ancillary attributes.
@@ -308,7 +322,7 @@ func (b *Buffer) Drifts() map[string]int64 {
 // schemaVersion is the on-disk buffer schema this binary understands, tracked via
 // SQLite's PRAGMA user_version (#29). Bump it and append a migration step below
 // whenever the schema changes.
-const schemaVersion = 2
+const schemaVersion = 3
 
 // migrations[i] upgrades the schema from version i to version i+1. Each step must
 // be idempotent (a re-run, or a pre-stamp v0 database whose tables already exist,
@@ -348,6 +362,18 @@ var migrations = []func(*sql.DB) error{
 			return nil
 		}
 		_, err := db.Exec(`ALTER TABLE frames ADD COLUMN attributes TEXT`)
+		return err
+	},
+	// 2 -> 3: complete protobuf frame preserves oneof presence and typed values.
+	func(db *sql.DB) error {
+		var n int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('frames') WHERE name = 'frame'`).Scan(&n); err != nil {
+			return err
+		}
+		if n > 0 {
+			return nil
+		}
+		_, err := db.Exec(`ALTER TABLE frames ADD COLUMN frame BLOB`)
 		return err
 	},
 }

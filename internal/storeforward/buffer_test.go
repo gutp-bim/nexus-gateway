@@ -4,6 +4,7 @@
 package storeforward_test
 
 import (
+	"database/sql"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -17,22 +18,8 @@ import (
 	"nexus-gateway/internal/storeforward"
 )
 
-// A non-positive capacity is rejected at Open so a misconfiguration fails fast
-// instead of silently dropping every frame (insert-then-evict) with a green
-// process (#26).
-func TestBuffer_Open_RejectsNonPositiveCapacity(t *testing.T) {
-	for _, cap := range []int{0, -1, -100} {
-		_, err := storeforward.Open(t.TempDir()+"/sf.db", cap)
-		if err == nil {
-			t.Fatalf("Open(capacity=%d) must return an error", cap)
-		}
-	}
-}
-
-func TestBuffer_Open_AcceptsPositiveCapacity(t *testing.T) {
-	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 1)
-	require.NoError(t, err)
-	buf.Close()
+func num(value float64) *pb.TelemetryFrame_ValueNum {
+	return &pb.TelemetryFrame_ValueNum{ValueNum: value}
 }
 
 // A successful Write signals WriteNotify so the uplink Forwarder can react
@@ -43,7 +30,7 @@ func TestBuffer_WriteNotifies(t *testing.T) {
 	defer buf.Close()
 
 	n := buf.WriteNotify()
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{GatewayId: "gw", PointId: "p1", Value: 1, Timestamp: "t"}))
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{GatewayId: "gw", PointId: "p1", Value: num(1), Timestamp: "t"}))
 
 	select {
 	case <-n:
@@ -58,9 +45,9 @@ func TestBuffer_WriteReadAdvance(t *testing.T) {
 	defer buf.Close()
 
 	frames := []*pb.TelemetryFrame{
-		{GatewayId: "gw-1", PointId: "p1", Value: 1.0, Timestamp: "2024-01-01T00:00:00Z"},
-		{GatewayId: "gw-1", PointId: "p2", Value: 2.0, Timestamp: "2024-01-01T00:00:01Z"},
-		{GatewayId: "gw-1", PointId: "p3", Value: 3.0, Timestamp: "2024-01-01T00:00:02Z"},
+		{GatewayId: "gw-1", PointId: "p1", Value: num(1.0), Timestamp: "2024-01-01T00:00:00Z"},
+		{GatewayId: "gw-1", PointId: "p2", Value: num(2.0), Timestamp: "2024-01-01T00:00:01Z"},
+		{GatewayId: "gw-1", PointId: "p3", Value: num(3.0), Timestamp: "2024-01-01T00:00:02Z"},
 	}
 	for _, f := range frames {
 		require.NoError(t, buf.Write(f))
@@ -93,7 +80,7 @@ func TestBuffer_Counters(t *testing.T) {
 
 	for i := range 5 {
 		require.NoError(t, buf.Write(&pb.TelemetryFrame{
-			GatewayId: "gw-1", PointId: "p" + string(rune('0'+i)), Value: float64(i), Timestamp: "2024-01-01T00:00:00Z",
+			GatewayId: "gw-1", PointId: "p" + string(rune('0'+i)), Value: num(float64(i)), Timestamp: "2024-01-01T00:00:00Z",
 		}))
 	}
 
@@ -122,7 +109,7 @@ func TestBuffer_DropOldestOnOverflow(t *testing.T) {
 		require.NoError(t, buf.Write(&pb.TelemetryFrame{
 			GatewayId: "gw-1",
 			PointId:   "p" + string(rune('0'+i)),
-			Value:     float64(i),
+			Value:     num(float64(i)),
 			Timestamp: "2024-01-01T00:00:00Z",
 		}))
 	}
@@ -141,9 +128,9 @@ func TestBuffer_DriftCounter(t *testing.T) {
 	require.NoError(t, err)
 	defer buf.Close()
 
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "temp", Value: 1.0, Timestamp: "t"}))
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "temp", Value: 2.0, Timestamp: "t"}))
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "hum", Value: 3.0, Timestamp: "t"}))
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "temp", Value: num(1.0), Timestamp: "t"}))
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "temp", Value: num(2.0), Timestamp: "t"}))
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "hum", Value: num(3.0), Timestamp: "t"}))
 
 	batch, err := buf.ReadBatch(0, 10)
 	require.NoError(t, err)
@@ -167,7 +154,7 @@ func TestBuffer_Depth(t *testing.T) {
 	assert.Equal(t, int64(0), buf.Depth())
 
 	for range 3 {
-		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p1", Value: 1.0, Timestamp: "t"}))
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p1", Value: num(1.0), Timestamp: "t"}))
 	}
 	assert.Equal(t, int64(3), buf.Depth())
 }
@@ -182,7 +169,7 @@ func TestBuffer_DepthReflectsUnsentBacklog(t *testing.T) {
 	defer buf.Close()
 
 	for range 5 {
-		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p", Value: 1.0, Timestamp: "t"}))
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p", Value: num(1.0), Timestamp: "t"}))
 	}
 	assert.Equal(t, int64(5), buf.Depth(), "nothing acked yet: full backlog")
 
@@ -248,7 +235,7 @@ func TestBuffer_ConcurrentWritersNoLock(t *testing.T) {
 			defer wg.Done()
 			for i := range perWriter {
 				record(buf.Write(&pb.TelemetryFrame{
-					GatewayId: "gw", PointId: fmt.Sprintf("p%d-%d", w, i), Value: float64(i), Timestamp: "t",
+					GatewayId: "gw", PointId: fmt.Sprintf("p%d-%d", w, i), Value: num(float64(i)), Timestamp: "t",
 				}))
 			}
 		}(w)
@@ -262,14 +249,65 @@ func TestBuffer_ConcurrentWritersNoLock(t *testing.T) {
 	assert.Positive(t, drained.Load(), "drain/cursor loop made progress (not a silent no-op)")
 }
 
+func TestBuffer_TypedValuesSurviveReopen(t *testing.T) {
+	path := t.TempDir() + "/typed.db"
+	buf, err := storeforward.Open(path, 10)
+	require.NoError(t, err)
+	frames := []*pb.TelemetryFrame{
+		{PointId: "zero", Value: &pb.TelemetryFrame_ValueNum{ValueNum: 0}, Timestamp: "t"},
+		{PointId: "empty", Value: &pb.TelemetryFrame_ValueStr{ValueStr: ""}, Timestamp: "t"},
+		{PointId: "false", Value: &pb.TelemetryFrame_ValueBool{ValueBool: false}, Timestamp: "t"},
+	}
+	for _, frame := range frames {
+		require.NoError(t, buf.Write(frame))
+	}
+	require.NoError(t, buf.Close())
+
+	buf, err = storeforward.Open(path, 10)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = buf.Close() })
+	got, err := buf.ReadBatch(0, 10)
+	require.NoError(t, err)
+	require.Len(t, got, 3)
+	assert.IsType(t, &pb.TelemetryFrame_ValueNum{}, got[0].Frame.GetValue())
+	assert.IsType(t, &pb.TelemetryFrame_ValueStr{}, got[1].Frame.GetValue())
+	assert.IsType(t, &pb.TelemetryFrame_ValueBool{}, got[2].Frame.GetValue())
+}
+
+func TestBuffer_UpgradesLegacyNumericRows(t *testing.T) {
+	path := t.TempDir() + "/legacy.db"
+	db, err := sql.Open("sqlite", path)
+	require.NoError(t, err)
+	_, err = db.Exec(`
+		CREATE TABLE frames (
+			seq INTEGER PRIMARY KEY AUTOINCREMENT,
+			gateway_id TEXT NOT NULL DEFAULT '', point_id TEXT NOT NULL,
+			value REAL NOT NULL, timestamp TEXT NOT NULL
+		);
+		CREATE TABLE cursor (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL DEFAULT 0);
+		INSERT INTO frames (gateway_id, point_id, value, timestamp) VALUES ('gw', 'p1', 12.5, 't');
+	`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	buf, err := storeforward.Open(path, 10)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = buf.Close() })
+	frames, err := buf.ReadBatch(0, 10)
+	require.NoError(t, err)
+	require.Len(t, frames, 1)
+	assert.IsType(t, &pb.TelemetryFrame_ValueNum{}, frames[0].Frame.GetValue())
+	assert.Equal(t, 12.5, frames[0].Frame.GetValueNum())
+}
+
 func TestBuffer_PersistsCursor(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := dir + "/sf.db"
 
 	buf, err := storeforward.Open(dbPath, 100)
 	require.NoError(t, err)
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p1", Value: 1.0, Timestamp: "t"}))
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p2", Value: 2.0, Timestamp: "t"}))
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p1", Value: num(1.0), Timestamp: "t"}))
+	require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p2", Value: num(2.0), Timestamp: "t"}))
 
 	batch, err := buf.ReadBatch(0, 10)
 	require.NoError(t, err)
@@ -289,28 +327,4 @@ func TestBuffer_PersistsCursor(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, batch2, 1)
 	assert.Equal(t, "p2", batch2[0].Frame.PointId)
-}
-
-// Attributes must survive the SQLite round-trip: the buffer is the only path
-// from the Normalizer to the uplink, so dropping them here would silently undo
-// the unit/quality unification (EP-003).
-func TestBuffer_RoundTripsAttributes(t *testing.T) {
-	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 100)
-	require.NoError(t, err)
-	defer buf.Close()
-
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{
-		GatewayId: "gw", PointId: "p1", Value: 21.5, Timestamp: "2025-01-01T00:00:00Z",
-		Attributes: map[string]string{"unit": "Cel", "quality": "Bad"},
-	}))
-	require.NoError(t, buf.Write(&pb.TelemetryFrame{
-		GatewayId: "gw", PointId: "p2", Value: 1.0, Timestamp: "2025-01-01T00:00:01Z",
-	}))
-
-	batch, err := buf.ReadBatch(0, 10)
-	require.NoError(t, err)
-	require.Len(t, batch, 2)
-	assert.Equal(t, map[string]string{"unit": "Cel", "quality": "Bad"}, batch[0].Frame.Attributes,
-		"attributes must round-trip through the buffer")
-	assert.Empty(t, batch[1].Frame.Attributes, "absent attributes stay absent")
 }

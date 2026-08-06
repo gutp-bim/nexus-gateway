@@ -175,7 +175,7 @@ class ConnectorTest {
         connector.stop();
         task.get(2, TimeUnit.SECONDS);
 
-        // bad value → toDouble() returns null → no event published
+        // bad value has no supported scalar → no event published
         assertEquals(0, pub.published.size(), "bad value with null reading must not publish");
     }
 
@@ -198,7 +198,7 @@ class ConnectorTest {
     }
 
     @Test
-    void booleanValueMapsToOneAndZero() throws Exception {
+    void booleanValueRemainsBoolean() throws Exception {
         MockClient client = new MockClient();
         client.readResults.put("ns=2;i=1001", OpcValue.good(true));
 
@@ -211,7 +211,7 @@ class ConnectorTest {
         task.get(2, TimeUnit.SECONDS);
 
         assertEquals(1, pub.published.size());
-        assertEquals(1.0, ((Number) pub.published.get(0).json().get("value")).doubleValue(), 0.001);
+        assertEquals(true, pub.published.get(0).json().get("value"));
     }
 
     @Test

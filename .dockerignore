@@ -1,0 +1,8 @@
+.git
+.tmp-go-cache
+secrets
+data
+nats-data
+connector/bacnet/.venv
+connector/bacnet/**/__pycache__
+connector/bacnet/**/*.pyc

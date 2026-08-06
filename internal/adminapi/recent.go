@@ -12,10 +12,10 @@ import (
 
 // RecentEntry holds the latest value observed for a single point.
 type RecentEntry struct {
-	PointID    string  `json:"point_id"`
-	Value      float64 `json:"value"`
-	Timestamp  string  `json:"timestamp"`
-	ReceivedAt string  `json:"received_at"`
+	PointID    string `json:"point_id"`
+	Value      any    `json:"value"`
+	Timestamp  string `json:"timestamp"`
+	ReceivedAt string `json:"received_at"`
 }
 
 // RecentStore tracks the most recent telemetry value per point_id in memory.
@@ -37,9 +37,22 @@ func (s *RecentStore) Record(f *pb.TelemetryFrame) {
 	defer s.mu.Unlock()
 	s.entries[f.PointId] = RecentEntry{
 		PointID:    f.PointId,
-		Value:      f.Value,
+		Value:      frameValue(f),
 		Timestamp:  f.Timestamp,
 		ReceivedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+func frameValue(f *pb.TelemetryFrame) any {
+	switch value := f.GetValue().(type) {
+	case *pb.TelemetryFrame_ValueNum:
+		return value.ValueNum
+	case *pb.TelemetryFrame_ValueStr:
+		return value.ValueStr
+	case *pb.TelemetryFrame_ValueBool:
+		return value.ValueBool
+	default:
+		return nil
 	}
 }
 

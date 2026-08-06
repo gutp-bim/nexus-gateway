@@ -35,7 +35,7 @@ func TestNormalizer_ResolvesLocalIDToPointID(t *testing.T) {
 
 	publish(t, ctx, js, "evt.sim.conn-01", common.Event{
 		ConnectorID: "conn-01", Protocol: "sim", LocalID: "dev/temp",
-		Value: 21.5, Unit: "Cel", Quality: "Good",
+		Value: common.NumberValue(21.5), Unit: "Cel", Quality: "Good",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
 
@@ -43,7 +43,7 @@ func TestNormalizer_ResolvesLocalIDToPointID(t *testing.T) {
 	case frame := <-norm.Frames():
 		assert.Equal(t, "gw-test", frame.Frame.GatewayId)
 		assert.Equal(t, "zone_a/temp", frame.Frame.PointId)
-		assert.InDelta(t, 21.5, frame.Frame.Value, 0.001)
+		assert.InDelta(t, 21.5, frame.Frame.GetValueNum(), 0.001)
 	case <-ctx.Done():
 		t.Fatal("timeout waiting for frame")
 	}
@@ -61,7 +61,7 @@ func TestNormalizer_SkipsUnknownLocalID(t *testing.T) {
 
 	publish(t, ctx, js, "evt.sim.conn-01", common.Event{
 		ConnectorID: "conn-01", LocalID: "unknown/point",
-		Value: 1.0, Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Value: common.NumberValue(1.0), Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
 
 	// Also publish a known event after so we can detect order
@@ -73,7 +73,7 @@ func TestNormalizer_SkipsUnknownLocalID(t *testing.T) {
 	}
 }
 
-func TestNormalizer_BoolValueNormalisedToNumeric(t *testing.T) {
+func TestNormalizer_BoolValuePreserved(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -84,16 +84,15 @@ func TestNormalizer_BoolValueNormalisedToNumeric(t *testing.T) {
 	norm, err := normalizer.New(ctx, js, pl, "gw-test")
 	require.NoError(t, err)
 
-	// value=1 represents bool true (bool→0/1, CONTEXT.md)
 	publish(t, ctx, js, "evt.sim.c", common.Event{
 		ConnectorID: "c", LocalID: "fan/run",
-		Value: 1.0, Quality: "Good",
+		Value: common.BoolValue(true), Quality: "Good",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
 
 	select {
 	case frame := <-norm.Frames():
-		assert.Equal(t, 1.0, frame.Frame.Value, "bool true must arrive as 1.0")
+		assert.True(t, frame.Frame.GetValueBool(), "bool true must remain boolean")
 	case <-ctx.Done():
 		t.Fatal("timeout")
 	}
@@ -124,7 +123,7 @@ func TestNormalizer_DropsAndMetersPoisonAndMiss(t *testing.T) {
 	// Miss: well-formed event whose local_id resolves to nothing.
 	publish(t, ctx, js, "evt.sim.c", common.Event{
 		ConnectorID: "c", LocalID: "unknown/point",
-		Value: 1.0, Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Value: common.NumberValue(1.0), Timestamp: time.Now().UTC().Format(time.RFC3339),
 	})
 
 	// Each is metered exactly once.

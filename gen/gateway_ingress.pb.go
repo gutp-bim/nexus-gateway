@@ -25,12 +25,16 @@ type TelemetryFrame struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	GatewayId string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"` // routing/provenance; must own point_id in the twin
 	PointId   string                 `protobuf:"bytes,2,opt,name=point_id,json=pointId,proto3" json:"point_id,omitempty"`       // shared-point-list identity; joins to the digital twin
-	// Single numeric type (#189, design note): booleans are normalized to 0/1 and state/enum points are
-	// sent as numeric codes by the gateway (the whole pipeline — valid-message.json / TimescaleDB / KV —
-	// is number-based). Non-numeric state can ride in `attributes` as a string. A first-class string/enum
-	// value (proto `oneof`) is deferred to a dedicated design phase; see docs/telemetry-specification.md.
-	Value     float64 `protobuf:"fixed64,3,opt,name=value,proto3" json:"value,omitempty"`       // telemetry reading (see #189 note above)
-	Timestamp string  `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // RFC3339; empty → server stamps receive time
+	// Discriminated telemetry value (#152, Building OS ADR-0006). Field number 3 remains numeric for
+	// wire compatibility with numeric-only gateways; string and boolean use additive field numbers.
+	//
+	// Types that are valid to be assigned to Value:
+	//
+	//	*TelemetryFrame_ValueNum
+	//	*TelemetryFrame_ValueStr
+	//	*TelemetryFrame_ValueBool
+	Value     isTelemetryFrame_Value `protobuf_oneof:"value"`
+	Timestamp string                 `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"` // RFC3339; empty → server stamps receive time
 	// Optional ancillary attributes, merged into the validated telemetry `data` object. Not required
 	// each frame — only send what is not derivable from the shared point list.
 	Attributes    map[string]string `protobuf:"bytes,5,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -82,11 +86,38 @@ func (x *TelemetryFrame) GetPointId() string {
 	return ""
 }
 
-func (x *TelemetryFrame) GetValue() float64 {
+func (x *TelemetryFrame) GetValue() isTelemetryFrame_Value {
 	if x != nil {
 		return x.Value
 	}
+	return nil
+}
+
+func (x *TelemetryFrame) GetValueNum() float64 {
+	if x != nil {
+		if x, ok := x.Value.(*TelemetryFrame_ValueNum); ok {
+			return x.ValueNum
+		}
+	}
 	return 0
+}
+
+func (x *TelemetryFrame) GetValueStr() string {
+	if x != nil {
+		if x, ok := x.Value.(*TelemetryFrame_ValueStr); ok {
+			return x.ValueStr
+		}
+	}
+	return ""
+}
+
+func (x *TelemetryFrame) GetValueBool() bool {
+	if x != nil {
+		if x, ok := x.Value.(*TelemetryFrame_ValueBool); ok {
+			return x.ValueBool
+		}
+	}
+	return false
 }
 
 func (x *TelemetryFrame) GetTimestamp() string {
@@ -102,6 +133,28 @@ func (x *TelemetryFrame) GetAttributes() map[string]string {
 	}
 	return nil
 }
+
+type isTelemetryFrame_Value interface {
+	isTelemetryFrame_Value()
+}
+
+type TelemetryFrame_ValueNum struct {
+	ValueNum float64 `protobuf:"fixed64,3,opt,name=value_num,json=valueNum,proto3,oneof"`
+}
+
+type TelemetryFrame_ValueStr struct {
+	ValueStr string `protobuf:"bytes,6,opt,name=value_str,json=valueStr,proto3,oneof"`
+}
+
+type TelemetryFrame_ValueBool struct {
+	ValueBool bool `protobuf:"varint,7,opt,name=value_bool,json=valueBool,proto3,oneof"`
+}
+
+func (*TelemetryFrame_ValueNum) isTelemetryFrame_Value() {}
+
+func (*TelemetryFrame_ValueStr) isTelemetryFrame_Value() {}
+
+func (*TelemetryFrame_ValueBool) isTelemetryFrame_Value() {}
 
 type StreamAck struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -151,19 +204,23 @@ var File_gateway_ingress_proto protoreflect.FileDescriptor
 
 const file_gateway_ingress_proto_rawDesc = "" +
 	"\n" +
-	"\x15gateway_ingress.proto\x12\rgatewaybridge\"\x8c\x02\n" +
+	"\x15gateway_ingress.proto\x12\rgatewaybridge\"\xde\x02\n" +
 	"\x0eTelemetryFrame\x12\x1d\n" +
 	"\n" +
 	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12\x19\n" +
-	"\bpoint_id\x18\x02 \x01(\tR\apointId\x12\x14\n" +
-	"\x05value\x18\x03 \x01(\x01R\x05value\x12\x1c\n" +
+	"\bpoint_id\x18\x02 \x01(\tR\apointId\x12\x1d\n" +
+	"\tvalue_num\x18\x03 \x01(\x01H\x00R\bvalueNum\x12\x1d\n" +
+	"\tvalue_str\x18\x06 \x01(\tH\x00R\bvalueStr\x12\x1f\n" +
+	"\n" +
+	"value_bool\x18\a \x01(\bH\x00R\tvalueBool\x12\x1c\n" +
 	"\ttimestamp\x18\x04 \x01(\tR\ttimestamp\x12M\n" +
 	"\n" +
 	"attributes\x18\x05 \x03(\v2-.gatewaybridge.TelemetryFrame.AttributesEntryR\n" +
 	"attributes\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"'\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\a\n" +
+	"\x05value\"'\n" +
 	"\tStreamAck\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\x03R\baccepted2^\n" +
 	"\x0eGatewayIngress\x12L\n" +
@@ -202,6 +259,11 @@ func init() { file_gateway_ingress_proto_init() }
 func file_gateway_ingress_proto_init() {
 	if File_gateway_ingress_proto != nil {
 		return
+	}
+	file_gateway_ingress_proto_msgTypes[0].OneofWrappers = []any{
+		(*TelemetryFrame_ValueNum)(nil),
+		(*TelemetryFrame_ValueStr)(nil),
+		(*TelemetryFrame_ValueBool)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

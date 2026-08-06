@@ -72,7 +72,7 @@ func (c *Connector) publishPoint(ctx context.Context, t time.Time, p Point, tick
 		ConnectorID: c.connectorID,
 		LocalID:     p.LocalID,
 		DeviceRef:   p.DeviceRef,
-		Value:       value,
+		Value:       common.NumberValue(value),
 		Unit:        p.Unit,
 		Quality:     "Good",
 		Timestamp:   t.UTC().Format(time.RFC3339),

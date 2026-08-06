@@ -13,8 +13,8 @@ import (
 	"time"
 
 	pahoClient "github.com/eclipse/paho.golang/paho"
-	mochiauth "github.com/mochi-mqtt/server/v2/hooks/auth"
 	mochi "github.com/mochi-mqtt/server/v2"
+	mochiauth "github.com/mochi-mqtt/server/v2/hooks/auth"
 	"github.com/mochi-mqtt/server/v2/listeners"
 	natssrv "github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -25,6 +25,13 @@ import (
 	mqttconn "nexus-gateway/connector/mqtt"
 	"nexus-gateway/internal/common"
 )
+
+func eventNumber(t *testing.T, evt common.Event) float64 {
+	t.Helper()
+	value, ok := evt.Value.Number()
+	require.True(t, ok, "event value must be numeric")
+	return value
+}
 
 // TestMQTT_NumericPayload: plain float payload → Common Event on NATS.
 func TestMQTT_NumericPayload(t *testing.T) {
@@ -53,7 +60,7 @@ func TestMQTT_NumericPayload(t *testing.T) {
 	assert.Equal(t, "mqtt", evt.Protocol)
 	assert.Equal(t, "mqtt-01", evt.ConnectorID)
 	assert.Equal(t, "sensors/temp", evt.LocalID)
-	assert.InDelta(t, 22.5, evt.Value, 0.001)
+	assert.InDelta(t, 22.5, eventNumber(t, evt), 0.001)
 	assert.Equal(t, "Cel", evt.Unit)
 	assert.Equal(t, "Good", evt.Quality)
 }
@@ -83,8 +90,120 @@ func TestMQTT_JSONPayload(t *testing.T) {
 	publishMQTT(t, brokerAddr, "sensors/co2", payload)
 
 	evt := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-02")
-	assert.InDelta(t, 850.0, evt.Value, 0.001)
+	assert.InDelta(t, 850.0, eventNumber(t, evt), 0.001)
 	assert.Equal(t, "sensors/co2", evt.LocalID)
+}
+
+func TestMQTT_WildcardSubscriptionPublishesExactTopic(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+	topic := "takenaka.co.jp/Tokyo/THX/HVAC2F-AHU2NW1/current/R"
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID: "mqtt-wildcard", BrokerURL: "mqtt://" + brokerAddr,
+		ClientID: "nexus-gw-wildcard", KeepAlive: 30,
+		Subscriptions: []mqttconn.SubscriptionConfig{{Filter: "takenaka.co.jp/Tokyo/THX/#", QoS: 1}},
+		Points:        []mqttconn.PointConfig{{Topic: topic, DeviceRef: "HVAC2F-AHU2NW1", Unit: "A"}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+
+	publishMQTT(t, brokerAddr, topic, []byte(`{"datetime":"2026-08-06T12:50:37Z","value":"0.0"}`))
+	evt := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-wildcard")
+	assert.Equal(t, topic, evt.LocalID)
+	assert.Equal(t, "2026-08-06T12:50:37Z", evt.Timestamp)
+	assert.Zero(t, eventNumber(t, evt))
+}
+
+func TestMQTT_ExplicitlyIgnoredTopicProducesNoEvent(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID: "mqtt-ignore", BrokerURL: "mqtt://" + brokerAddr,
+		ClientID: "nexus-gw-ignore", KeepAlive: 30,
+		Subscriptions: []mqttconn.SubscriptionConfig{{Filter: "#", QoS: 1}},
+		IgnoreTopics:  []string{"tas/heartbeat"},
+		Points:        []mqttconn.PointConfig{{Topic: "tas/heartbeat"}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+
+	publishMQTT(t, brokerAddr, "tas/heartbeat", []byte(`{"datetime":"2026-08-06T12:48:03Z","status":"healthy"}`))
+	assertNoEvent(t, ctx, js, "evt.mqtt.mqtt-ignore")
+}
+
+func TestMQTT_OversizePayloadProducesNoEvent(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID: "mqtt-size", BrokerURL: "mqtt://" + brokerAddr,
+		ClientID: "nexus-gw-size", KeepAlive: 30, MaxPayloadBytes: 32,
+		Points: []mqttconn.PointConfig{{Topic: "sensors/text"}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+	publishMQTT(t, brokerAddr, "sensors/text", []byte(`{"datetime":"2026-08-06T12:48:03Z","value":"this is too large"}`))
+	assertNoEvent(t, ctx, js, "evt.mqtt.mqtt-size")
+}
+
+func TestMQTT_GeneralStringPayloadPublishedAsAttribute(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID: "mqtt-text", BrokerURL: "mqtt://" + brokerAddr,
+		ClientID: "nexus-gw-text", KeepAlive: 30,
+		Points: []mqttconn.PointConfig{{Topic: "equipment/status"}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+	publishMQTT(t, brokerAddr, "equipment/status", []byte(`{"datetime":"2026-08-06T12:48:03Z","value":"運転"}`))
+	evt := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-text")
+	value, ok := evt.Value.String()
+	require.True(t, ok)
+	assert.Equal(t, "運転", value)
+	assert.NotContains(t, evt.Attributes, "value_text")
+}
+
+func TestMQTT_AWSIoTConfiguredTopicsReachJetStream(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+	hvacTopic := "takenaka.co.jp/Tokyo/THX/HVAC2F-AHU2NW1/AHU_RT/R"
+	lightTopic := "takenaka.co.jp/Tokyo/THX/LIGHT1F-G13/status_half/R"
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID: "mqtt-aws-topics", BrokerURL: "mqtt://" + brokerAddr,
+		ClientID: "nexus-gw-aws-topics", KeepAlive: 30,
+		Subscriptions: []mqttconn.SubscriptionConfig{{Filter: "#", QoS: 1}},
+		Points: []mqttconn.PointConfig{
+			{Topic: hvacTopic, DeviceRef: "HVAC2F-AHU2NW1"},
+			{Topic: lightTopic, DeviceRef: "LIGHT1F-G13"},
+		},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+	// Mochi may return SUBACK just before its routing table is visible to a new
+	// publisher connection on Windows. Give that handoff a short settling window.
+	time.Sleep(100 * time.Millisecond)
+
+	publishMQTT(t, brokerAddr, hvacTopic, []byte(`{"datetime":"2026-08-06T12:50:37Z","value":23.5}`))
+	hvac := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-aws-topics")
+	assert.Equal(t, hvacTopic, hvac.LocalID)
+	assert.InDelta(t, 23.5, eventNumber(t, hvac), 0.001)
+
+	publishMQTT(t, brokerAddr, lightTopic, []byte(`{"datetime":"2026-08-06T12:50:37Z","value":"0"}`))
+	light := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-aws-topics")
+	assert.Equal(t, lightTopic, light.LocalID)
+	assert.Zero(t, eventNumber(t, light))
 }
 
 // TestMQTT_UnknownTopicDropped: message on unconfigured topic → no event emitted.
@@ -271,7 +390,7 @@ func TestMQTT_TelemetryDuringWrite(t *testing.T) {
 	// Telemetry comes in while write is processed
 	publishMQTT(t, brokerAddr, "sensors/temp", []byte("21.0"))
 	evt := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-w3")
-	assert.InDelta(t, 21.0, evt.Value, 0.001)
+	assert.InDelta(t, 21.0, eventNumber(t, evt), 0.001)
 
 	// Write request
 	req, _ := json.Marshal(map[string]any{"control_id": "ctrl-telem", "local_id": "sensors/temp", "value": 25.0})
@@ -284,7 +403,7 @@ func TestMQTT_TelemetryDuringWrite(t *testing.T) {
 	// Telemetry still works after the write
 	publishMQTT(t, brokerAddr, "sensors/temp", []byte("22.0"))
 	evt2 := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-w3")
-	assert.InDelta(t, 22.0, evt2.Value, 0.001)
+	assert.InDelta(t, 22.0, eventNumber(t, evt2), 0.001)
 }
 
 // TestMQTT_FreshnessFloorRepublishes: with a silent broker after one update, the
@@ -314,12 +433,12 @@ func TestMQTT_FreshnessFloorRepublishes(t *testing.T) {
 	// One broker update seeds the last-known value and emits the first event.
 	publishMQTT(t, brokerAddr, "sensors/temp", []byte("22.5"))
 	evt1 := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-fresh")
-	assert.InDelta(t, 22.5, evt1.Value, 0.001)
+	assert.InDelta(t, 22.5, eventNumber(t, evt1), 0.001)
 
 	// With no further broker traffic, the floor ticker must re-publish the same
 	// value — the next event arrives from the freshness floor, not the broker.
 	evt2 := consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-fresh")
-	assert.InDelta(t, 22.5, evt2.Value, 0.001)
+	assert.InDelta(t, 22.5, eventNumber(t, evt2), 0.001)
 	assert.Equal(t, "sensors/temp", evt2.LocalID)
 }
 
@@ -338,7 +457,15 @@ func startBroker(t *testing.T) string {
 
 	require.Eventually(t, func() bool {
 		addr := tcp.Address()
-		return addr != "" && addr != "127.0.0.1:0"
+		if addr == "" || addr == "127.0.0.1:0" {
+			return false
+		}
+		probe, err := net.DialTimeout("tcp", addr, 100*time.Millisecond)
+		if err != nil {
+			return false
+		}
+		_ = probe.Close()
+		return true
 	}, 3*time.Second, 10*time.Millisecond)
 
 	return tcp.Address()
@@ -382,7 +509,7 @@ func publishMQTT(t *testing.T, brokerAddr, topic string, payload []byte) {
 
 	_, err = c.Publish(ctx, &pahoClient.Publish{
 		Topic:   topic,
-		QoS:     0,
+		QoS:     1,
 		Payload: payload,
 	})
 	require.NoError(t, err)
@@ -467,4 +594,17 @@ func consumeOneEvent(t *testing.T, ctx context.Context, js jetstream.JetStream, 
 	}
 	t.Fatal("no event received within timeout")
 	return evt
+}
+
+func assertNoEvent(t *testing.T, ctx context.Context, js jetstream.JetStream, subject string) {
+	t.Helper()
+	cons, err := js.CreateOrUpdateConsumer(ctx, "EVENTS", jetstream.ConsumerConfig{
+		Durable: "no-event-" + strings.ReplaceAll(subject, ".", "-"), FilterSubject: subject,
+	})
+	require.NoError(t, err)
+	msgs, err := cons.Fetch(1, jetstream.FetchMaxWait(500*time.Millisecond))
+	require.NoError(t, err)
+	for range msgs.Messages() {
+		t.Fatalf("unexpected event on %s", subject)
+	}
 }

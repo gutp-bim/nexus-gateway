@@ -39,7 +39,7 @@ func (f *fakeAckNaker) state() (ack, nak bool, delay time.Duration) {
 
 func frameMsg(pointID string, ack storeforward.AckNaker) storeforward.FrameMsg {
 	return storeforward.FrameMsg{
-		Frame: &pb.TelemetryFrame{GatewayId: "gw-1", PointId: pointID, Value: 1.5, Timestamp: "2026-01-01T00:00:00Z"},
+		Frame: &pb.TelemetryFrame{GatewayId: "gw-1", PointId: pointID, Value: &pb.TelemetryFrame_ValueNum{ValueNum: 1.5}, Timestamp: "2026-01-01T00:00:00Z"},
 		Msg:   ack,
 	}
 }

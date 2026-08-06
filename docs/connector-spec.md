@@ -103,7 +103,7 @@ The gateway sends a NATS core `Request` to this subject. Connectors **subscribe*
 
 ### 3.1 Schema
 
-All fields are required. Published as UTF-8 JSON, no envelope or framing.
+The core fields are required; `attributes` is optional. Published as UTF-8 JSON, no envelope or framing.
 
 ```json
 {
@@ -114,7 +114,8 @@ All fields are required. Published as UTF-8 JSON, no envelope or framing.
   "value":        23.5,
   "unit":         "degC",
   "quality":      "Good",
-  "timestamp":    "2026-06-20T04:30:00Z"
+  "timestamp":    "2026-06-20T04:30:00Z",
+  "attributes":   {}
 }
 ```
 
@@ -128,6 +129,7 @@ All fields are required. Published as UTF-8 JSON, no envelope or framing.
 | `unit` | string | Engineering unit string (e.g. `"degC"`, `"Pa"`, `""`). May be empty. |
 | `quality` | string | One of `"Good"`, `"Bad"`, `"Uncertain"`. |
 | `timestamp` | string | RFC 3339 UTC timestamp of the observation (`…Z` suffix required). |
+| `attributes` | object | Optional string-to-string ancillary values; never a substitute for the primary typed `value`. |
 
 ### 3.2 `local_id` format
 
@@ -139,7 +141,7 @@ All fields are required. Published as UTF-8 JSON, no envelope or framing.
 | OPC-UA | `"ns=2;s=Temperature"` |
 | MQTT | `"sensors/floor3/temp"` |
 
-**MQTT:** `local_id` is the exact MQTT topic path configured in `MQTT_POINTS[].topic`. The connector subscribes to and matches topics by exact string equality — MQTT wildcard characters (`+`, `#`) are not supported. Messages arriving on a topic not present in the point list are acknowledged immediately and discarded. The gateway Normalizer looks up this topic string in the Point List to resolve the canonical `point_id`; the connector never performs this resolution.
+**MQTT:** `local_id` is the exact MQTT topic path configured in `MQTT_POINTS[].topic`. `MQTT_SUBSCRIPTIONS` may use MQTT wildcard filters (`+`, `#`) to keep the broker subscription count bounded, but the received concrete topic is still matched to `MQTT_POINTS` by exact string equality. Messages arriving on a topic not present in the point list are acknowledged immediately and discarded. The gateway Normalizer looks up the concrete topic string in the Point List to resolve the canonical `point_id`; the connector never performs this resolution.
 
 ### 3.3 `quality` semantics
 
@@ -198,15 +200,13 @@ top of* this floor; the periodic poll is the guarantee that still holds when val
 - **sim** — fixed ticker. Standalone `cmd/sim-connector`: `--interval` / `SIM_POLL_INTERVAL`
   (default **60 s**). In-process `--dev-sim`: `--dev-sim-interval` flag (default **60 s**;
   lower it for fast local feedback). A non-positive interval is clamped to the 60 s default.
-- **MQTT** — push-based: it emits when a broker message arrives, **and** re-publishes
-  each point's last-known value once per `MQTT_FRESHNESS_INTERVAL` (default **60 s**) when
-  no broker update has arrived within the interval, so a never-changing point matches the
-  BACnet/OPC-UA cadence. A broker update resets the point's floor timer; a point that has
-  never reported is never invented. Set `MQTT_FRESHNESS_INTERVAL=0` to disable (pure push).
+- **MQTT** — push-based: it emits when a broker message arrives and has no poll. A
+  freshness-floor re-publish of each point's last-known value once per interval is
+  **planned, not yet implemented**.
 
 ### 3.7 MQTT telemetry payload formats
 
-The MQTT connector accepts two payload formats on subscribed topics. Non-numeric or otherwise unparseable payloads are acknowledged to the broker and silently discarded (a `WARN` log is emitted).
+The MQTT connector accepts the payload formats below. Non-numeric or otherwise unparseable payloads are acknowledged to the broker and discarded (a `WARN` log is emitted). A JSON object with `status` but no `value` is treated as a heartbeat and silently ignored.
 
 **Format 1 — plain numeric string**
 
@@ -237,6 +237,8 @@ A JSON object containing one of the keys `"value"`, `"Value"`, or `"v"` (checked
 ```
 
 The extracted number becomes the `value` field of the emitted Common Event. Quality is always `"Good"` for successfully parsed messages; the connector has no device-level quality signal from MQTT.
+
+Numeric strings are accepted and converted to numbers. JSON booleans and general strings remain first-class boolean and string Common Event values and map to the Building OS `value_bool` and `value_str` cases. `null`, compound JSON, NaN, and infinity are rejected. When present, RFC 3339 `datetime` is used as the observation timestamp; valid `snapshot_at` and then connector receive time are fallbacks.
 
 ---
 
@@ -305,7 +307,6 @@ Reply **before** the request context deadline. The gateway's default request tim
 |----------|----------|-------------|
 | `CONNECTOR_ID` | **Yes** | Unique connector identifier. Must match the `CONNECTOR_MAP` value for this protocol. Used as the subject suffix for both `evt.*` and `cmd.*`. |
 | `NATS_URL` | **Yes** | NATS server URL. Default: `nats://localhost:4222`. Injected by the gateway at container start. |
-| `HEALTH_PORT` | No | TCP port for the connector's HTTP `/health` endpoint (§5.5). Default: `8080`. |
 
 ### 5.2 Protocol-specific environment variables
 
@@ -335,18 +336,6 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `OPCUA_POLL_INTERVAL` | `60` | Seconds between periodic re-polls, run alongside the change-driven subscription as the freshness floor (§3.6, #110). |
 | `OPCUA_DEVICE_REF` | `opcua-server` | Device reference echoed in emitted events. |
 | `OPCUA_WRITE_TIMEOUT` | `10` | Device write timeout in seconds. |
-| `OPCUA_SECURITY_POLICY` | `None` | Channel security policy: `None`, `Basic128Rsa15`, `Basic256`, or `Basic256Sha256`. The connector selects the server endpoint matching this policy. Default `None` keeps the dev/simulator path unchanged. |
-| `OPCUA_SECURITY_MODE` | `None`/`SignAndEncrypt` | Message security mode: `None`, `Sign`, or `SignAndEncrypt`. Defaults to `None` when the policy is `None`, otherwise `SignAndEncrypt`. `Sign`/`SignAndEncrypt` with policy `None` is rejected. |
-| `OPCUA_CLIENT_CERT_FILE` | _(empty)_ | PEM path to the client application-instance certificate. **Required when `OPCUA_SECURITY_POLICY` is not `None`** (a secured channel needs an application certificate); also the X509 user token when `OPCUA_IDENTITY=x509`. |
-| `OPCUA_CLIENT_KEY_FILE` | _(empty)_ | PEM path (PKCS#8) to the private key paired with `OPCUA_CLIENT_CERT_FILE`. Required whenever the certificate is. |
-| `OPCUA_IDENTITY` | `anonymous` | User identity token: `anonymous` (default), `username` (uses `OPCUA_USERNAME`/`OPCUA_PASSWORD`), or `x509` (uses `OPCUA_CLIENT_CERT_FILE`/`OPCUA_CLIENT_KEY_FILE`). |
-| `OPCUA_USERNAME` | _(empty)_ | Username for `OPCUA_IDENTITY=username`. Must be paired with `OPCUA_PASSWORD`. |
-| `OPCUA_PASSWORD` | _(empty)_ | Password for `OPCUA_IDENTITY=username`. Must be paired with `OPCUA_USERNAME`. |
-
-> Invalid combinations fail fast at startup with a one-line error naming the offending
-> variable: an unknown policy/mode value, a message mode without a real policy, a secured
-> policy without a client certificate/key, a username without a password (or vice-versa),
-> or an identity mode missing its required credentials.
 
 **MQTT connector:**
 
@@ -358,12 +347,14 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `MQTT_PASSWORD` | _(empty)_ | Broker authentication password. |
 | `MQTT_KEEPALIVE` | `30` | MQTT KeepAlive interval in seconds. |
 | `MQTT_SESSION_EXPIRY` | `0` | MQTT 5.0 session expiry interval in seconds. `0` = session ends on disconnect (clean session behaviour). |
-| `MQTT_FRESHNESS_INTERVAL` | `60s` | Freshness floor (§3.6): re-publish each point's last-known value when idle this long. Go duration (`60s`, `2m`); `0` disables (pure push). |
-| `MQTT_TLS_CA_FILE` | _(empty)_ | PEM CA bundle verifying the broker certificate for `mqtts://`. Empty = system roots. Ignored for plain `mqtt://`. |
-| `MQTT_TLS_CERT_FILE` | _(empty)_ | Client certificate (PEM) for mutual TLS. Must be paired with `MQTT_TLS_KEY_FILE`. |
-| `MQTT_TLS_KEY_FILE` | _(empty)_ | Client private key (PEM) for mutual TLS. Must be paired with `MQTT_TLS_CERT_FILE`. |
-| `MQTT_TLS_INSECURE_SKIP_VERIFY` | `false` | **Dev only.** Skip broker certificate verification for `mqtts://`. Never enable in production. |
+| `MQTT_MAX_PAYLOAD_BYTES` | `1024` | Maximum MQTT application payload size in bytes. Larger payloads are acknowledged and discarded before JSON decoding. Must be greater than zero. |
 | `MQTT_POINTS` | `[]` | JSON array of point configs (see §6.3). |
+| `MQTT_POINTS_FILE` | _(empty)_ | Read-only JSON file containing the same array as `MQTT_POINTS`. When set, it takes precedence; recommended for large point lists. |
+| `MQTT_SUBSCRIPTIONS` | `[]` | JSON array of `{filter,qos}` MQTT topic filters. Supports `+` and `#`. When empty, each `MQTT_POINTS[].topic` is subscribed at QoS 1 for backward compatibility. |
+| `MQTT_IGNORE_TOPICS` | `[]` | JSON array of exact topics to acknowledge and ignore, e.g. `["tas/heartbeat"]`. |
+| `MQTT_CA_FILE` | _(system roots)_ | Optional PEM CA bundle path for server verification. |
+| `MQTT_CERT_FILE` | _(empty)_ | PEM client certificate path for mutual TLS. Must be set with `MQTT_KEY_FILE`. |
+| `MQTT_KEY_FILE` | _(empty)_ | PEM private-key path for mutual TLS. Must be set with `MQTT_CERT_FILE`. |
 
 ### 5.3 CONNECTOR_MAP
 
@@ -383,27 +374,9 @@ Field device connectivity (BACnet UDP broadcast, OPC-UA TCP, MQTT TCP) requires 
 
 ### 5.5 Health check
 
-Container `running` state is the primary liveness signal (the gateway inspects it).
-On top of that, every reference connector (BACnet, OPC-UA, MQTT) serves a minimal
-HTTP `/health` endpoint on `HEALTH_PORT` (default `8080`, §5.1) that reflects
-**protocol-session readiness**, not just process liveness:
+Docker health check: the gateway inspects the container state. Connectors may expose a minimal HTTP `/health` endpoint that returns `{"status":"ok"}`, though it is not strictly required — container `running` state is the primary liveness signal.
 
-- **Session established** → `200` with body `{"status":"ok"}`.
-- **Session not (yet) established or lost** — broker unreachable (MQTT), server not
-  connected (OPC-UA), or no successful device read in the latest poll cycle (BACnet,
-  which is connectionless) → `503` with body `{"status":"degraded"}`.
-
-The healthy body must include the literal string `"status":"ok"` for the gateway's
-health monitor grep to detect it; the degraded body deliberately omits it, so a
-wedged-but-running connector (equipment/broker unreachable) is distinguishable from
-a healthy one. A bind failure on `HEALTH_PORT` is logged and non-fatal — the
-connector keeps running without the health surface rather than crashing.
-
-**Startup — EVENTS stream readiness.** The `EVENTS` stream is owned by the gateway
-(§2.1). Before publishing, a connector waits (polling with backoff) for that stream
-to exist rather than publishing into a void and spamming errors. All reference
-connectors do this, so a connector started before the gateway has provisioned the
-stream produces neither dropped events nor error spam — it waits, then proceeds.
+If implemented, the health response must include the literal string `"status":"ok"` for the gateway's health monitor grep to detect it.
 
 ### 5.6 Graceful shutdown
 
@@ -420,35 +393,7 @@ ENTRYPOINT ["<connector-binary>"]
 
 - Do not embed credentials or device addresses in the image.
 - All config must come from environment variables.
-- **Run as a non-root user.** Create an unprivileged user in the image and `USER` it before the entrypoint; the connector needs no root privileges (device access is over the network, not raw sockets requiring root — BACnet UDP 47808 binds as an unprivileged port).
-- Log to stdout/stderr as structured JSON — see §5.8.
-
-### 5.8 Structured logging
-
-Connectors log **one JSON object per line** to stderr so the gateway's log capture
-(Docker API → Admin UI logs screen) and any external aggregator can parse them
-uniformly. Every line carries the same shared key set:
-
-| Key | Description |
-|-----|-------------|
-| `timestamp` | ISO-8601 with timezone offset, e.g. `2026-07-11T22:14:03.123+00:00`. |
-| `level` | Log level (`DEBUG` / `INFO` / `WARN` / `ERROR`). |
-| `connector_id` | The connector's `CONNECTOR_ID`, present on every line (set at startup, so even a startup/config-error line carries it). |
-| `message` | The human-readable log message. |
-
-Additional structured fields may be attached; an `exception`/stack-trace field is
-included only on error lines. Example:
-
-```json
-{"timestamp":"2026-07-11T22:14:03.123+00:00","level":"INFO","connector_id":"bacnet-01","message":"bacnet: connector bacnet-01 starting"}
-```
-
-Log-noise rules: a namespace/discovery dump (e.g. the OPC-UA browse listing) is
-logged at `DEBUG`, not `INFO`, so a large address space does not flood startup logs;
-and a **configured** Point that yields a non-numeric value is reported with a
-**rate-limited** `WARN` naming its `local_id` (rather than silently skipped or
-buried at `DEBUG`), throttled per `local_id` so a persistently-bad point cannot
-flood the logs.
+- Log to stdout/stderr (JSON or plain text). The gateway captures container logs via Docker API.
 
 ---
 
@@ -478,21 +423,14 @@ The point list tells a connector which data points to poll and how to address th
 
 ```json
 {
-  "local_id":       "ns=2;s=Temperature",
-  "device_ref":     "opcua-device-01",
-  "unit":           "degC",
-  "writable":       false,
-  "method_node_id": ""
+  "local_id":   "ns=2;s=Temperature",
+  "device_ref": "opcua-device-01",
+  "unit":       "degC",
+  "writable":   false
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `local_id` | string | **Yes** | OPC-UA NodeId string as returned by the Browse service, e.g. `ns=2;s=Temperature`. |
-| `device_ref` | string | No | Opaque device reference echoed in events (defaults to `OPCUA_DEVICE_REF`). |
-| `unit` | string | No | Engineering unit echoed in events. |
-| `writable` | boolean | No | Whether the gateway may send write commands for this point. Default `false`. |
-| `method_node_id` | string | No | NodeId of an OPC-UA **method** to invoke for writes instead of a direct node write. When set, a write calls this method (with the point's node as the object and the value as the single argument) rather than writing the `local_id` node's Value attribute — for servers that expose setpoints only through methods. When omitted, writes use the standard Write service on `local_id`. |
+`local_id` is the OPC-UA NodeId string as returned by the Browse service.
 
 ### 6.3 MQTT point config (per element of `MQTT_POINTS`)
 
@@ -667,9 +605,7 @@ Keep at least the last **1000** `control_id` → WriteReply entries. Evict the o
 |------|---------------------|
 | Publish on `evt.<protocol>.<connector_id>` only | **Must** |
 | Use JetStream acknowledged publish | **Must** |
-| Reconnect to NATS indefinitely with backoff (never stop at the client's default attempt cap) | **Must** |
 | Reply to every `cmd.*` Request within timeout | **Must** |
-| Reply to an in-flight duplicate `cmd.*` (same `control_id`) with the `in_flight` token, not silence | **Must** |
 | Deduplicate write commands by `control_id` | **Must** |
 | Never resolve `point_id` | **Must** |
 | Echo `device_ref`, `unit` unchanged in events | **Must** |
@@ -677,8 +613,7 @@ Keep at least the last **1000** `control_id` → WriteReply entries. Evict the o
 | Log to stdout/stderr | **Must** |
 | Handle SIGTERM within 10 s | **Must** |
 | Publish `"Bad"` quality on device comm failure | **Should** |
-| Wait for the gateway-owned `EVENTS` stream before publishing (backoff, no spam) | **Should** |
-| Serve `GET /health` on `HEALTH_PORT` reflecting protocol-session readiness (`200 {"status":"ok"}` / `503 {"status":"degraded"}`) | **Should** |
+| Expose `GET /health` → `{"status":"ok"}` | **Should** |
 | Avoid unbounded in-memory event buffering | **Should** |
 | Implement BACnet COV subscriptions (in addition to poll) | **May** |
 

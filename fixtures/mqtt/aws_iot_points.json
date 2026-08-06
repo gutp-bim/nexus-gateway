@@ -1,0 +1,14 @@
+[
+  {
+    "topic": "takenaka.co.jp/Tokyo/THX/HVAC2F-AHU2NW1/AHU_RT/R",
+    "device_ref": "HVAC2F-AHU2NW1",
+    "unit": "",
+    "writable": false
+  },
+  {
+    "topic": "takenaka.co.jp/Tokyo/THX/LIGHT1F-G13/status_half/R",
+    "device_ref": "LIGHT1F-G13",
+    "unit": "",
+    "writable": false
+  }
+]

@@ -15,10 +15,15 @@ const POLL_MS = 5_000;
 
 type RecentEntry = {
   point_id: string;
-  value: number;
+  value: number | string | boolean;
   timestamp: string;
   received_at: string;
 };
+
+export function formatTelemetryValue(value: number | string | boolean): string {
+  if (typeof value === "number") return value.toFixed(4);
+  return String(value);
+}
 
 type TelemetryData = {
   stats: TelemetryStats;
@@ -132,7 +137,7 @@ export default function TelemetryPage() {
               {recent.map((e) => (
                 <tr key={e.point_id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                   <td style={{ padding: "0.4rem 0.75rem", fontFamily: "monospace", fontSize: "0.8rem", fontWeight: 600 }}>{e.point_id}</td>
-                  <td style={{ padding: "0.4rem 0.75rem", textAlign: "right" }}>{e.value.toFixed(4)}</td>
+                  <td style={{ padding: "0.4rem 0.75rem", textAlign: "right" }}>{formatTelemetryValue(e.value)}</td>
                   <td style={{ padding: "0.4rem 0.75rem", fontSize: "0.78rem", color: "#374151" }}>{e.timestamp}</td>
                   <td style={{ padding: "0.4rem 0.75rem", fontSize: "0.78rem", color: "#9ca3af" }}>{e.received_at}</td>
                 </tr>

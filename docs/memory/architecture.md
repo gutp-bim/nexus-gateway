@@ -61,7 +61,7 @@ metadata:
 | Normalizer | Strips protocol-dependent info; unifies Point ID, Device ID, timestamp, quality, unit. Hosts future semantic mapping (REC/Brick/QUDT/BOT). |
 | NATS JetStream | Internal pub/sub transport for connector events; replay and short-term retention. |
 | SQLite Buffer | Local store-and-forward during uplink outages. |
-| gRPC Uplink | Building OS-owned contract (`gatewaybridge`, vendored from `../gutp-building-os-oss/proto/`): Ingress `GatewayIngress/StreamTelemetry` + Egress `GatewayEgress/Connect`. No DiscoveryService. |
+| gRPC Uplink | Building OS-owned contract (`gatewaybridge`, vendored from `../gutp-building-os-ri/proto/`): Ingress `GatewayIngress/StreamTelemetry` + Egress `GatewayEgress/Connect`. No DiscoveryService. |
 | OpenTelemetry Collector | Collects metrics/logs/traces; exports OTLP + Prometheus. |
 | Admin UI | React/Next.js operator console. |
 | Connector Catalog (external) | Standalone management server serving approved connector manifests (image digest, permissions, signature policy). Polled by the Core Agent; see ADR-0006. |

@@ -115,7 +115,7 @@ func TestE2E_DualBOSAddr(t *testing.T) {
 	evt := common.Event{
 		Protocol: "sim", ConnectorID: "sim-01",
 		LocalID: "sim://ahu-01/supply_air_temp", DeviceRef: "sim://ahu-01",
-		Value: 23.4, Unit: "Cel", Quality: "Good",
+		Value: common.NumberValue(23.4), Unit: "Cel", Quality: "Good",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
 	payload, err := json.Marshal(evt)
@@ -129,7 +129,7 @@ func TestE2E_DualBOSAddr(t *testing.T) {
 		case frame := <-ingressReceived:
 			assert.Equal(t, "gw-dual", frame.GatewayId)
 			assert.Equal(t, "supply_air_temp", frame.PointId)
-			assert.InDelta(t, 23.4, frame.Value, 0.0001)
+			assert.InDelta(t, 23.4, frame.GetValueNum(), 0.0001)
 			assert.GreaterOrEqual(t, ingressAccepted.Load(), int64(1), "mock ingress must have accepted at least one frame")
 		case <-ctx.Done():
 			t.Fatal("timeout: no TelemetryFrame at ingress addr")

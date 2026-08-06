@@ -105,6 +105,21 @@ func TestLoop_UpdatesResolverOnETagChange(t *testing.T) {
 	}, 300*time.Millisecond, 5*time.Millisecond, "resolver must reconverge after ETag change")
 }
 
+func TestLoop_ExposesAppliedRevision(t *testing.T) {
+	client := provisioning.NewMock([]pointlist.Entry{{PointID: "p1"}})
+	resolver := pointlist.NewSynced(nil)
+	loop := pointsync.New(client, resolver, pointsync.Config{Interval: time.Hour})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go loop.Run(ctx)
+	select {
+	case <-loop.Ready():
+	case <-time.After(time.Second):
+		t.Fatal("sync did not become ready")
+	}
+	assert.NotEmpty(t, loop.CurrentRevision())
+}
+
 // TestLoop_AppliesDiff verifies that a delta (Added/Removed/Changed) is correctly
 // merged into the resolver. The mock returns the initial full list on the first Fetch,
 // then the diff on the second Fetch — mirroring the real #224 poll sequence.

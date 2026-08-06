@@ -51,7 +51,7 @@ func TestE2E_BosIngress(t *testing.T) {
 		err = stream.Send(&pb.TelemetryFrame{
 			GatewayId: "GW-SOS-001",
 			PointId:   "SOS-PT-001",
-			Value:     22.5,
+			Value:     &pb.TelemetryFrame_ValueNum{ValueNum: 22.5},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		require.NoError(t, err)
@@ -68,7 +68,7 @@ func TestE2E_BosIngress(t *testing.T) {
 		err = stream.Send(&pb.TelemetryFrame{
 			GatewayId: "GW-SOS-001",
 			PointId:   "SOS-PT-UNKNOWN",
-			Value:     0.0,
+			Value:     &pb.TelemetryFrame_ValueNum{ValueNum: 0.0},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestE2E_BosIngress(t *testing.T) {
 		err = stream.Send(&pb.TelemetryFrame{
 			GatewayId: "GW-WRONG",
 			PointId:   "SOS-PT-001",
-			Value:     1.0,
+			Value:     &pb.TelemetryFrame_ValueNum{ValueNum: 1.0},
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		})
 		require.NoError(t, err)
@@ -99,12 +99,19 @@ func TestE2E_BosIngress(t *testing.T) {
 		stream, err := client.StreamTelemetry(ctx)
 		require.NoError(t, err)
 
-		for _, pid := range []string{"SOS-PT-001", "SOS-PT-002", "SOS-PT-003"} {
+		frames := []*pb.TelemetryFrame{
+			{PointId: "SOS-PT-001", Value: &pb.TelemetryFrame_ValueNum{ValueNum: 20}},
+			{PointId: "SOS-PT-002", Value: &pb.TelemetryFrame_ValueStr{ValueStr: "running"}},
+			{PointId: "SOS-PT-003", Value: &pb.TelemetryFrame_ValueBool{ValueBool: false}},
+		}
+		for _, frame := range frames {
+			frame.GatewayId = "GW-SOS-001"
+			frame.Timestamp = time.Now().UTC().Format(time.RFC3339)
 			err = stream.Send(&pb.TelemetryFrame{
-				GatewayId: "GW-SOS-001",
-				PointId:   pid,
-				Value:     20.0,
-				Timestamp: time.Now().UTC().Format(time.RFC3339),
+				GatewayId: frame.GatewayId,
+				PointId:   frame.PointId,
+				Value:     frame.Value,
+				Timestamp: frame.Timestamp,
 			})
 			require.NoError(t, err)
 		}

@@ -15,7 +15,7 @@ class CommonEvent:
     connector_id: str
     local_id: str   # BACnet native address — never a resolved point_id
     device_ref: str
-    value: float
+    value: float | str | bool
     unit: str
     quality: str    # "Good" | "Bad" | "Uncertain"
     timestamp: str  # RFC3339 UTC
@@ -25,7 +25,7 @@ def make_event(
     connector_id: str,
     local_id: str,
     device_ref: str,
-    value: float,
+    value: float | str | bool,
     unit: str,
     quality: str,
 ) -> bytes:

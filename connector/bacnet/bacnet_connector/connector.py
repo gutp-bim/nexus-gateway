@@ -28,7 +28,7 @@ class BACnetClient:
         address: str,
         device_id: int,
         requests: list[tuple[str, str]],  # [(objid, prop_id), ...]
-    ) -> list[tuple[str, float | None, str | None]]:
+    ) -> list[tuple[str, float | str | bool | None, str | None]]:
         """Returns [(objid, value, status), ...]. Raises on transport error."""
         raise NotImplementedError
 
@@ -37,7 +37,7 @@ class BACnetClient:
         address: str,
         device_id: int,
         obj_id: str,
-        callback: Callable[[str, float, str], Awaitable[None]],
+        callback: Callable[[str, float | str | bool, str], Awaitable[None]],
         lifetime: int = 300,
     ) -> None:
         """Subscribe to COV notifications for obj_id. Calls callback on each change."""
@@ -202,7 +202,7 @@ class Connector:
 
     async def _subscribe_cov(self, pt: PointConfig) -> None:
         """Subscribe to COV for a single point and publish events on each change."""
-        async def on_cov(obj_id: str, value: float, status: str) -> None:
+        async def on_cov(obj_id: str, value: float | str | bool, status: str) -> None:
             await self._publish(pt, value, bacnet_quality(status))
 
         while True:
@@ -223,7 +223,7 @@ class Connector:
                 )
                 await asyncio.sleep(30)
 
-    async def _publish(self, pt: PointConfig, value: float, quality: str) -> None:
+    async def _publish(self, pt: PointConfig, value: float | str | bool, quality: str) -> None:
         data = make_event(
             connector_id=self._cfg.connector_id,
             local_id=pt.local_id,
