@@ -34,9 +34,19 @@
   {
     "connector_id": "mqtt-01",
     "protocol": "mqtt",
-    "local_id": "actuators/room1/setpoint",
-    "point_id": "room1_setpoint",
-    "unit": "Cel",
-    "writable": true
+    "local_id": "takenaka.co.jp/Tokyo/THX/HVAC2F-AHU2NW1/AHU_RT/R",
+    "point_id": "thx_hvac2f_ahu2nw1_ahu_rt",
+    "unit": "",
+    "writable": false,
+    "device_ref": "HVAC2F-AHU2NW1"
+  },
+  {
+    "connector_id": "mqtt-01",
+    "protocol": "mqtt",
+    "local_id": "takenaka.co.jp/Tokyo/THX/LIGHT1F-G13/status_half/R",
+    "point_id": "thx_light1f_g13_status_half",
+    "unit": "",
+    "writable": false,
+    "device_ref": "LIGHT1F-G13"
   }
 ]

@@ -90,6 +90,7 @@ docker compose -f docker-compose.oss.yaml up -d
 |--------------|------|---------|-----------|-----------------|
 | `TestE2E_BosIngress` | `bos_ingress_e2e_test.go` | `E2E_BOS_INGRESS_URL` | #43 | `GatewayIngressService`: known point accepted (Accepted=1), unknown `point_id` skipped (Accepted=0), wrong `gateway_id` rejected (Accepted=0), 3-frame batch cumulative count |
 | `TestE2E_BosIngestAPI` | `bos_ingest_api_e2e_test.go` | `E2E_BOS_INGRESS_URL`, `E2E_BOS_API_URL` | #44 / M4+M5 | **M4**: gRPC `StreamTelemetry` frame accepted; **M5**: `/telemetries/hot?pointId=SOS-PT-001` reflects the ingested value within 45 s |
+| `TestE2E_BosTypedTelemetry` | `bos_typed_telemetry_e2e_test.go` | `E2E_BOS_INGRESS_URL`, `E2E_BOS_API_URL`, `E2E_BOS_API_TOKEN` | EP-012 / FEAT-056 | number/string/boolean oneof cases are accepted and retain their discriminated type through the authenticated hot API; explicitly verifies `false` presence |
 | `TestE2E_BosControlGate` | `bos_egress_e2e_test.go` | `E2E_BOS_API_URL` | #45 / M8 | `POST /points/{writable}/control` → 202; `POST /points/{non-writable}/control` → 403 |
 | `TestE2E_BosEgressDispatch` | `bos_egress_e2e_test.go` | `E2E_BOS_EGRESS_ADDR`, `E2E_BOS_API_URL` | #45 / M7 | HTTP control → `GatewayEgressService.Connect` (gRPC, port 5052) → `egress.Agent` → NATS `cmd.bacnet.bacnet-01` → mock connector ACK |
 | `TestE2E_BosReporting` | `bos_reporting_e2e_test.go` | `E2E_BOS_INGRESS_URL`, `E2E_BOS_API_URL` | #46 | All 10 SoS publishable points (SOS-PT-001..010) ingested in one stream (Accepted=10); each point readable via `/telemetries/hot` with fresh value (parallel sub-tests) |
@@ -108,6 +109,11 @@ E2E_BOS_INGRESS_URL=localhost:5051 E2E_BOS_API_URL=http://localhost:5000 \
 # #45 — M8 control gate
 E2E_BOS_API_URL=http://localhost:5000 \
   go test ./integration/... -run TestE2E_BosControlGate -v -timeout 30s
+
+# EP-012 / FEAT-056 — typed telemetry (use a short-lived Building OS JWT)
+E2E_BOS_INGRESS_URL=localhost:5051 E2E_BOS_API_URL=http://localhost:5000 \
+E2E_BOS_API_TOKEN="$TOKEN" \
+  go test ./integration/... -run TestE2E_BosTypedTelemetry -v -timeout 120s
 
 # #45 — M7 egress dispatch (requires gateway-bridge:5052 + GatewayConnectionTypes__Map__GW-SOS-001=bacnet-sim)
 E2E_BOS_EGRESS_ADDR=localhost:5052 E2E_BOS_API_URL=http://localhost:5000 \
@@ -135,4 +141,5 @@ E2E_BOS_INGRESS_URL=localhost:5051 E2E_BOS_API_URL=http://localhost:5000 \
 | `E2E_NATS_URL` | `nats://localhost:14222` | Layer 2 connector E2E tests |
 | `E2E_BOS_INGRESS_URL` | `localhost:5051` | BOS ingress tests (#43, #44, #46) |
 | `E2E_BOS_API_URL` | `http://localhost:5000` | BOS API read-back tests (#44, #45, #46) |
+| `E2E_BOS_API_TOKEN` | short-lived JWT | Authenticated Building OS API read-back, including typed telemetry |
 | `E2E_BOS_EGRESS_ADDR` | `localhost:5052` | BOS egress dispatch test (#45/M7) |
