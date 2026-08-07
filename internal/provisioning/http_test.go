@@ -29,11 +29,12 @@ type gatewayPointListResponse struct {
 }
 
 type gatewayPointDTO struct {
-	PointID string              `json:"pointId"`
-	LocalID string              `json:"localId,omitempty"`
-	Native  *nativeAddressingDTO `json:"native,omitempty"`
-	Unit    string              `json:"unit,omitempty"`
-	Writable *bool              `json:"writable,omitempty"`
+	PointID  string               `json:"pointId"`
+	LocalID  string               `json:"localId,omitempty"`
+	Protocol string               `json:"protocol,omitempty"`
+	Native   *nativeAddressingDTO `json:"native,omitempty"`
+	Unit     string               `json:"unit,omitempty"`
+	Writable *bool                `json:"writable,omitempty"`
 }
 
 type nativeAddressingDTO struct {
@@ -162,6 +163,54 @@ func TestHTTPClient_DiffFullFallback_ReturnsFull(t *testing.T) {
 	require.Len(t, result.Entries, 1)
 	assert.Equal(t, "pt-1", result.Entries[0].PointID)
 	assert.Equal(t, "mqtt/device/sensor", result.Entries[0].LocalID)
+	assert.Equal(t, "mqtt", result.Entries[0].Protocol, "no protocol/native field — must infer from local_id shape")
+}
+
+func TestHTTPClient_ExplicitProtocolField_UsedAsIs(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", "etag-v1")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(gatewayPointListResponse{
+			GatewayID: "gw-test",
+			Revision:  "etag-v1",
+			Points: []gatewayPointDTO{
+				{PointID: "pt-opcua", LocalID: "ns=2;s=PT001", Protocol: "opcua"},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := provisioning.NewHTTPClient(srv.URL, "gw-test",
+		map[string]string{"opcua": "opcua-01"})
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, result.Entries, 1)
+	e := result.Entries[0]
+	assert.Equal(t, "opcua", e.Protocol)
+	assert.Equal(t, "opcua-01", e.ConnectorID)
+}
+
+func TestHTTPClient_NoProtocolNoNativeUnresolvableLocalID_FallsBackToUnknown(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", "etag-v1")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(gatewayPointListResponse{
+			GatewayID: "gw-test",
+			Revision:  "etag-v1",
+			Points: []gatewayPointDTO{
+				{PointID: "pt-bare", LocalID: "40001"},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := provisioning.NewHTTPClient(srv.URL, "gw-test", map[string]string{})
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, result.Entries, 1)
+	assert.Equal(t, "unknown", result.Entries[0].Protocol)
 }
 
 // HTTPClient must satisfy the Client interface.

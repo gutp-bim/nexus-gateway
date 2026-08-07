@@ -34,6 +34,7 @@ const (
 //     since this pattern still matches) — this is the deliberately-accepted
 //     risk of an unanchored heuristic; there's no shape signal available to
 //     narrow it further without also risking new collisions.
+//
 // Extending to a future protocol (e.g. Modbus) is a one-line addition once
 // that connector defines a self-describing local_id convention — see the
 // Modbus note below.
@@ -147,7 +148,7 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 			if p := strings.ToLower(strings.TrimSpace(get(row, "protocol"))); p != "" {
 				proto = p
 			} else {
-				proto = inferProtocol(localID)
+				proto = InferProtocol(localID)
 				if proto == "" {
 					proto = "unknown"
 					slog.Warn("pointlist: could not infer protocol from local_id; add a \"protocol\" column to resolve connector_id correctly",
@@ -185,9 +186,11 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 	return entries, nil
 }
 
-// inferProtocol matches localID against protocolPatterns in order and
-// returns the first match's protocol name, or "" if none match.
-func inferProtocol(localID string) string {
+// InferProtocol matches localID against protocolPatterns in order and
+// returns the first match's protocol name, or "" if none match. Exported so
+// other pointlist sources (e.g. internal/provisioning's HTTP sync) can reuse
+// the same shape heuristic instead of duplicating it.
+func InferProtocol(localID string) string {
 	for _, p := range protocolPatterns {
 		if p.re.MatchString(localID) {
 			return p.protocol
