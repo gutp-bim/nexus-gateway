@@ -62,7 +62,7 @@ func New(addr, gatewayID string, exec Executor,
 }
 
 // WithRevisionProvider attaches a RevisionProvider so the agent reports its applied point-list ETag
-// via EgressUp.Status (#230 Phase 2b). Returns a for chaining; nil disables status reporting.
+// via EgressUp.Status (#230 Phase 2b). Returns the agent for chaining; nil disables status reporting.
 func (a *Agent) WithRevisionProvider(rp RevisionProvider) *Agent {
 	a.rev = rp
 	return a

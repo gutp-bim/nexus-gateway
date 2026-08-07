@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"nexus-gateway/internal/pointlist"
 )
@@ -106,13 +107,14 @@ type gatewayPointListResponseJSON struct {
 }
 
 type gatewayPointDTOJSON struct {
-	PointID      string                 `json:"pointId"`
-	LocalID      string                 `json:"localId,omitempty"`
-	Native       *nativeAddressingJSON  `json:"native,omitempty"`
-	Unit         string                 `json:"unit,omitempty"`
-	Writable     *bool                  `json:"writable,omitempty"`
+	PointID       string                `json:"pointId"`
+	LocalID       string                `json:"localId,omitempty"`
+	Protocol      string                `json:"protocol,omitempty"`
+	Native        *nativeAddressingJSON `json:"native,omitempty"`
+	Unit          string                `json:"unit,omitempty"`
+	Writable      *bool                 `json:"writable,omitempty"`
 	ControlSchema *controlSchemaJSON    `json:"controlSchema,omitempty"`
-	Device       *deviceRefJSON         `json:"device,omitempty"`
+	Device        *deviceRefJSON        `json:"device,omitempty"`
 }
 
 type nativeAddressingJSON struct {
@@ -151,8 +153,6 @@ func (c *HTTPClient) mapDTO(dto gatewayPointDTOJSON) pointlist.Entry {
 	}
 
 	if dto.Native != nil {
-		e.Protocol = dto.Native.Protocol
-		e.ConnectorID = c.connectorMap[dto.Native.Protocol]
 		// Match the local_id convention from csv.go: "objectType,instanceNo"
 		if dto.Native.ObjectType != "" || dto.Native.InstanceNo != "" {
 			e.LocalID = dto.Native.ObjectType + "," + dto.Native.InstanceNo
@@ -167,6 +167,30 @@ func (c *HTTPClient) mapDTO(dto gatewayPointDTOJSON) pointlist.Entry {
 	if dto.Device != nil && e.DeviceRef == "" {
 		e.DeviceRef = dto.Device.ID
 	}
+
+	// Protocol resolution priority: explicit top-level field wins, else the legacy BACnet-only
+	// native block (older servers), else infer from the local_id's shape as a defensive fallback
+	// for a server that predates the protocol field entirely — reusing the same heuristic as
+	// csv.go rather than duplicating it.
+	//
+	// Server-supplied values are normalized (trim + lowercase) exactly as LoadCSV normalizes its
+	// explicit "protocol" column: connectorMap is keyed lowercase (parseConnectorMap), so an
+	// un-normalized "OPCUA" would miss the map, leave ConnectorID empty and break
+	// cmd.<protocol>.<connectorID> routing. Inferred values are already lowercase.
+	protocol := strings.ToLower(strings.TrimSpace(dto.Protocol))
+	if protocol == "" && dto.Native != nil {
+		protocol = strings.ToLower(strings.TrimSpace(dto.Native.Protocol))
+	}
+	if protocol == "" {
+		protocol = pointlist.InferProtocol(e.LocalID)
+	}
+	if protocol == "" {
+		protocol = "unknown"
+		slog.Warn("provisioning: could not resolve protocol for point; connector routing may be wrong",
+			"point_id", dto.PointID, "local_id", e.LocalID)
+	}
+	e.Protocol = protocol
+	e.ConnectorID = c.connectorMap[protocol]
 
 	if dto.ControlSchema != nil {
 		if data, err := json.Marshal(dto.ControlSchema); err == nil {
