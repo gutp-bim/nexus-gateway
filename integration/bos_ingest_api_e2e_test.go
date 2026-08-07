@@ -67,7 +67,7 @@ func TestE2E_BosIngestAPI(t *testing.T) {
 		err = stream.Send(&pb.TelemetryFrame{
 			GatewayId: gatewayID,
 			PointId:   pointID,
-			Value:     sentValue,
+			Value:     &pb.TelemetryFrame_ValueNum{ValueNum: sentValue},
 			Timestamp: t0.Format(time.RFC3339),
 		})
 		require.NoError(t, err)

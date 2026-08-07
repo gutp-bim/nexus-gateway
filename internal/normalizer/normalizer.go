@@ -170,8 +170,11 @@ func Normalize(data []byte, resolver pointlist.Resolver, gatewayID string) (*pb.
 	// default quality, so only deviations (Bad/Uncertain) are carried — this
 	// keeps the steady-state frame lean.
 	var attrs map[string]string
-	if evt.Unit != "" || (evt.Quality != "" && evt.Quality != "Good") {
-		attrs = make(map[string]string, 2)
+	if len(evt.Attributes) > 0 || evt.Unit != "" || (evt.Quality != "" && evt.Quality != "Good") {
+		attrs = make(map[string]string, len(evt.Attributes)+2)
+		for key, value := range evt.Attributes {
+			attrs[key] = value
+		}
 		if evt.Unit != "" {
 			attrs["unit"] = evt.Unit
 		}
@@ -179,11 +182,24 @@ func Normalize(data []byte, resolver pointlist.Resolver, gatewayID string) (*pb.
 			attrs["quality"] = evt.Quality
 		}
 	}
-	return &pb.TelemetryFrame{
+	frame := &pb.TelemetryFrame{
 		GatewayId:  gatewayID,
 		PointId:    pointID,
-		Value:      evt.Value,
 		Timestamp:  ts,
 		Attributes: attrs,
-	}, OutcomeOK
+	}
+	switch evt.Value.Kind() {
+	case common.ValueNumber:
+		value, _ := evt.Value.Number()
+		frame.Value = &pb.TelemetryFrame_ValueNum{ValueNum: value}
+	case common.ValueString:
+		value, _ := evt.Value.String()
+		frame.Value = &pb.TelemetryFrame_ValueStr{ValueStr: value}
+	case common.ValueBool:
+		value, _ := evt.Value.Bool()
+		frame.Value = &pb.TelemetryFrame_ValueBool{ValueBool: value}
+	default:
+		return nil, OutcomePoison
+	}
+	return frame, OutcomeOK
 }

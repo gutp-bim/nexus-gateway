@@ -5,7 +5,7 @@ The edge gateway that connects building equipment (BMS, IoT, field protocols) to
 ## Language
 
 **Building OS**:
-The central System of Record that owns the digital twin (device registry, metadata, command authority). The gateway connects to it over gRPC only. Real contract lives in `../gutp-building-os-oss/proto/` (package `gatewaybridge`), which is authoritative over the design doc §8.
+The central System of Record that owns the digital twin (device registry, metadata, command authority). The gateway connects to it over gRPC only. The checked-out authoritative contract lives in `../gutp-building-os-ri/proto/` (package `gatewaybridge`), which takes precedence over design notes.
 _Avoid_: platform, backend, server
 
 **Digital Twin**:
@@ -33,7 +33,7 @@ The single JetStream consumer that strips protocol-dependent information and uni
 _Avoid_: transformer, mapper, processor
 
 **Telemetry** (wire: `TelemetryFrame`):
-The canonical normalized reading produced by the Normalizer and streamed to Building OS via `gatewaybridge.GatewayIngress/StreamTelemetry` (client-streaming). Carries only `gateway_id`, `point_id`, `double value`, RFC3339 `timestamp`, and an optional `attributes` map. `value` is always numeric (bool→0/1, state/enum→numeric code); non-numeric state rides in `attributes`. No `device_id`/`building_id` on the wire — Building OS derives them from the Digital Twin by `point_id`.
+The canonical normalized reading produced by the Normalizer and streamed to Building OS via `gatewaybridge.GatewayIngress/StreamTelemetry` (client-streaming). Carries only `gateway_id`, `point_id`, a typed `oneof value` (`value_num`/`value_str`/`value_bool`), RFC3339 `timestamp`, and an optional ancillary `attributes` map. No `device_id`/`building_id` is sent — Building OS derives them from the Digital Twin by `point_id`.
 _Avoid_: Common Event (that is the pre-normalized form), reading
 
 **Control Command** (wire: `ControlCommand`):
@@ -89,7 +89,7 @@ JetStream is the durable replay/back-pressure boundary placed **before** normali
 
 - (resolved) Wire identity is `(gateway_id, point_id)` only. `building_id`/`device_id` are **not sent** — Building OS derives them from the Digital Twin via the shared Point List (#181).
 - (resolved) Identity mapping is owned by the **Normalizer**: Connectors emit native addressing; the Normalizer joins the Point List to assign canonical `point_id`. JetStream-before-Normalizer replay can therefore re-map after a Point List change.
-- (resolved) `value` is `double` only (bool→0/1, state/enum→numeric code); non-numeric state goes in `attributes`. First-class `oneof` value is **deferred** per Building OS contract (#189). Our design must NOT introduce a `oneof`.
+- (resolved, superseded 2026-07-21 by Building OS #152 / ADR-0006) `TelemetryFrame.value` is a first-class number/string/boolean `oneof`; numeric field 3 remains wire-compatible with older gateways.
 - (resolved) `timestamp` is an RFC3339 **string** (empty → server stamps receive time), not int64 epoch.
 - (resolved) No DiscoveryService on the Uplink. Device/Point discovery is gateway-local and feeds the Point List, not a gRPC stream to Building OS.
 - (resolved) The gateway→Building OS gRPC links are machine-authenticated by **mTLS terminated at the Building OS Traefik edge** (`passTLSClientCert` → `X-Gateway-Id`, cert-manager CN=`gateway_id`↔client-cert CN/SAN), h2c in-cluster; no OIDC token on the link (ADR-0007). The earlier "Envoy" note was a placeholder; the OSS stack chose Traefik. Keycloak/OIDC authenticates human operators at the Admin API only. Telemetry ingress is hosted by Building OS **ConnectorWorker** (`GatewayIngressService`), control egress by **GatewayBridge** (`GatewayEgressService`).
