@@ -191,6 +191,40 @@ func TestHTTPClient_ExplicitProtocolField_UsedAsIs(t *testing.T) {
 	assert.Equal(t, "opcua-01", e.ConnectorID)
 }
 
+// connectorMap is keyed lowercase (parseConnectorMap), so a server sending a differently-cased or
+// padded protocol must still resolve to a connector rather than silently leaving ConnectorID empty.
+func TestHTTPClient_ProtocolCasingAndWhitespace_NormalizedBeforeConnectorLookup(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", "etag-v1")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(gatewayPointListResponse{
+			GatewayID: "gw-test",
+			Revision:  "etag-v1",
+			Points: []gatewayPointDTO{
+				{PointID: "pt-upper", LocalID: "ns=2;s=PT001", Protocol: "  OPCUA "},
+				{PointID: "pt-native", Native: &nativeAddressingDTO{
+					Protocol: "BACnet", ObjectType: "analogInput", InstanceNo: "1001",
+				}},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	c := provisioning.NewHTTPClient(srv.URL, "gw-test",
+		map[string]string{"opcua": "opcua-01", "bacnet": "bacnet-01"})
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, result.Entries, 2)
+
+	assert.Equal(t, "opcua", result.Entries[0].Protocol)
+	assert.Equal(t, "opcua-01", result.Entries[0].ConnectorID)
+
+	// The legacy native.protocol fallback needs the same normalization.
+	assert.Equal(t, "bacnet", result.Entries[1].Protocol)
+	assert.Equal(t, "bacnet-01", result.Entries[1].ConnectorID)
+}
+
 func TestHTTPClient_NoProtocolNoNativeUnresolvableLocalID_FallsBackToUnknown(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("ETag", "etag-v1")

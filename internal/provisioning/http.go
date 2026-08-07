@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"nexus-gateway/internal/pointlist"
 )
@@ -171,9 +172,14 @@ func (c *HTTPClient) mapDTO(dto gatewayPointDTOJSON) pointlist.Entry {
 	// native block (older servers), else infer from the local_id's shape as a defensive fallback
 	// for a server that predates the protocol field entirely — reusing the same heuristic as
 	// csv.go rather than duplicating it.
-	protocol := dto.Protocol
+	//
+	// Server-supplied values are normalized (trim + lowercase) exactly as LoadCSV normalizes its
+	// explicit "protocol" column: connectorMap is keyed lowercase (parseConnectorMap), so an
+	// un-normalized "OPCUA" would miss the map, leave ConnectorID empty and break
+	// cmd.<protocol>.<connectorID> routing. Inferred values are already lowercase.
+	protocol := strings.ToLower(strings.TrimSpace(dto.Protocol))
 	if protocol == "" && dto.Native != nil {
-		protocol = dto.Native.Protocol
+		protocol = strings.ToLower(strings.TrimSpace(dto.Native.Protocol))
 	}
 	if protocol == "" {
 		protocol = pointlist.InferProtocol(e.LocalID)
