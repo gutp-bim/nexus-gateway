@@ -88,7 +88,7 @@ func TestE2E_SimConnectorFrameArrivesAtBOS(t *testing.T) {
 		ConnectorID: "sim-01",
 		LocalID:     "sim://ahu-01/supply_air_temp",
 		DeviceRef:   "sim://ahu-01",
-		Value:       23.4,
+		Value:       common.NumberValue(23.4),
 		Unit:        "Cel",
 		Quality:     "Good",
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
@@ -104,7 +104,7 @@ func TestE2E_SimConnectorFrameArrivesAtBOS(t *testing.T) {
 	case frame := <-received:
 		assert.Equal(t, "gw-001", frame.GatewayId)
 		assert.Equal(t, "supply_air_temp", frame.PointId, "Normalizer must resolve local_id → point_id")
-		assert.InDelta(t, 23.4, frame.Value, 0.0001)
+		assert.InDelta(t, 23.4, frame.GetValueNum(), 0.0001)
 		assert.NotEmpty(t, frame.Timestamp)
 	case <-ctx.Done():
 		t.Fatal("timeout: no TelemetryFrame received at mock BOS")
@@ -135,7 +135,7 @@ func TestE2E_NativeAddressingOnlyInEventStream(t *testing.T) {
 		ConnectorID: "sim-01",
 		LocalID:     "sim://ahu-01/supply_air_temp",
 		DeviceRef:   "sim://ahu-01",
-		Value:       42.0,
+		Value:       common.NumberValue(42.0),
 		Unit:        "Cel",
 		Quality:     "Good",
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),

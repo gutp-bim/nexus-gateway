@@ -72,7 +72,11 @@ type FrameSink interface {
 message TelemetryFrame {
     string gateway_id  = 1;
     string point_id    = 2;
-    double value       = 3;
+    oneof value {
+      double value_num = 3;
+      string value_str = 6;
+      bool value_bool = 7;
+    }
     string timestamp   = 4;   // RFC 3339 UTC
     map<string,string> attributes = 5;
 }

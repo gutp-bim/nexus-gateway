@@ -28,4 +28,15 @@ public record OpcValue(Object rawValue, OpcQuality quality) {
             return null;
         }
     }
+
+    /** Return a JSON telemetry scalar while preserving native boolean/string types. */
+    public Object toTelemetryScalar() {
+        if (rawValue == null) return null;
+        if (rawValue instanceof Boolean || rawValue instanceof String) return rawValue;
+        if (rawValue instanceof Number n) {
+            double value = n.doubleValue();
+            return Double.isFinite(value) ? value : null;
+        }
+        return null;
+    }
 }
