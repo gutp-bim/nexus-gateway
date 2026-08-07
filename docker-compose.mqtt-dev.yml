@@ -1,0 +1,30 @@
+# Local MQTT smoke-test overlay.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.mqtt.yml -f docker-compose.mqtt-dev.yml up --build
+#
+# It starts a disposable Mosquitto broker on the compose network and points the
+# mqtt-connector service at it. The MQTT connector's default MQTT_POINTS in
+# docker-compose.mqtt.yml match fixtures/point_list.json.
+
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    command: ["mosquitto", "-c", "/mosquitto-no-auth.conf"]
+    ports:
+      # Optional host access for external publishers. Inside the compose network,
+      # use mqtt-broker:1883.
+      - "11883:1883"
+
+  mqtt-connector:
+    environment:
+      - MQTT_BROKER_URL=mqtt://mqtt-broker:1883
+      - MQTT_SUBSCRIPTIONS=[]
+      - MQTT_POINTS_FILE=
+      - MQTT_CERT_FILE=
+      - MQTT_KEY_FILE=
+    depends_on:
+      nats:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
