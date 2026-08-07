@@ -285,7 +285,9 @@ func (c *Connector) drainQueue(subject string, queue <-chan pendingPublish, carr
 func (c *Connector) publishDirect(subject string, pending pendingPublish) {
 	ctx, cancel := context.WithTimeout(context.Background(), drainTimeout)
 	defer cancel()
-	c.publishPending(ctx, subject, pending)
+	if !c.publishPending(ctx, subject, pending) {
+		slog.Warn("mqtt: shutdown flush timed out — frame dropped", "topic", pending.topic)
+	}
 }
 
 // publishPending publishes one queued message and acks it to the broker on
