@@ -347,6 +347,7 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `MQTT_PASSWORD` | _(empty)_ | Broker authentication password. |
 | `MQTT_KEEPALIVE` | `30` | MQTT KeepAlive interval in seconds. |
 | `MQTT_SESSION_EXPIRY` | `0` | MQTT 5.0 session expiry interval in seconds. `0` = session ends on disconnect (clean session behaviour). |
+| `MQTT_RECEIVE_MAXIMUM` | `1024` | MQTT 5.0 Receive Maximum advertised in CONNECT: how many QoS>0 messages the broker may have in flight to the connector before it must wait for a `PUBACK`. Left to the broker default (Mosquitto: 20) a burst overflows the broker's send queue and is dropped before the connector sees it. Must be between 1 and 65535. |
 | `MQTT_MAX_PAYLOAD_BYTES` | `1024` | Maximum MQTT application payload size in bytes. Larger payloads are acknowledged and discarded before JSON decoding. Must be greater than zero. |
 | `MQTT_POINTS` | `[]` | JSON array of point configs (see §6.3). |
 | `MQTT_POINTS_FILE` | _(empty)_ | Read-only JSON file containing the same array as `MQTT_POINTS`. When set, it takes precedence; recommended for large point lists. |
@@ -377,6 +378,8 @@ Field device connectivity (BACnet UDP broadcast, OPC-UA TCP, MQTT TCP) requires 
 Docker health check: the gateway inspects the container state. Connectors may expose a minimal HTTP `/health` endpoint that returns `{"status":"ok"}`, though it is not strictly required — container `running` state is the primary liveness signal.
 
 If implemented, the health response must include the literal string `"status":"ok"` for the gateway's health monitor grep to detect it.
+
+A connector may serve `GET /metrics` on the same port in Prometheus text exposition format (the format the gateway's Admin API `/metrics` uses). The MQTT connector exposes `mqtt_received_total` / `mqtt_published_total` / `mqtt_publish_error_total`, counted so that a message received from the broker but not forwarded to JetStream is visible as a gap between the first two.
 
 ### 5.6 Graceful shutdown
 

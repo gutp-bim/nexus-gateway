@@ -11,10 +11,13 @@ surface may change between minor versions until a `1.0.0` release.
 ## [Unreleased]
 
 ### Added
+- Store-and-Forward `/metrics`: `storefwd_evicted_sent_total` and `storefwd_lost_unsent_total` split capacity eviction at the buffer cursor (#116). A buffer sitting at capacity evicts an already-acked row on every write, so `storefwd_dropped_total` — now documented as the sum of the two — reported six-figure "loss" for gateways that lost nothing. Alert on `storefwd_lost_unsent_total`.
+- MQTT connector `GET /metrics` on the health port (`mqtt_received_total`, `mqtt_published_total`, `mqtt_publish_error_total`) and `MQTT_RECEIVE_MAXIMUM` (default `1024`) (#117). `received` is counted before topic filtering, so messages the connector received but did not forward show as a gap.
 - MQTT connector entrypoint (`cmd/mqtt-connector/main.go`) and `connector/mqtt/Dockerfile`; deploy with `docker-compose.mqtt.yml`.
 - Admin UI: Basic auth is now the default sign-in method (`AUTH_PROVIDER=basic`, `ADMIN_USERNAME`/`ADMIN_PASSWORD`), for single-site/local installs that don't want to run an external IdP. Keycloak remains available as an opt-in (`AUTH_PROVIDER=keycloak`) for multi-site/SSO deployments (FEAT-046).
 
 ### Changed
+- MQTT connector: the JetStream publish moved off the MQTT receive goroutine onto a bounded hand-off queue with a publisher worker (#117). Blocking the receive callback on the uplink kept `PUBACK` from flowing and let the broker's outgoing queue overflow, dropping messages before the gateway saw them. The `PUBACK` still follows the JetStream ack, so QoS 1 at-least-once is unchanged; a full queue blocks so backpressure reaches the broker as MQTT flow control.
 - `docker-compose.yml`: the default stack no longer requires Keycloak — the gateway's `KEYCLOAK_JWKS_URL` and the Admin UI's Keycloak env vars are commented out by default (uncomment to opt back in). `docker-compose.external-keycloak.yml` now sets `AUTH_PROVIDER=keycloak` explicitly so that overlay keeps working.
 
 ## [0.1.0] - 2026-06-21

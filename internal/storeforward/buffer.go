@@ -35,10 +35,18 @@ type Buffer struct {
 	drifts map[string]int64
 
 	// Store-and-forward observability counters (ADR-0002). Atomic: written from
-	// the pump goroutine (written/dropped) and the uplink Forwarder goroutine
-	// (sent/checkpoints/sendErrors), read from the Admin API handler goroutine.
+	// the pump goroutine (written/evictedSent/lostUnsent) and the uplink Forwarder
+	// goroutine (sent/checkpoints/sendErrors), read from the Admin API handler
+	// goroutine.
+	//
+	// Capacity eviction is split at the cursor (#116): evicting a row the uplink
+	// already acked is retention expiry — the steady state of a full ring buffer
+	// and harmless — while evicting an un-acked row is real delivery loss. Kept
+	// apart so an operator is not shown a six-figure "dropped" count for a gateway
+	// that lost nothing.
 	written     atomic.Int64
-	dropped     atomic.Int64
+	evictedSent atomic.Int64
+	lostUnsent  atomic.Int64
 	writeErrors atomic.Int64
 	sent        atomic.Int64
 	accepted    atomic.Int64
@@ -146,8 +154,26 @@ func (b *Buffer) Write(f *pb.TelemetryFrame) error {
 		return err
 	}
 
+	// Split the victim set at the cursor before deleting it (#116): rows at or
+	// below the cursor were already forwarded and acked, so evicting them is
+	// retention expiry, while rows beyond it leave the gateway undelivered. Both
+	// counts come from the same transaction as the DELETE below, so they describe
+	// exactly the rows that are about to go.
+	var evictedSent, lostUnsent int64
+	if err := tx.QueryRow(`
+		SELECT
+			COALESCE(SUM(CASE WHEN seq <= cur THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN seq >  cur THEN 1 ELSE 0 END), 0)
+		FROM (
+			SELECT seq, COALESCE((SELECT seq FROM cursor WHERE id = 1), 0) AS cur
+			FROM frames ORDER BY seq ASC LIMIT MAX(0, (SELECT COUNT(*) FROM frames) - ?)
+		)`, b.capacity,
+	).Scan(&evictedSent, &lostUnsent); err != nil {
+		return err
+	}
+
 	// Drop oldest if over capacity
-	res, err := tx.Exec(`
+	_, err = tx.Exec(`
 		DELETE FROM frames
 		WHERE seq IN (
 			SELECT seq FROM frames ORDER BY seq ASC LIMIT MAX(0, (SELECT COUNT(*) FROM frames) - ?)
@@ -155,14 +181,16 @@ func (b *Buffer) Write(f *pb.TelemetryFrame) error {
 	if err != nil {
 		return err
 	}
-	evicted, _ := res.RowsAffected()
 
 	if err := tx.Commit(); err != nil {
 		return err
 	}
 	b.written.Add(1)
-	if evicted > 0 {
-		b.dropped.Add(evicted)
+	if evictedSent > 0 {
+		b.evictedSent.Add(evictedSent)
+	}
+	if lostUnsent > 0 {
+		b.lostUnsent.Add(lostUnsent)
 	}
 	if b.notify != nil {
 		select {
@@ -194,8 +222,20 @@ func (b *Buffer) RecordSendError() { b.sendErrors.Add(1) }
 // Written returns the total frames successfully written to the buffer.
 func (b *Buffer) Written() int64 { return b.written.Load() }
 
-// Dropped returns the total frames evicted by drop-oldest at capacity (ADR-0002).
-func (b *Buffer) Dropped() int64 { return b.dropped.Load() }
+// Dropped returns the total frames evicted by drop-oldest at capacity (ADR-0002),
+// the sum of EvictedSent and LostUnsent. It is dominated by the harmless half —
+// a buffer that sits at capacity evicts an acked row on every write — so alert on
+// LostUnsent instead (#116).
+func (b *Buffer) Dropped() int64 { return b.evictedSent.Load() + b.lostUnsent.Load() }
+
+// EvictedSent returns the frames evicted at capacity that the uplink had already
+// acked (seq <= cursor): retention expiry of delivered rows, not data loss (#116).
+func (b *Buffer) EvictedSent() int64 { return b.evictedSent.Load() }
+
+// LostUnsent returns the frames evicted at capacity before the uplink acked them
+// (seq > cursor): telemetry the gateway accepted and will never deliver, the one
+// eviction figure that is real loss (#116).
+func (b *Buffer) LostUnsent() int64 { return b.lostUnsent.Load() }
 
 // RecordWriteError counts one frame that failed to persist (full disk / SQLite
 // error). Distinct from Dropped (capacity eviction of already-written rows) — a
