@@ -540,6 +540,8 @@ type mockTelemetrySource struct {
 	sent           int64
 	accepted       int64
 	dropped        int64
+	evictedSent    int64
+	lostUnsent     int64
 	writeErrors    int64
 	capacity       int
 	checkpoints    int64
@@ -554,6 +556,8 @@ func (m *mockTelemetrySource) Written() int64            { return m.written }
 func (m *mockTelemetrySource) Sent() int64               { return m.sent }
 func (m *mockTelemetrySource) Accepted() int64           { return m.accepted }
 func (m *mockTelemetrySource) Dropped() int64            { return m.dropped }
+func (m *mockTelemetrySource) EvictedSent() int64        { return m.evictedSent }
+func (m *mockTelemetrySource) LostUnsent() int64         { return m.lostUnsent }
 func (m *mockTelemetrySource) WriteErrors() int64        { return m.writeErrors }
 func (m *mockTelemetrySource) Capacity() int             { return m.capacity }
 func (m *mockTelemetrySource) Checkpoints() int64        { return m.checkpoints }
@@ -577,7 +581,8 @@ func TestMetrics_IncludesStorefwd(t *testing.T) {
 	// depth>0 (pending backlog) so the checkpoint timestamp reports the actual
 	// stored value rather than the "now" freshness override (#23).
 	src := &mockTelemetrySource{
-		depth: 12, written: 1043, sent: 1031, dropped: 4, writeErrors: 2, checkpoints: 34, sendErrors: 1,
+		depth: 12, written: 1043, sent: 1031, dropped: 4, evictedSent: 3, lostUnsent: 1,
+		writeErrors: 2, checkpoints: 34, sendErrors: 1,
 		driftTotal: 7, lastCheckpoint: 1700000000,
 	}
 	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{Telemetry: src})
@@ -595,6 +600,11 @@ func TestMetrics_IncludesStorefwd(t *testing.T) {
 		"storefwd_written_total 1043",
 		"storefwd_sent_total 1031",
 		"storefwd_dropped_total 4",
+		// Eviction split at the cursor (#116): retention expiry vs. real loss.
+		"storefwd_evicted_sent_total 3",
+		"storefwd_lost_unsent_total 1",
+		"# TYPE storefwd_evicted_sent_total counter",
+		"# TYPE storefwd_lost_unsent_total counter",
 		"storefwd_write_error_total 2",
 		"storefwd_checkpoint_total 34",
 		"storefwd_send_error_total 1",

@@ -71,7 +71,7 @@ func TestBuffer_WriteReadAdvance(t *testing.T) {
 }
 
 // The Buffer is the single store-and-forward metrics source: it counts frames
-// written and frames dropped on overflow, and accumulates the uplink-side
+// written and frames evicted on overflow, and accumulates the uplink-side
 // sent/checkpoint/send-error records the Forwarder feeds it.
 func TestBuffer_Counters(t *testing.T) {
 	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 3) // capacity=3
@@ -86,6 +86,9 @@ func TestBuffer_Counters(t *testing.T) {
 
 	assert.Equal(t, int64(5), buf.Written(), "every successful Write counts")
 	assert.Equal(t, int64(2), buf.Dropped(), "2 of 5 evicted by drop-oldest at capacity 3")
+	// Nothing was ever acked here, so both evicted rows are real loss (#116).
+	assert.Equal(t, int64(0), buf.EvictedSent())
+	assert.Equal(t, int64(2), buf.LostUnsent())
 	assert.Equal(t, int64(3), buf.Depth(), "depth is bounded by capacity")
 
 	// Uplink-side records (the Forwarder feeds these).
@@ -121,6 +124,82 @@ func TestBuffer_DropOldestOnOverflow(t *testing.T) {
 	assert.Equal(t, "p2", batch[0].Frame.PointId)
 	assert.Equal(t, "p3", batch[1].Frame.PointId)
 	assert.Equal(t, "p4", batch[2].Frame.PointId)
+	// p0/p1 were never forwarded, so their eviction is delivery loss, not the
+	// harmless retention expiry of already-acked rows (#116).
+	assert.Equal(t, int64(2), buf.LostUnsent())
+	assert.Equal(t, int64(0), buf.EvictedSent())
+}
+
+// A buffer that sits at capacity while the uplink keeps up evicts only rows the
+// cursor has already passed. That is retention expiry, not loss: it must land in
+// EvictedSent and leave LostUnsent at zero, so an operator reading
+// storefwd_lost_unsent_total is not shown the steady state as data loss (#116).
+func TestBuffer_EvictionOfAckedRowsIsNotLoss(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 3) // capacity=3
+	require.NoError(t, err)
+	defer buf.Close()
+
+	for range 3 {
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p", Value: num(1.0), Timestamp: "t"}))
+	}
+	batch, err := buf.ReadBatch(0, 10)
+	require.NoError(t, err)
+	require.Len(t, batch, 3)
+	require.NoError(t, buf.Advance(batch[2].Seq)) // all three forwarded and acked
+
+	// Every further write evicts one acked row.
+	for range 2 {
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p", Value: num(2.0), Timestamp: "t"}))
+	}
+
+	assert.Equal(t, int64(2), buf.EvictedSent(), "evicted rows were all past the cursor")
+	assert.Equal(t, int64(0), buf.LostUnsent(), "nothing un-forwarded was evicted")
+	assert.Equal(t, int64(2), buf.Dropped(), "Dropped stays the sum of both halves")
+}
+
+// The mirror image: with the cursor never advancing, overflow evicts frames the
+// uplink has not seen. Those are the only evictions that are real loss (#116).
+func TestBuffer_EvictionOfUnsentRowsIsLoss(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 3) // capacity=3
+	require.NoError(t, err)
+	defer buf.Close()
+
+	for range 5 {
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p", Value: num(1.0), Timestamp: "t"}))
+	}
+
+	assert.Equal(t, int64(2), buf.LostUnsent(), "2 of 5 evicted before the uplink acked them")
+	assert.Equal(t, int64(0), buf.EvictedSent())
+	assert.Equal(t, int64(2), buf.Dropped())
+	assert.Equal(t, int64(3), buf.Depth(), "the surviving backlog is still un-forwarded")
+}
+
+// A mixed buffer evicts across the cursor: the write that fills capacity exactly
+// evicts nothing, and the next writes take the acked rows first (drop-oldest),
+// so the split must follow the cursor rather than the eviction count (#116).
+func TestBuffer_EvictionSplitAtCapacityBoundary(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 3) // capacity=3
+	require.NoError(t, err)
+	defer buf.Close()
+
+	for range 3 {
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p", Value: num(1.0), Timestamp: "t"}))
+	}
+	assert.Equal(t, int64(0), buf.Dropped(), "exactly at capacity: nothing evicted yet")
+
+	// Ack the first two only; the third stays un-forwarded.
+	batch, err := buf.ReadBatch(0, 10)
+	require.NoError(t, err)
+	require.NoError(t, buf.Advance(batch[1].Seq))
+
+	// Three more writes evict the two acked rows, then the un-forwarded one.
+	for range 3 {
+		require.NoError(t, buf.Write(&pb.TelemetryFrame{PointId: "p", Value: num(2.0), Timestamp: "t"}))
+	}
+
+	assert.Equal(t, int64(2), buf.EvictedSent(), "the two acked rows expired")
+	assert.Equal(t, int64(1), buf.LostUnsent(), "the un-forwarded row was lost")
+	assert.Equal(t, int64(3), buf.Dropped())
 }
 
 func TestBuffer_DriftCounter(t *testing.T) {
