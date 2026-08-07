@@ -14,7 +14,7 @@ public record CommonEvent(
     @JsonProperty("connector_id") String connectorId,
     @JsonProperty("local_id")     String localId,
     @JsonProperty("device_ref")   String deviceRef,
-    @JsonProperty("value")        double value,
+    @JsonProperty("value")        Object value,
     @JsonProperty("unit")         String unit,
     @JsonProperty("quality")      String quality,
     @JsonProperty("timestamp")    String timestamp
@@ -24,7 +24,7 @@ public record CommonEvent(
 
     public static CommonEvent now(
         String connectorId, String localId, String deviceRef,
-        double value, String unit, String quality
+        Object value, String unit, String quality
     ) {
         return new CommonEvent(
             "opcua", connectorId, localId, deviceRef,
