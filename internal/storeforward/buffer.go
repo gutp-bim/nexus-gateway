@@ -159,17 +159,26 @@ func (b *Buffer) Write(f *pb.TelemetryFrame) error {
 	// retention expiry, while rows beyond it leave the gateway undelivered. Both
 	// counts come from the same transaction as the DELETE below, so they describe
 	// exactly the rows that are about to go.
-	var evictedSent, lostUnsent int64
+	//
+	// Two counts are enough — the victim rows never have to be materialised. seq
+	// only increases and the cursor only advances, so the acked rows are always the
+	// lowest-seq prefix of the table and the victims are the oldest
+	// (total - capacity) rows; the overlap is simply the smaller of the two prefixes.
+	// Counting rather than sorting matters here because the buffer sits at capacity
+	// in steady state, so this runs on every write.
+	var total, acked int64
 	if err := tx.QueryRow(`
 		SELECT
-			COALESCE(SUM(CASE WHEN seq <= cur THEN 1 ELSE 0 END), 0),
-			COALESCE(SUM(CASE WHEN seq >  cur THEN 1 ELSE 0 END), 0)
-		FROM (
-			SELECT seq, COALESCE((SELECT seq FROM cursor WHERE id = 1), 0) AS cur
-			FROM frames ORDER BY seq ASC LIMIT MAX(0, (SELECT COUNT(*) FROM frames) - ?)
-		)`, b.capacity,
-	).Scan(&evictedSent, &lostUnsent); err != nil {
+			(SELECT COUNT(*) FROM frames),
+			(SELECT COUNT(*) FROM frames
+			 WHERE seq <= COALESCE((SELECT seq FROM cursor WHERE id = 1), 0))`,
+	).Scan(&total, &acked); err != nil {
 		return err
+	}
+	var evictedSent, lostUnsent int64
+	if victims := total - int64(b.capacity); victims > 0 {
+		evictedSent = min(victims, acked)
+		lostUnsent = victims - evictedSent
 	}
 
 	// Drop oldest if over capacity
