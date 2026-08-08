@@ -57,6 +57,40 @@ type Config struct {
 	IgnoreTopics      []string
 	Points            []PointConfig
 	FreshnessInterval time.Duration
+	// ReceiveMaximum is the MQTT Receive Maximum advertised in CONNECT: how many
+	// QoS>0 messages the broker may have in flight to this connector before it
+	// must wait for a PUBACK. Zero uses defaultReceiveMaximum.
+	ReceiveMaximum uint16
+}
+
+const (
+	// defaultReceiveMaximum keeps the broker's in-flight window generous. Left
+	// unset, brokers apply their own small default (Mosquitto: 20) and park the
+	// rest in a bounded send queue that silently drops on overflow — that is how
+	// a burst lost 305 messages before the connector ever saw them (#117).
+	defaultReceiveMaximum uint16 = 1024
+
+	// publishQueueSize bounds the hand-off from the MQTT receive goroutine to the
+	// JetStream publisher, matching the gateway's fan-in hand-off (cmd/gateway).
+	// A full queue blocks the receive goroutine on purpose: the backpressure then
+	// reaches the broker as MQTT flow control instead of being absorbed by the
+	// broker's droppable queue.
+	publishQueueSize = 256
+
+	// drainTimeout bounds the shutdown flush of that queue (see drainQueue).
+	drainTimeout = 5 * time.Second
+)
+
+// pendingPublish is one decoded broker message waiting to be published to
+// JetStream. ack is deferred to the publisher so the PUBACK still follows the
+// JetStream ack (EnableManualAcknowledgment, QoS 1 at-least-once).
+type pendingPublish struct {
+	data      []byte
+	topic     string
+	value     float64
+	hasValue  bool
+	timestamp time.Time
+	ack       func()
 }
 
 // WriteReply is re-exported from connector/sdk for callers that import this package.
@@ -76,6 +110,36 @@ type Connector struct {
 	dedup     *sdk.CommandDedup
 	lkvMu     sync.Mutex
 	lkv       map[string]*lkvState
+
+	// Ingest counters served at /metrics (#117). received is incremented at the
+	// very top of the receive callback — before the ignore/unknown-topic filters —
+	// so a received/published gap is visible instead of the connector reporting
+	// only what it chose to forward.
+	received      atomic.Int64
+	published     atomic.Int64
+	publishErrors atomic.Int64
+}
+
+// Metrics reports the connector's ingest counters for the /metrics surface the
+// SDK health server exposes.
+func (c *Connector) Metrics() []sdk.Metric {
+	return []sdk.Metric{
+		{
+			Name: "mqtt_received_total", Type: "counter",
+			Help:  "MQTT messages received from the broker, before topic filtering.",
+			Value: c.received.Load(),
+		},
+		{
+			Name: "mqtt_published_total", Type: "counter",
+			Help:  "Common Events published to JetStream from received broker messages.",
+			Value: c.published.Load(),
+		},
+		{
+			Name: "mqtt_publish_error_total", Type: "counter",
+			Help:  "JetStream publish failures; the message is left unacked for QoS 1 redelivery.",
+			Value: c.publishErrors.Load(),
+		},
+	}
 }
 
 // Healthy reports whether the MQTT broker session is currently connected.
@@ -146,6 +210,109 @@ func (c *Connector) runFreshnessFloor(ctx context.Context, subject string, point
 	}
 }
 
+// runPublisher drains the hand-off queue, publishing each decoded message to
+// JetStream and only then acknowledging it to the broker. Doing this off the
+// MQTT receive goroutine is what keeps the broker delivering during an uplink
+// stall (#117). On ctx cancellation it flushes whatever is still queued before
+// returning — see drainQueue for why that flush is mandatory rather than leaving
+// the messages to QoS 1 redelivery.
+func (c *Connector) runPublisher(ctx context.Context, subject string, queue <-chan pendingPublish) {
+	for {
+		select {
+		case <-ctx.Done():
+			c.drainQueue(subject, queue)
+			return
+		case pending := <-queue:
+			// select picks randomly among ready cases, so this arm still wins
+			// sometimes after cancellation. Publishing under the dead context would
+			// fail outright and lose the frame, so carry it into the flush instead.
+			if ctx.Err() != nil {
+				c.drainQueue(subject, queue, pending)
+				return
+			}
+			if !c.publishPending(ctx, subject, pending) {
+				// Cancelled mid-publish — re-flush this frame on a fresh context
+				// along with whatever else is still queued.
+				c.drainQueue(subject, queue, pending)
+				return
+			}
+		}
+	}
+}
+
+// drainQueue flushes the messages still buffered when the publisher is stopped.
+// This is not optional: a queued message has already been taken from the broker
+// but not yet PUBACKed, and under the default MQTT_SESSION_EXPIRY=0 the session
+// ends at disconnect, so the broker discards its unacked QoS 1 state instead of
+// redelivering. Without this flush a graceful restart would silently lose up to
+// publishQueueSize frames (docs/connector-spec.md §5.6 "flush pending publishes").
+//
+// It runs on a fresh bounded context because the publisher's own context is
+// already cancelled and would fail every publish. The MQTT connection is usually
+// gone by this point so the PUBACKs are best-effort — but the frames still reach
+// JetStream, which is the loss that actually matters.
+// carried holds frames already taken off the queue by the caller, which are
+// flushed ahead of the remaining backlog.
+func (c *Connector) drainQueue(subject string, queue <-chan pendingPublish, carried ...pendingPublish) {
+	if len(queue) == 0 && len(carried) == 0 {
+		return
+	}
+	slog.Info("mqtt: flushing pending publishes on shutdown", "count", len(queue)+len(carried))
+
+	ctx, cancel := context.WithTimeout(context.Background(), drainTimeout)
+	defer cancel()
+	for _, pending := range carried {
+		if !c.publishPending(ctx, subject, pending) {
+			slog.Warn("mqtt: shutdown flush incomplete — remaining frames dropped", "remaining", len(queue))
+			return
+		}
+	}
+	for {
+		select {
+		case pending := <-queue:
+			if !c.publishPending(ctx, subject, pending) {
+				slog.Warn("mqtt: shutdown flush incomplete — remaining frames dropped", "remaining", len(queue))
+				return
+			}
+		default:
+			return
+		}
+	}
+}
+
+// publishDirect flushes a single frame that never made it onto the queue because
+// the publisher had already stopped. Same bounded-context reasoning as drainQueue.
+func (c *Connector) publishDirect(subject string, pending pendingPublish) {
+	ctx, cancel := context.WithTimeout(context.Background(), drainTimeout)
+	defer cancel()
+	if !c.publishPending(ctx, subject, pending) {
+		slog.Warn("mqtt: shutdown flush timed out — frame dropped", "topic", pending.topic)
+	}
+}
+
+// publishPending publishes one queued message and acks it to the broker on
+// success. It reports false when ctx died mid-publish — the frame is not at fault
+// there, so the caller re-flushes it on a fresh context instead of counting a
+// spurious error. A genuine publish failure returns true: the frame stays unacked
+// for QoS 1 redelivery and the caller carries on.
+func (c *Connector) publishPending(ctx context.Context, subject string, pending pendingPublish) bool {
+	if _, err := c.js.Publish(ctx, subject, pending.data); err != nil {
+		if ctx.Err() != nil {
+			return false
+		}
+		c.publishErrors.Add(1)
+		slog.Warn("mqtt: nats publish failed — withholding PUBACK for QoS 1 retry", "err", err)
+		// Do not ack: broker will redeliver when NATS is available again.
+		return true
+	}
+	c.published.Add(1)
+	if pending.hasValue {
+		c.recordValue(pending.topic, pending.value, pending.timestamp)
+	}
+	pending.ack()
+	return true
+}
+
 // AwaitReady blocks until the first MQTT subscription is active or ctx is cancelled.
 // Use this in tests and startup sequences instead of time.Sleep.
 func (c *Connector) AwaitReady(ctx context.Context) error {
@@ -200,6 +367,26 @@ func (c *Connector) Run(ctx context.Context) {
 	}
 	defer sub.Unsubscribe()
 
+	// The publisher gets its own context so Run can stop it on every exit path —
+	// including a connection manager that finished while the caller's ctx is still
+	// live — and never return while it is still running. Stopping it flushes the
+	// queue (drainQueue) rather than relying on QoS 1 redelivery, which the default
+	// MQTT_SESSION_EXPIRY=0 does not provide.
+	pubCtx, stopPublisher := context.WithCancel(ctx)
+	queue := make(chan pendingPublish, publishQueueSize)
+	publisherDone := make(chan struct{})
+	go func() {
+		defer close(publisherDone)
+		c.runPublisher(pubCtx, subject, queue)
+	}()
+	defer func() {
+		stopPublisher()
+		<-publisherDone
+		// A receive callback can still have been mid-enqueue when the publisher
+		// drained, so sweep once more now that nothing else consumes the queue.
+		c.drainQueue(subject, queue)
+	}()
+
 	mgr, err := autopaho.NewConnection(ctx, autopaho.ClientConfig{
 		ServerUrls:                    []*url.URL{brokerURL},
 		TlsCfg:                        c.cfg.TLSConfig,
@@ -209,6 +396,20 @@ func (c *Connector) Run(ctx context.Context) {
 		ConnectRetryDelay:             5 * time.Second,
 		ConnectUsername:               c.cfg.Username,
 		ConnectPassword:               c.cfg.Password,
+		// Advertise an explicit Receive Maximum so the broker throttles itself to
+		// our unacked window instead of queueing (and then dropping) messages we
+		// never see (#117). autopaho only allocates Properties when a session
+		// expiry is configured, so cover the nil case.
+		ConnectPacketBuilder: func(cp *paho.Connect, _ *url.URL) (*paho.Connect, error) {
+			receiveMaximum := c.receiveMaximum()
+			if cp.Properties == nil {
+				// RequestProblemInfo defaults to 1 on the wire; a zero-value
+				// struct would silently switch broker reason strings off.
+				cp.Properties = &paho.ConnectProperties{RequestProblemInfo: true}
+			}
+			cp.Properties.ReceiveMaximum = &receiveMaximum
+			return cp, nil
+		},
 		OnConnectError: func(err error) {
 			c.connected.Store(false)
 			slog.Warn("mqtt: broker connection failed", "broker", c.cfg.BrokerURL, "err", err)
@@ -238,6 +439,7 @@ func (c *Connector) Run(ctx context.Context) {
 			OnClientError:              func(error) { c.connected.Store(false) },
 			OnPublishReceived: []func(paho.PublishReceived) (bool, error){
 				func(pr paho.PublishReceived) (bool, error) {
+					c.received.Add(1)
 					if _, ignored := ignoredTopics[pr.Packet.Topic]; ignored {
 						_ = pr.Client.Ack(pr.Packet)
 						return true, nil
@@ -280,15 +482,32 @@ func (c *Connector) Run(ctx context.Context) {
 						_ = pr.Client.Ack(pr.Packet)
 						return true, nil
 					}
-					if _, err := c.js.Publish(ctx, subject, data); err != nil {
-						slog.Warn("mqtt: nats publish failed — withholding PUBACK for QoS 1 retry", "err", err)
-						// Do not ack: broker will redeliver when NATS is available again.
+					// Hand the JetStream publish (and the PUBACK that follows it)
+					// to the publisher goroutine. Blocking this callback on the
+					// uplink is what let the broker's outgoing queue overflow and
+					// drop messages before the gateway saw them (#117).
+					client, packet := pr.Client, pr.Packet
+					pending := pendingPublish{
+						data:      data,
+						topic:     packet.Topic,
+						timestamp: decoded.Timestamp,
+						ack:       func() { _ = client.Ack(packet) },
+					}
+					pending.value, pending.hasValue = decoded.Value.Number()
+					// Once the publisher is stopping, hand nothing else to the queue:
+					// select picks randomly among ready cases, so an enqueue here can
+					// land after the flush already drained and strand the frame.
+					if pubCtx.Err() != nil {
+						c.publishDirect(subject, pending)
 						return true, nil
 					}
-					if value, ok := decoded.Value.Number(); ok {
-						c.recordValue(pr.Packet.Topic, value, decoded.Timestamp)
+					select {
+					case queue <- pending:
+					case <-pubCtx.Done():
+						// Queue was full and the publisher stopped while we waited, so
+						// nobody will pick this up — flush it here instead.
+						c.publishDirect(subject, pending)
 					}
-					_ = pr.Client.Ack(pr.Packet)
 					return true, nil
 				},
 			},
@@ -311,6 +530,13 @@ func (c *Connector) maxPayloadBytes() uint64 {
 		return 1024
 	}
 	return c.cfg.MaxPayloadBytes
+}
+
+func (c *Connector) receiveMaximum() uint16 {
+	if c.cfg.ReceiveMaximum == 0 {
+		return defaultReceiveMaximum
+	}
+	return c.cfg.ReceiveMaximum
 }
 
 func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionManager, topicMap map[string]PointConfig, msg *nats.Msg) {

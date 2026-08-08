@@ -1,0 +1,70 @@
+# Overlay for long-running / resource-evaluation runs (soak, load, memory-trend).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.soak.yml up -d --build
+#
+# WHY THIS EXISTS
+#
+# The base stack starts five services unconditionally, and `gateway` waits on
+# `keycloak: service_healthy` before it even boots. That is deliberate for dev
+# (see the comment in docker-compose.yml) but ruinous for resource evaluation:
+# during the 24h THX run three Keycloak instances across parallel stacks held
+# ~3.0 GiB while host free memory fell to ~2.5 GB of a 6.69 GiB Docker
+# allocation (#121). Memory pressure created by services the run never touches
+# is indistinguishable, in the resulting graphs, from a leak in the gateway.
+#
+# So this overlay removes from the run everything the gateway does not talk to:
+#
+#   keycloak  — the gateway advertises no KEYCLOAK_* vars by default, so no
+#               token is ever validated. Purely a standby for the commented-out
+#               auth config in the base file.
+#   admin-ui  — a browser console. Nothing depends on it, and an unattended run
+#               has no browser.
+#
+# WHAT STAYS, AND WHY THE DISTINCTION MATTERS FOR THE REPORT
+#
+#   gateway               System Under Test
+#   <managed connectors>  System Under Test (started by the gateway at runtime)
+#   nats                  dependency — in the measurement boundary; its RSS
+#                         tracks JetStream retention, so it must be reported,
+#                         not silently folded into "the gateway's memory"
+#   mock-bos              dependency, and only when BOS is mocked. Layer
+#                         docker-compose.live-bos.yml to point at a real
+#                         Building OS; that overlay now also stops mock-bos
+#                         rather than leaving it idle.
+#
+# scripts/soak-record.sh applies exactly this classification to every sample.
+#
+# NO MEMORY LIMITS ARE SET, DELIBERATELY. `mem_limit` would make the run
+# tidier but changes the thing being measured: a capped container reclaims and
+# OOM-kills at the cap instead of showing its natural working set, which is the
+# question #297 is asking. Add limits only when the goal has changed to
+# "does it survive under a cap".
+
+services:
+  keycloak:
+    profiles:
+      - disabled # never matched by default → service does not start
+
+  admin-ui:
+    profiles:
+      - disabled
+
+  gateway:
+    # `depends_on` merges by key across compose files (it is a mapping, not a
+    # replaced list), so without `!override` this keeps the base file's
+    # `keycloak:` entry and `up` fails with "depends on undefined service"
+    # once the profile above deactivates it. `!reset` discards the replacement
+    # too, leaving no depends_on at all — same trap documented in
+    # docker-compose.external-keycloak.yml.
+    depends_on: !override
+      nats:
+        condition: service_healthy
+      mock-bos:
+        condition: service_healthy
+        # `required: false` so this overlay composes with
+        # docker-compose.live-bos.yml in either order: that overlay disables
+        # mock-bos, and whichever `!override` is applied last wins. Without it,
+        # `-f live-bos.yml -f soak.yml` would reinstate a hard dependency on a
+        # service the other overlay just deactivated. Same mechanism the
+        # integration overlay uses for its profile-gated simulators.
+        required: false
