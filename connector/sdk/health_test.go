@@ -43,7 +43,7 @@ func TestHealthHandler_OkWhenReady(t *testing.T) {
 // change the live /health response, and Shutdown must stop it.
 func TestHealthServer_ReflectsProbe(t *testing.T) {
 	ready := false
-	srv := sdk.StartHealthServer("127.0.0.1:0", func() bool { return ready })
+	srv := sdk.StartHealthServer("127.0.0.1:0", func() bool { return ready }, nil)
 	if srv == nil {
 		t.Fatal("StartHealthServer returned nil")
 	}

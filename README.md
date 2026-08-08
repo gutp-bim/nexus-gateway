@@ -195,7 +195,7 @@ NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 | `--connector-map` | `CONNECTOR_MAP` | – | Comma-separated `protocol:connectorID` pairs, shared by the file and HTTP provisioning paths (e.g. `bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01`); falls back to `--provisioning-connector-id` for any protocol with no entry |
 | `--point-sync-interval` | – | `10m` | Point List poll interval after initial sync |
 | `--sf-db` | `SF_DB` | `data/storeforward.db` | Store-and-Forward SQLite database path |
-| `--sf-cap` | `SF_CAP` | `100000` | Store-and-Forward ring buffer capacity (frames); must be positive (rejected at startup otherwise) |
+| `--sf-cap` | `SF_CAP` | `100000` | Store-and-Forward ring buffer capacity (frames); must be positive (rejected at startup otherwise). A buffer sitting at capacity evicts its oldest row on every write, so read **`storefwd_lost_unsent_total`** for actual delivery loss — `storefwd_dropped_total` is that plus `storefwd_evicted_sent_total`, the harmless retention expiry of rows Building OS already acked |
 | `--bos-insecure` | `BOS_INSECURE` | `false` | Plaintext h2c to Building OS — dev/CI only (ADR-0007) |
 | `--bos-ca` | `BOS_CA_FILE` | – | PEM CA bundle to verify the Building OS server cert |
 | `--bos-cert` | `BOS_CERT_FILE` | – | Client certificate for mTLS to Building OS |

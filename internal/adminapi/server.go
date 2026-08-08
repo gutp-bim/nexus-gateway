@@ -61,6 +61,11 @@ type TelemetrySource interface {
 	Sent() int64
 	Accepted() int64
 	Dropped() int64
+	// EvictedSent and LostUnsent split Dropped at the buffer cursor (#116):
+	// retention expiry of already-acked rows versus un-forwarded frames the
+	// gateway will never deliver. Dropped remains their sum.
+	EvictedSent() int64
+	LostUnsent() int64
 	WriteErrors() int64
 	Capacity() int
 	Checkpoints() int64
@@ -564,9 +569,19 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "# HELP storefwd_sent_total Frames sent up to Building OS.\n")
 		fmt.Fprintf(w, "# TYPE storefwd_sent_total counter\n")
 		fmt.Fprintf(w, "storefwd_sent_total %d\n", t.Sent())
-		fmt.Fprintf(w, "# HELP storefwd_dropped_total Frames evicted by drop-oldest at capacity (ADR-0002).\n")
+		// Read the split once and derive the total from it. Sampling Dropped()
+		// separately would let a concurrent write land between the reads and emit a
+		// scrape whose total does not equal its two parts, contradicting the HELP.
+		evictedSent, lostUnsent := t.EvictedSent(), t.LostUnsent()
+		fmt.Fprintf(w, "# HELP storefwd_dropped_total Frames evicted by drop-oldest at capacity (ADR-0002); the sum of storefwd_evicted_sent_total and storefwd_lost_unsent_total.\n")
 		fmt.Fprintf(w, "# TYPE storefwd_dropped_total counter\n")
-		fmt.Fprintf(w, "storefwd_dropped_total %d\n", t.Dropped())
+		fmt.Fprintf(w, "storefwd_dropped_total %d\n", evictedSent+lostUnsent)
+		fmt.Fprintf(w, "# HELP storefwd_evicted_sent_total Already-acked frames evicted at capacity (retention expiry, not delivery loss).\n")
+		fmt.Fprintf(w, "# TYPE storefwd_evicted_sent_total counter\n")
+		fmt.Fprintf(w, "storefwd_evicted_sent_total %d\n", evictedSent)
+		fmt.Fprintf(w, "# HELP storefwd_lost_unsent_total Un-forwarded frames evicted at capacity — telemetry the gateway will never deliver (real loss).\n")
+		fmt.Fprintf(w, "# TYPE storefwd_lost_unsent_total counter\n")
+		fmt.Fprintf(w, "storefwd_lost_unsent_total %d\n", lostUnsent)
 		fmt.Fprintf(w, "# HELP storefwd_write_error_total Buffer write attempts that failed to persist (full disk / SQLite error); a frame under persistent failure counts once per redelivery. Distinct from capacity drops.\n")
 		fmt.Fprintf(w, "# TYPE storefwd_write_error_total counter\n")
 		fmt.Fprintf(w, "storefwd_write_error_total %d\n", t.WriteErrors())

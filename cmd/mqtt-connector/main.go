@@ -38,7 +38,12 @@ type subscriptionEnv struct {
 	QoS    byte   `json:"qos"`
 }
 
-const defaultMaxPayloadBytes uint64 = 1024
+const (
+	defaultMaxPayloadBytes uint64 = 1024
+	// defaultReceiveMaximum mirrors the connector package default; it is repeated
+	// here only so the env fallback is visible next to the other MQTT_* defaults.
+	defaultReceiveMaximum uint64 = 1024
+)
 
 func main() {
 	// Register signal handler before starting goroutines so a SIGTERM that
@@ -65,6 +70,12 @@ func main() {
 		os.Exit(1)
 	}
 	keepAlive := uint16(keepAliveRaw)
+	receiveMaximumRaw := envUint("MQTT_RECEIVE_MAXIMUM", defaultReceiveMaximum)
+	if receiveMaximumRaw == 0 || receiveMaximumRaw > math.MaxUint16 {
+		slog.Error("MQTT_RECEIVE_MAXIMUM must be between 1 and 65535", "value", receiveMaximumRaw)
+		os.Exit(1)
+	}
+	receiveMaximum := uint16(receiveMaximumRaw)
 	sessionExpiry := uint32(envUint("MQTT_SESSION_EXPIRY", 0))
 	freshness, err := parseDurationDefault("MQTT_FRESHNESS_INTERVAL", 60*time.Second)
 	if err != nil {
@@ -163,6 +174,7 @@ func main() {
 		IgnoreTopics:      ignoreTopics,
 		Points:            points,
 		FreshnessInterval: freshness,
+		ReceiveMaximum:    receiveMaximum,
 	}
 
 	ctx, cancel := context.WithCancel(sigCtx)
@@ -170,7 +182,7 @@ func main() {
 
 	connector := mqttconn.New(cfg, nc, js)
 	healthAddr := ":" + envOrDefault("HEALTH_PORT", "8080")
-	health := sdk.StartHealthServer(healthAddr, connector.Healthy)
+	health := sdk.StartHealthServer(healthAddr, connector.Healthy, connector.Metrics)
 
 	if err := sdk.AwaitStream(ctx, js, "EVENTS", 5*time.Second); err != nil {
 		slog.Info("mqtt-connector: shutting down before the EVENTS stream was ready")
@@ -200,9 +212,9 @@ func main() {
 	}
 
 	// Cancel the context first so autopaho disconnects cleanly and the Run
-	// goroutine drains any in-flight PUBACK acknowledgements.  Only then close
-	// the NATS connection — closing it before Run returns would cut off
-	// pending JetStream publishes and trigger broker redeliver (double-count).
+	// goroutine flushes the messages still queued for JetStream.  Only then close
+	// the NATS connection — closing it before Run returns would cut off that
+	// flush, and with MQTT_SESSION_EXPIRY=0 the broker would not redeliver.
 	cancel()
 	<-done
 	nc.Close()
