@@ -9,19 +9,42 @@
 # falls back to the ingress address and Control Commands never connect
 # (nexus-gateway's own resolveBOSAddr() fallback in cmd/gateway/main.go).
 #
-# `mock-bos` still starts alongside this overlay (Compose has no way to drop a
-# base-file service from an override file — depends_on entries can only be
-# added to or replaced, not removed) but sits idle: `gateway` no longer talks
-# to it once BOS_INGRESS_ADDR/BOS_EGRESS_ADDR below are set. This is harmless —
-# no port collision — so there is nothing further to do about it.
+# `mock-bos` no longer starts alongside this overlay. An earlier version of this
+# comment said Compose had no way to drop a base-file service from an override
+# file. It does: assigning an unmatched profile deactivates the service, which
+# is how docker-compose.external-keycloak.yml already retires the bundled
+# Keycloak. Leaving it running was defensible while it merely sat idle, but an
+# idle process still occupies the host's memory ledger — exactly the
+# out-of-scope consumption that made the 24h resource evaluation hard to read
+# (#121). `gateway` stops talking to it the moment BOS_INGRESS_ADDR /
+# BOS_EGRESS_ADDR below are set, so nothing is lost by not starting it.
 #
 # `host.docker.internal` resolves to the host machine from inside a container.
 # Docker Desktop (Mac/Windows) provides this automatically; on Linux Docker
 # Engine it needs the extra_hosts mapping below (supported since 20.10).
 services:
+  mock-bos:
+    profiles:
+      - disabled # never matched by default → service does not start
+
   gateway:
     environment:
       - BOS_INGRESS_ADDR=host.docker.internal:5051
       - BOS_EGRESS_ADDR=host.docker.internal:5052
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Required because of the profile above: `depends_on` merges by key across
+    # compose files, so the base file's `mock-bos: service_healthy` would
+    # otherwise survive and `up` would fail with "depends on undefined
+    # service". (`!reset` drops the replacement too — see the note in
+    # docker-compose.external-keycloak.yml.)
+    #
+    # `keycloak` is kept but marked `required: false` so this overlay composes
+    # with docker-compose.soak.yml in either order — that overlay deactivates
+    # Keycloak, and whichever `!override` is applied last wins.
+    depends_on: !override
+      nats:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+        required: false
