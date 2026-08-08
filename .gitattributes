@@ -1,0 +1,43 @@
+# Line endings (#125).
+#
+# Without this file, the working-tree line endings of every text file depend on
+# each developer's `core.autocrlf`. On Windows that defaults to converting to
+# CRLF, which breaks things that are invisible on Linux and in CI:
+#
+#   - anything that parses a file line-wise and compares exactly (the compose
+#     healthcheck contract test read "  gateway:\r" and reported the service as
+#     missing — #120/#123)
+#   - shell scripts and Dockerfiles, which fail inside a Linux container with a
+#     bare `bad interpreter` when they carry CRLF
+#   - the shell one-liners embedded in docker-compose healthchecks
+#
+# CI runs on Linux only, so none of it is caught before it reaches a Windows
+# developer.
+#
+# `text=auto` lets git detect text vs binary; `eol=lf` pins the working-tree
+# ending for everything it decides is text. No binary files are tracked today —
+# the entries below are declared anyway so adding one later cannot be corrupted
+# by normalization.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+
+# The scale fixtures are GENERATED with CRLF on purpose: fixtures/scale/gen_fixtures.py
+# writes them through Python's csv module, whose default line terminator is CRLF
+# (RFC 4180). Marking them `-text` opts them out of normalization entirely, so the
+# committed bytes stay exactly what the generator produces.
+#
+# The alternative — normalizing them to LF — would rewrite all 12 files and then
+# lose to the generator the next time someone regenerates them. Their line endings
+# are already identical on every platform because they are excluded here, which is
+# the property this file exists to guarantee.
+# NB: `fixtures/scale/*.csv` would NOT match — a gitattributes `*` does not cross a
+# directory separator, and these live one level deeper (fixtures/scale/<n>/…).
+fixtures/scale/**/*.csv -text
