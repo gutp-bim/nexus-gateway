@@ -31,3 +31,25 @@ func String() string {
 	}
 	return "0.0.0"
 }
+
+// Revision is the VCS commit the binary was built from, or "" when Go embedded
+// none (a non-VCS tree, or -buildvcs=false).
+//
+// Version alone cannot identify a running image: it is a hand-maintained semver
+// that stays "0.1.0" across many commits, so a container built from a stale
+// layer reports exactly the same value as a current one. That is how a 24h soak
+// ran for 12+ hours against an image predating the /health/live route while the
+// compose healthcheck already required it (#120) — nothing the running process
+// exposed could reveal the drift. The revision makes it observable.
+func Revision() string {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	for _, s := range bi.Settings {
+		if s.Key == "vcs.revision" {
+			return s.Value
+		}
+	}
+	return ""
+}

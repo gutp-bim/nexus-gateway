@@ -668,7 +668,10 @@ func TestMetrics_IncludesBuildInfo(t *testing.T) {
 	body := string(b)
 
 	assert.Contains(t, body, "# TYPE gateway_build_info gauge")
-	assert.Contains(t, body, "gateway_build_info{version=\""+version.String()+"\"} 1")
+	// revision joins version as a label so a running container identifies its build,
+	// not just its hand-maintained semver (#120). Empty for a non-VCS build.
+	assert.Contains(t, body,
+		"gateway_build_info{version=\""+version.String()+"\",revision=\""+version.Revision()+"\"} 1")
 }
 
 // /metrics must still work (and omit storefwd_*) when no TelemetrySource is wired.

@@ -381,7 +381,15 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 // {"status":"ok"} at HTTP 200, so the container healthcheck never restarts a
 // degraded-but-serving gateway (#45).
 func (s *Server) handleLive(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, map[string]string{"status": "ok"})
+	// version/revision ride along so the endpoint the container healthcheck already
+	// polls also answers "which build is this?" — the drift in #120 was invisible
+	// precisely because nothing on the liveness path identified the image. Purely
+	// additive: the healthcheck matches on "status":"ok".
+	live := map[string]string{"status": "ok", "version": version.String()}
+	if rev := version.Revision(); rev != "" {
+		live["revision"] = rev
+	}
+	writeJSON(w, live)
 }
 
 // capabilitiesResponse advertises server-side feature switches the Admin UI must
@@ -518,9 +526,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "# HELP gateway_build_info Gateway build information; value is always 1, version carried as a label.\n")
+	fmt.Fprintf(w, "# HELP gateway_build_info Gateway build information; value is always 1, version and VCS revision carried as labels.\n")
 	fmt.Fprintf(w, "# TYPE gateway_build_info gauge\n")
-	fmt.Fprintf(w, "gateway_build_info{version=%q} 1\n", version.String())
+	fmt.Fprintf(w, "gateway_build_info{version=%q,revision=%q} 1\n", version.String(), version.Revision())
 	fmt.Fprintf(w, "gateway_uptime_seconds %g\n", h.UptimeSeconds)
 	fmt.Fprintf(w, "gateway_goroutines %d\n", h.GoRoutines)
 	fmt.Fprintf(w, "gateway_mem_alloc_mb %g\n", h.MemAllocMB)
