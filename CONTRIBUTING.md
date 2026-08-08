@@ -60,6 +60,24 @@ make test         # go test ./...    (use `go test -race ./...` locally)
 `buf` is expected at `$(HOME)/go/bin/buf` (override with `BUF=...`); install with
 `go install github.com/bufbuild/buf/cmd/buf@latest`.
 
+### Line endings
+
+`.gitattributes` pins text files to LF in the working tree, so your `core.autocrlf`
+setting no longer decides them. This matters most on Windows, where the default
+would otherwise give you CRLF and break things that are invisible on Linux and in
+CI — shell scripts and Dockerfiles inside Linux containers, the shell one-liners in
+compose healthchecks, and any test that parses a file line-wise (#120, #125).
+
+If you cloned before this landed, refresh your working tree once:
+
+```bash
+git add --renormalize .   # should report nothing to commit
+```
+
+The generated CSV fixtures under `fixtures/scale/` are deliberately exempt: they are
+written with CRLF by `gen_fixtures.py` (Python's `csv` module follows RFC 4180) and
+are excluded from normalization so their committed bytes stay stable.
+
 ---
 
 ## Tests
