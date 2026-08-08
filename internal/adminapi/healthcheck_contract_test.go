@@ -67,6 +67,28 @@ func TestHealthcheckContract_LivenessIdentifiesTheBuild(t *testing.T) {
 	// git metadata), so only its presence-when-set is contractual.
 }
 
+// A Windows checkout with core.autocrlf=true is a normal checkout, not an exotic one,
+// and it made this test fail with a message that blamed the compose file. Parsing must
+// not depend on the operating system's line-ending convention.
+//
+// The expectation is derived from parsing the real file rather than hardcoded, so the
+// two paths cannot drift apart when the compose healthcheck changes.
+func TestHealthcheckContract_ParsesCRLFCompose(t *testing.T) {
+	raw, err := os.ReadFile("../../docker-compose.yml")
+	require.NoError(t, err)
+
+	wantPath, wantMatcher := parseHealthcheckProbe(t, string(raw))
+
+	crlf := strings.ReplaceAll(normalizeNewlines(string(raw)), "\n", "\r\n")
+	require.Contains(t, crlf, "\r\n", "the fixture must actually use CRLF or this proves nothing")
+
+	gotPath, gotMatcher := parseHealthcheckProbe(t, crlf)
+
+	assert.Equal(t, wantPath, gotPath, "CRLF checkout must yield the same probe path")
+	assert.Equal(t, wantMatcher, gotMatcher)
+	assert.NotContains(t, gotPath, "\r", "the probe path must not carry a stray carriage return")
+}
+
 // composeHealthcheckProbe extracts the URL path the *gateway* service's
 // healthcheck polls, plus the literal it greps for, from docker-compose.yml.
 //
@@ -79,10 +101,32 @@ func composeHealthcheckProbe(t *testing.T) (path, matcher string) {
 	raw, err := os.ReadFile("../../docker-compose.yml")
 	require.NoError(t, err, "docker-compose.yml must be readable to verify the healthcheck contract")
 
+	return parseHealthcheckProbe(t, string(raw))
+}
+
+// normalizeNewlines makes line-wise parsing independent of the checkout's line-ending
+// convention. Without it, a Windows checkout with core.autocrlf=true (the Git for
+// Windows default) yields "  gateway:\r", which no exact line comparison below matches
+// — the contract test would fail on the developer's machine while passing in CI, and
+// the message ("service \"gateway\" not found") points at the compose file rather than
+// at the line endings. The repository has no .gitattributes forcing LF, so this cannot
+// be assumed away.
+func normalizeNewlines(s string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n")
+}
+
+// parseHealthcheckProbe is the parsing half, split out from the file read so it can be
+// exercised against synthetic input (see the CRLF regression test).
+func parseHealthcheckProbe(t *testing.T, compose string) (path, matcher string) {
+	t.Helper()
+
+	// Normalize before any line splitting — every comparison below is exact.
+	compose = normalizeNewlines(compose)
+
 	// Narrow twice: to the gateway service, then to its healthcheck. The service
 	// block also carries env vars with URLs (the Keycloak issuer), so the probe has
 	// to come from the healthcheck itself.
-	block := nestedBlock(t, serviceBlock(t, string(raw), "gateway"), "    healthcheck:")
+	block := nestedBlock(t, serviceBlock(t, compose, "gateway"), "    healthcheck:")
 
 	// The healthcheck is a shell one-liner, e.g.
 	//   wget -qO- http://localhost:8080/health/live | grep -q '"status":"ok"'
