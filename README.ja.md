@@ -187,7 +187,7 @@ NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 | `--connector-map` | `CONNECTOR_MAP` | – | `protocol:connectorID` のカンマ区切りペア。file/HTTP 両方の provisioning 経路で共通利用(例: `bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01`)。エントリのないプロトコルは `--provisioning-connector-id` にフォールバック |
 | `--point-sync-interval` | – | `10m` | 初回同期後の Point List ポーリング間隔 |
 | `--sf-db` | `SF_DB` | `data/storeforward.db` | Store-and-Forward の SQLite データベースパス |
-| `--sf-cap` | `SF_CAP` | `100000` | Store-and-Forward リングバッファ容量(フレーム数)。正の値必須(それ以外は起動時に拒否) |
+| `--sf-cap` | `SF_CAP` | `100000` | Store-and-Forward リングバッファ容量(フレーム数)。正の値必須(それ以外は起動時に拒否)。容量に達したバッファは書き込みのたびに最古の行を追い出すため、実際の配送損失は **`storefwd_lost_unsent_total`** を参照する — `storefwd_dropped_total` はそれに加えて、Building OS が ack 済みの行が保持期限切れで消えた無害な分(`storefwd_evicted_sent_total`)も含む合計値 |
 | `--bos-insecure` | `BOS_INSECURE` | `false` | Building OS へ平文 h2c — dev/CI のみ(ADR-0007) |
 | `--bos-ca` | `BOS_CA_FILE` | – | Building OS サーバ証明書を検証する PEM CA バンドル |
 | `--bos-cert` | `BOS_CERT_FILE` | – | Building OS への mTLS 用クライアント証明書 |

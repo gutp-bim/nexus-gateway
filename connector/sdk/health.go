@@ -32,18 +32,22 @@ func HealthHandler(ready func() bool) http.HandlerFunc {
 	}
 }
 
-// HealthServer is a minimal HTTP server exposing GET /health.
+// HealthServer is a minimal HTTP server exposing GET /health and GET /metrics.
 type HealthServer struct {
 	srv  *http.Server
 	addr string
 }
 
 // StartHealthServer starts a /health server on addr (e.g. ":8080"), reporting
-// the ready probe. A bind failure is logged and returns nil (non-fatal — the
-// connector keeps running without a health surface rather than crashing).
-func StartHealthServer(addr string, ready func() bool) *HealthServer {
+// the ready probe. The connector's Prometheus series ride on the same port as
+// GET /metrics (nil metrics = empty exposition), so a connector needs one port
+// and one liveness surface rather than two. A bind failure is logged and returns
+// nil (non-fatal — the connector keeps running without a health surface rather
+// than crashing).
+func StartHealthServer(addr string, ready func() bool, metrics func() []Metric) *HealthServer {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", HealthHandler(ready))
+	mux.HandleFunc("/metrics", MetricsHandler(metrics))
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -56,7 +60,7 @@ func StartHealthServer(addr string, ready func() bool) *HealthServer {
 			slog.Error("health: server error", "err", err)
 		}
 	}()
-	slog.Info("health: serving /health", "addr", ln.Addr().String())
+	slog.Info("health: serving /health and /metrics", "addr", ln.Addr().String())
 	return &HealthServer{srv: srv, addr: ln.Addr().String()}
 }
 

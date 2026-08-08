@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	mqttconn "nexus-gateway/connector/mqtt"
+	"nexus-gateway/connector/sdk"
 	"nexus-gateway/internal/common"
 )
 
@@ -442,7 +444,118 @@ func TestMQTT_FreshnessFloorRepublishes(t *testing.T) {
 	assert.Equal(t, "sensors/temp", evt2.LocalID)
 }
 
+// TestMQTT_BurstIsNotDropped: a burst larger than a broker's default in-flight
+// window must reach JetStream in full. Before #117 the receive callback published
+// to JetStream inline and withheld PUBACK until it returned, so the broker's send
+// queue overflowed and messages were dropped before the connector ever saw them —
+// invisibly, since the connector had no /metrics surface. received == published
+// with the full event count is the regression guard.
+func TestMQTT_BurstIsNotDropped(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+
+	const burst = 500
+	topic := "sensors/burst"
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID:   "mqtt-burst",
+		BrokerURL:     "mqtt://" + brokerAddr,
+		ClientID:      "nexus-gw-burst",
+		KeepAlive:     30,
+		SessionExpiry: 60,
+		Points:        []mqttconn.PointConfig{{Topic: topic, DeviceRef: "dev:ahu-01", Unit: "Cel"}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+
+	publishMQTTBurst(t, brokerAddr, topic, burst)
+
+	values := consumeEvents(t, ctx, js, "evt.mqtt.mqtt-burst", burst)
+	require.Len(t, values, burst, "every published message must reach JetStream")
+	for i := range burst {
+		assert.InDelta(t, float64(i), values[i], 0.001, "event %d", i)
+	}
+
+	// The counters must agree: nothing was received and then silently discarded.
+	require.Eventually(t, func() bool {
+		return metricValue(t, conn.Metrics(), "mqtt_published_total") == int64(burst)
+	}, 10*time.Second, 50*time.Millisecond)
+	assert.Equal(t, int64(burst), metricValue(t, conn.Metrics(), "mqtt_received_total"))
+	assert.Zero(t, metricValue(t, conn.Metrics(), "mqtt_publish_error_total"))
+}
+
+// A graceful shutdown must flush the hand-off queue rather than leave it to QoS 1
+// redelivery: with the shipped default MQTT_SESSION_EXPIRY=0 the session ends at
+// disconnect, so the broker discards its unacked state and anything still queued
+// would be lost outright.
+func TestMQTT_ShutdownFlushesQueuedPublishes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+
+	const burst = 500
+	topic := "sensors/shutdown"
+	connCtx, stopConn := context.WithCancel(ctx)
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID:   "mqtt-shutdown",
+		BrokerURL:     "mqtt://" + brokerAddr,
+		ClientID:      "nexus-gw-shutdown",
+		KeepAlive:     30,
+		SessionExpiry: 0, // shipped default: nothing is redelivered after disconnect
+		Points:        []mqttconn.PointConfig{{Topic: topic, DeviceRef: "dev:ahu-01", Unit: "Cel"}},
+	}, nc, js)
+	runDone := make(chan struct{})
+	go func() {
+		defer close(runDone)
+		conn.Run(connCtx)
+	}()
+	require.NoError(t, conn.AwaitReady(connCtx))
+
+	publishMQTTBurst(t, brokerAddr, topic, burst)
+
+	// Wait until every frame has been taken off the wire, so the whole burst is
+	// in-process (queued or published) when we stop. Frames the broker has
+	// accepted but not yet delivered are a session-expiry concern, not something
+	// the connector can flush.
+	require.Eventually(t, func() bool {
+		return metricValue(t, conn.Metrics(), "mqtt_received_total") == int64(burst)
+	}, 20*time.Second, 20*time.Millisecond)
+
+	// Stop while the publisher is still working through the queue — that backlog
+	// is exactly what the shutdown flush has to rescue.
+	stopConn()
+	<-runDone
+
+	// The invariant: every received frame is accounted for — published, or counted
+	// as an error — never silently discarded. (Plain published==received would be
+	// confounded by runFreshnessFloor, which republishes last known values on its
+	// own without touching these counters.) A receive callback can still be
+	// finishing its flush when Run returns — autopaho owns that goroutine — so
+	// settle rather than sampling the instant Run comes back.
+	assert.Eventually(t, func() bool {
+		m := conn.Metrics()
+		return metricValue(t, m, "mqtt_published_total")+metricValue(t, m, "mqtt_publish_error_total") == int64(burst)
+	}, 5*time.Second, 20*time.Millisecond, "received frames must not be silently dropped at shutdown")
+	assert.Equal(t, int64(burst), metricValue(t, conn.Metrics(), "mqtt_published_total"),
+		"the shutdown flush should publish them, not fail them")
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+func metricValue(t *testing.T, metrics []sdk.Metric, name string) int64 {
+	t.Helper()
+	for _, m := range metrics {
+		if m.Name == name {
+			return m.Value
+		}
+	}
+	t.Fatalf("metric %s not exposed", name)
+	return 0
+}
 
 func startBroker(t *testing.T) string {
 	t.Helper()
@@ -496,6 +609,30 @@ func startNATS(t *testing.T) (*nats.Conn, jetstream.JetStream) {
 	require.NoError(t, err)
 
 	return nc, js
+}
+
+// publishMQTTBurst sends n QoS 1 messages back-to-back over a single connection,
+// each carrying its index as the payload so a gap in the delivered sequence is
+// visible. Keep n below the connector's advertised Receive Maximum: mochi parks
+// packets that exceed a client's receive quota and only resends them on the next
+// connection, which would stall the test for a broker-side reason of its own.
+func publishMQTTBurst(t *testing.T, brokerAddr, topic string, n int) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	c, err := dialPaho(ctx, brokerAddr, fmt.Sprintf("test-burst-%d", time.Now().UnixNano()))
+	require.NoError(t, err)
+	defer c.Disconnect(&pahoClient.Disconnect{})
+
+	for i := range n {
+		_, err := c.Publish(ctx, &pahoClient.Publish{
+			Topic:   topic,
+			QoS:     1,
+			Payload: []byte(strconv.Itoa(i)),
+		})
+		require.NoError(t, err, "publish %d", i)
+	}
 }
 
 func publishMQTT(t *testing.T, brokerAddr, topic string, payload []byte) {
@@ -594,6 +731,38 @@ func consumeOneEvent(t *testing.T, ctx context.Context, js jetstream.JetStream, 
 	}
 	t.Fatal("no event received within timeout")
 	return evt
+}
+
+// consumeEvents drains want events from subject and returns their numeric values
+// in arrival order. It stops early if a fetch window passes with no progress, so
+// a shortfall surfaces as a length mismatch rather than a test-wide timeout.
+func consumeEvents(t *testing.T, ctx context.Context, js jetstream.JetStream, subject string, want int) []float64 {
+	t.Helper()
+	cons, err := js.CreateOrUpdateConsumer(ctx, "EVENTS", jetstream.ConsumerConfig{
+		Durable:       "burst-" + strings.ReplaceAll(subject, ".", "-"),
+		FilterSubject: subject,
+		AckPolicy:     jetstream.AckExplicitPolicy,
+	})
+	require.NoError(t, err)
+
+	values := make([]float64, 0, want)
+	for len(values) < want {
+		msgs, err := cons.Fetch(want-len(values), jetstream.FetchMaxWait(5*time.Second))
+		require.NoError(t, err)
+		fetched := 0
+		for msg := range msgs.Messages() {
+			var evt common.Event
+			require.NoError(t, json.Unmarshal(msg.Data(), &evt))
+			values = append(values, eventNumber(t, evt))
+			_ = msg.Ack()
+			fetched++
+		}
+		require.NoError(t, msgs.Error())
+		if fetched == 0 {
+			break
+		}
+	}
+	return values
 }
 
 func assertNoEvent(t *testing.T, ctx context.Context, js jetstream.JetStream, subject string) {
