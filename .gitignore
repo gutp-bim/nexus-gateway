@@ -17,6 +17,9 @@ connector/bacnet/**/*.pyc
 # compiled gateway binary
 /gateway
 
+# Soak / resource-evaluation output (scripts/soak-*.sh, `make soak-record`)
+/reports/
+
 # Claude Code local config (memory, worktrees, settings)
 .claude/
 /.tmp-go-cache/
