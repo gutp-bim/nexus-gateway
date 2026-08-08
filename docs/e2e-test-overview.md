@@ -134,6 +134,28 @@ E2E_BOS_INGRESS_URL=localhost:5051 E2E_BOS_API_URL=http://localhost:5000 \
 
 ---
 
+## Layer 4 — Soak / resource evaluation (opt-in, hours to days)
+
+Not a pass/fail test: a measurement of memory, restarts and OOM behaviour over
+hours or days. It needs a *different stack* from the layers above — the base
+compose starts Keycloak and the Admin UI whether or not a run touches them, and
+their memory lands in the same table as the gateway's, which is what made the
+24h THX run's growth impossible to adjudicate (#121).
+
+```bash
+make soak-up                                          # only nats + mock-bos + gateway
+make soak-preflight                                   # gate on host memory/disk, pin the build
+make soak-record SOAK_DURATION=259200 SOAK_INTERVAL=60
+make soak-down
+```
+
+Full procedure, the SUT / dependency / out-of-scope classification, and what
+lands in the report: **[`docs/soak-testing.md`](soak-testing.md)**.
+
+`make compose-check` validates the overlay combinations these targets rely on.
+
+---
+
 ## Environment variable reference
 
 | Env var | Example | Used by |

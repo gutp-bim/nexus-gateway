@@ -24,6 +24,23 @@ jobs:
       - name: Test
         run: go test -race ./...
 
+  compose:
+    name: Compose overlay validation
+    runs-on: ubuntu-latest
+    # The soak and live-BOS overlays deactivate services via unmatched profiles,
+    # so every `depends_on` pointing at one must be neutralised with `!override`
+    # or `required: false` — otherwise `up` dies with "depends on undefined
+    # service". Only Compose's own resolver can confirm that still holds, and it
+    # needs no images or daemon-side work, so it is cheap on every PR.
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate every supported file combination
+        run: make compose-check
+      - name: Syntax-check the soak scripts
+        run: |
+          bash -n scripts/soak-preflight.sh
+          bash -n scripts/soak-record.sh
+
   e2e-opcua:
     name: E2E — OPC-UA telemetry (#39)
     # Requires the sibling opcua-sim-gateway repo and a docker-compose stack;
