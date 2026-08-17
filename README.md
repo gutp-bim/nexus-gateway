@@ -327,6 +327,10 @@ go run ./cmd/gateway
   them unset keeps ordinary HTTPS verified against the system roots; it never
   disables verification. A certificate without its key (or vice versa) is
   rejected at startup rather than silently dropped (#135).
+- Setting any `PROVISIONING_*` TLS variable **requires `PROVISIONING_URL` to be
+  `https://`**. The gateway refuses to start otherwise: against an `http://`
+  endpoint the credentials would go unused and the point list would travel in
+  clear while the configuration still read as protected.
 - The cert CN ↔ `gateway_id` binding is what Building OS's ownership check
   assumes. The gateway sends **no** `X-Gateway-Id` header itself — the Traefik
   edge supplies it from the cert. See [SECURITY.md](SECURITY.md) and
