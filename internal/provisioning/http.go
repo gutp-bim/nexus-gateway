@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"nexus-gateway/internal/pointlist"
+	"nexus-gateway/internal/transport"
 )
 
 // HTTPClient implements Client against the real Building OS provisioning API (#224).
@@ -26,15 +27,63 @@ type HTTPClient struct {
 	http         *http.Client
 }
 
+// TLSOptions configures transport security for the provisioning link (#135).
+//
+// The zero value keeps the historical behaviour: plain HTTP works, and ordinary
+// HTTPS is verified against the host's system roots. Options are named for this
+// channel rather than inherited from the gRPC link's BOS_* settings — the two
+// can terminate at different edges, and an implicit inheritance would let one
+// channel silently acquire credentials the operator only meant for the other.
+type TLSOptions struct {
+	// CAFile is a PEM bundle used to verify the server certificate.
+	// Empty keeps the system roots.
+	CAFile string
+	// CertFile and KeyFile are the client key pair presented for mTLS.
+	// Both must be set together, or neither.
+	CertFile string
+	KeyFile  string
+	// ServerName overrides the name checked against the server certificate,
+	// for dialling by IP or through an edge proxy.
+	ServerName string
+}
+
+func (o TLSOptions) configured() bool {
+	return o.CAFile != "" || o.CertFile != "" || o.KeyFile != "" || o.ServerName != ""
+}
+
 // NewHTTPClient creates an HTTPClient.
 // connectorMap maps protocol names (e.g. "bacnet") to connector IDs (e.g. "bacnet-01").
-func NewHTTPClient(baseURL, gatewayID string, connectorMap map[string]string) *HTTPClient {
+//
+// It returns an error when tlsOpts is inconsistent or its files cannot be read,
+// so a misconfigured gateway fails at startup instead of surfacing later as an
+// opaque 403 from the Building OS edge.
+func NewHTTPClient(baseURL, gatewayID string, connectorMap map[string]string, tlsOpts TLSOptions) (*HTTPClient, error) {
+	httpClient := &http.Client{}
+
+	// Only install a custom transport when something was actually configured, so
+	// the default path keeps http.DefaultTransport's connection pooling and proxy
+	// behaviour untouched.
+	if tlsOpts.configured() {
+		tlsCfg, err := transport.TLSConfig(transport.Config{
+			CAFile:     tlsOpts.CAFile,
+			CertFile:   tlsOpts.CertFile,
+			KeyFile:    tlsOpts.KeyFile,
+			ServerName: tlsOpts.ServerName,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("provisioning: TLS configuration: %w", err)
+		}
+		tr := http.DefaultTransport.(*http.Transport).Clone()
+		tr.TLSClientConfig = tlsCfg
+		httpClient.Transport = tr
+	}
+
 	return &HTTPClient{
 		baseURL:      baseURL,
 		gatewayID:    gatewayID,
 		connectorMap: connectorMap,
-		http:         &http.Client{},
-	}
+		http:         httpClient,
+	}, nil
 }
 
 // Fetch implements Client. Returns nil on 304 (point list unchanged).
