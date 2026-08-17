@@ -279,7 +279,7 @@ bacnet:<provisioning-connector-id>.`)
 		if err != nil {
 			// Refuse to start rather than poll a Point List endpoint we cannot
 			// authenticate to; the alternative is an endless 403 loop at runtime.
-			slog.Error("provisioning: TLS configuration invalid", "error", err)
+			slog.Error("provisioning: TLS configuration invalid", "err", err)
 			os.Exit(1)
 		}
 		provClient = httpProv
