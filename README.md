@@ -323,7 +323,8 @@ go run ./cmd/gateway
 - **The Point List channel is configured separately** (`PROVISIONING_*`). It
   reaches the same edge in the topology above, but the two links can terminate
   at different proxies, so neither inherits the other's credentials implicitly —
-  set `PROVISIONING_CA_FILE` / `_CERT_FILE` / `_KEY_FILE` explicitly. Leaving
+  set `PROVISIONING_CA_FILE`, `PROVISIONING_CERT_FILE` and
+  `PROVISIONING_KEY_FILE` explicitly. Leaving
   them unset keeps ordinary HTTPS verified against the system roots; it never
   disables verification. A certificate without its key (or vice versa) is
   rejected at startup rather than silently dropped (#135).
