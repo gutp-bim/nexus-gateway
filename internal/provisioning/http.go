@@ -64,6 +64,21 @@ func NewHTTPClient(baseURL, gatewayID string, connectorMap map[string]string, tl
 	// the default path keeps http.DefaultTransport's connection pooling and proxy
 	// behaviour untouched.
 	if tlsOpts.configured() {
+		// TLS settings against a non-HTTPS endpoint are inert: the CA and client
+		// key pair go unused and the point list travels in clear, while the
+		// configuration reads as if the link were protected. An operator who set
+		// these meant to secure the channel, so refuse instead of appearing to.
+		u, err := url.Parse(baseURL)
+		if err != nil {
+			return nil, fmt.Errorf("provisioning: base URL %q is not parseable: %w", baseURL, err)
+		}
+		if u.Scheme != "https" {
+			return nil, fmt.Errorf(
+				"provisioning: TLS options are set but the base URL scheme is %q; "+
+					"use https:// or the TLS settings are ignored and requests are sent in clear",
+				u.Scheme)
+		}
+
 		tlsCfg, err := transport.TLSConfig(transport.Config{
 			CAFile:     tlsOpts.CAFile,
 			CertFile:   tlsOpts.CertFile,
@@ -73,7 +88,16 @@ func NewHTTPClient(baseURL, gatewayID string, connectorMap map[string]string, tl
 		if err != nil {
 			return nil, fmt.Errorf("provisioning: TLS configuration: %w", err)
 		}
-		tr := http.DefaultTransport.(*http.Transport).Clone()
+
+		// http.DefaultTransport is a public var an embedding process may have
+		// replaced; an unchecked assertion would turn that into a startup panic.
+		base, ok := http.DefaultTransport.(*http.Transport)
+		if !ok {
+			return nil, fmt.Errorf(
+				"provisioning: cannot apply TLS settings: http.DefaultTransport is %T, not *http.Transport",
+				http.DefaultTransport)
+		}
+		tr := base.Clone()
 		tr.TLSClientConfig = tlsCfg
 		httpClient.Transport = tr
 	}

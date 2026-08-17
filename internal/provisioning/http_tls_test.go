@@ -183,6 +183,62 @@ func TestHTTPClient_InvalidTLSMaterialErrorsWithoutDisablingVerification(t *test
 	}
 }
 
+func TestHTTPClient_TLSOptionsOnNonHTTPSURL_Rejected(t *testing.T) {
+	dir := t.TempDir()
+	caPath := testca.WritePEM(t, dir, "ca.pem", testca.New(t).CertPEM())
+
+	// Silently ignoring the credentials would send the point list — and the
+	// gateway's identity claim — in clear while looking configured.
+	for name, baseURL := range map[string]string{
+		"plain http": "http://bos.example/provisioning",
+		"no scheme":  "bos.example/provisioning",
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := NewHTTPClient(baseURL, "gw-001", nil, TLSOptions{CAFile: caPath})
+			if err == nil {
+				t.Fatal("expected TLS options on a non-HTTPS URL to be rejected, got nil")
+			}
+			if !strings.Contains(err.Error(), "https") {
+				t.Fatalf("error should point at the scheme, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestHTTPClient_TLSOptionsWithUnparseableURL_Rejected(t *testing.T) {
+	dir := t.TempDir()
+	caPath := testca.WritePEM(t, dir, "ca.pem", testca.New(t).CertPEM())
+
+	if _, err := NewHTTPClient("https://%zz", "gw-001", nil, TLSOptions{CAFile: caPath}); err == nil {
+		t.Fatal("expected an unparseable base URL to be rejected, got nil")
+	}
+}
+
+func TestHTTPClient_TLSWithReplacedDefaultTransport_ErrorsInsteadOfPanicking(t *testing.T) {
+	dir := t.TempDir()
+	caPath := testca.WritePEM(t, dir, "ca.pem", testca.New(t).CertPEM())
+
+	// http.DefaultTransport is a public var; an embedding process may swap in a
+	// wrapper. An unchecked type assertion would crash the gateway at startup.
+	saved := http.DefaultTransport
+	t.Cleanup(func() { http.DefaultTransport = saved })
+	http.DefaultTransport = roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("unused")
+	})
+
+	_, err := NewHTTPClient("https://bos.example", "gw-001", nil, TLSOptions{CAFile: caPath})
+	if err == nil {
+		t.Fatal("expected a construction error when DefaultTransport is not *http.Transport, got nil")
+	}
+	if !strings.Contains(err.Error(), "DefaultTransport") {
+		t.Fatalf("error should name the cause, got: %v", err)
+	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
 // ── default behaviour is unchanged ───────────────────────────────────────────
 
 func TestHTTPClient_PlainHTTPStillWorksWithZeroTLSOptions(t *testing.T) {
