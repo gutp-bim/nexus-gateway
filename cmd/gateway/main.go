@@ -74,6 +74,13 @@ func main() {
 	provURL := flag.String("provisioning-url", envOrDefault("PROVISIONING_URL", ""), "Provisioning API base URL (empty = fixture only)")
 	provFile := flag.String("provisioning-file", envOrDefault("PROVISIONING_FILE", ""), "File-backed Point List provisioning source (.csv or .json); overridden by --provisioning-url")
 	provConnID := flag.String("provisioning-connector-id", envOrDefault("PROVISIONING_CONNECTOR_ID", "bacnet-01"), "Connector id stamped on entries loaded from a provisioning CSV")
+	// Point List TLS is configured separately from the gRPC link's BOS_* settings
+	// (#135): the two can terminate at different edges, so neither should inherit
+	// the other's credentials by accident. Empty = system roots, no client cert.
+	provCA := flag.String("provisioning-ca", envOrDefault("PROVISIONING_CA_FILE", ""), "PEM CA bundle to verify the provisioning server cert (empty = system roots)")
+	provCert := flag.String("provisioning-cert", envOrDefault("PROVISIONING_CERT_FILE", ""), "Client certificate for mTLS to the provisioning endpoint (CN/SAN = gateway_id)")
+	provKey := flag.String("provisioning-key", envOrDefault("PROVISIONING_KEY_FILE", ""), "Client private key for mTLS to the provisioning endpoint")
+	provServerName := flag.String("provisioning-servername", envOrDefault("PROVISIONING_SERVER_NAME", ""), "Override the server name verified in the provisioning server cert")
 	connectorMapStr := flag.String("connector-map", envOrDefault("CONNECTOR_MAP", ""),
 		`Comma-separated protocol:connectorID pairs, shared by both the HTTP and
 file provisioning paths (e.g. "bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01").
@@ -263,7 +270,19 @@ bacnet:<provisioning-connector-id>.`)
 	var provClient provisioning.Client
 	switch {
 	case *provURL != "":
-		provClient = provisioning.NewHTTPClient(*provURL, *gatewayID, cmap)
+		httpProv, err := provisioning.NewHTTPClient(*provURL, *gatewayID, cmap, provisioning.TLSOptions{
+			CAFile:     *provCA,
+			CertFile:   *provCert,
+			KeyFile:    *provKey,
+			ServerName: *provServerName,
+		})
+		if err != nil {
+			// Refuse to start rather than poll a Point List endpoint we cannot
+			// authenticate to; the alternative is an endless 403 loop at runtime.
+			slog.Error("provisioning: TLS configuration invalid", "error", err)
+			os.Exit(1)
+		}
+		provClient = httpProv
 	case *provFile != "":
 		// Fail fast on a bad path rather than spinning the startup wait and then
 		// running with an empty Point List.

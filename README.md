@@ -201,6 +201,10 @@ NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 | `--bos-cert` | `BOS_CERT_FILE` | – | Client certificate for mTLS to Building OS |
 | `--bos-key` | `BOS_KEY_FILE` | – | Client private key for mTLS to Building OS |
 | `--bos-servername` | `BOS_SERVER_NAME` | – | Override server name in Building OS cert verification |
+| `--provisioning-ca` | `PROVISIONING_CA_FILE` | – | PEM CA bundle to verify the Point List provisioning server cert (empty = system roots) |
+| `--provisioning-cert` | `PROVISIONING_CERT_FILE` | – | Client certificate for mTLS to the provisioning endpoint |
+| `--provisioning-key` | `PROVISIONING_KEY_FILE` | – | Client private key for mTLS to the provisioning endpoint |
+| `--provisioning-servername` | `PROVISIONING_SERVER_NAME` | – | Override server name in provisioning cert verification |
 | `--dev-sim` | `DEV_SIM` | `false` | Run the in-process sim connector (non-production, ADR-0001) |
 | `--dev-sim-interval` | – | `60s` | Publish interval for `--dev-sim`; lower it (e.g. `5s`) for fast local feedback |
 | `--catalog-file` | `CATALOG_FILE` | – | File-backed Connector Catalog (JSON `[]Manifest`); enables `POST /connectors/{name}/install` |
@@ -308,11 +312,21 @@ BOS_CERT_FILE=/etc/nexus/tls/gateway.crt \   # CN/SAN encodes GATEWAY_ID
 BOS_KEY_FILE=/etc/nexus/tls/gateway.key \
 BOS_SERVER_NAME=bos.example.com \            # optional: override SNI/verify name
 PROVISIONING_URL=https://bos.example.com/provisioning \
+PROVISIONING_CA_FILE=/etc/nexus/tls/ca.pem \
+PROVISIONING_CERT_FILE=/etc/nexus/tls/gateway.crt \
+PROVISIONING_KEY_FILE=/etc/nexus/tls/gateway.key \
 go run ./cmd/gateway
 ```
 
 - Omit `--bos-cert`/`--bos-key` for **server-only TLS** (CA verification without
   a client cert); include them for **mTLS**.
+- **The Point List channel is configured separately** (`PROVISIONING_*`). It
+  reaches the same edge in the topology above, but the two links can terminate
+  at different proxies, so neither inherits the other's credentials implicitly —
+  set `PROVISIONING_CA_FILE` / `_CERT_FILE` / `_KEY_FILE` explicitly. Leaving
+  them unset keeps ordinary HTTPS verified against the system roots; it never
+  disables verification. A certificate without its key (or vice versa) is
+  rejected at startup rather than silently dropped (#135).
 - The cert CN ↔ `gateway_id` binding is what Building OS's ownership check
   assumes. The gateway sends **no** `X-Gateway-Id` header itself — the Traefik
   edge supplies it from the cert. See [SECURITY.md](SECURITY.md) and
