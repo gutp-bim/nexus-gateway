@@ -6,6 +6,8 @@ package provisioning
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -24,9 +26,10 @@ import (
 const pointListBody = `{"gatewayId":"gw-001","revision":"v1","full":true,
   "points":[{"pointId":"p1","protocol":"bacnet","localId":"analogInput,1"}]}`
 
-// pointListTLSServer starts an HTTPS point-list endpoint. When clientCAs is
-// non-nil the server demands and verifies a client certificate, standing in for
-// the mTLS edge.
+// pointListTLSServer starts an HTTPS point-list endpoint. When requireClientCert
+// is set the server demands and verifies a client certificate against ca,
+// standing in for the mTLS edge. The server certificate carries a "localhost"
+// SAN, so callers must dial it by that name.
 func pointListTLSServer(t *testing.T, ca *testca.CA, requireClientCert bool) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -207,11 +210,21 @@ func TestHTTPClient_PlainHTTPStillWorksWithZeroTLSOptions(t *testing.T) {
 func TestHTTPClient_ZeroOptionsKeepsSystemRootVerification(t *testing.T) {
 	srv := pointListTLSServer(t, testca.New(t), false) // private CA, not in system roots
 
-	c, err := NewHTTPClient(srv.URL, "gw-001", nil, TLSOptions{})
+	// Dial the name the certificate is actually issued for. httptest's URL is
+	// https://127.0.0.1:port and the cert carries only a "localhost" SAN, so
+	// against srv.URL the handshake fails on the hostname — and the test would
+	// pass without ever exercising trust roots, which is the whole claim here.
+	c, err := NewHTTPClient(strings.Replace(srv.URL, "127.0.0.1", "localhost", 1), "gw-001", nil, TLSOptions{})
 	if err != nil {
 		t.Fatalf("NewHTTPClient: %v", err)
 	}
-	if _, err := fetchOnce(t, c); err == nil {
+	_, err = fetchOnce(t, c)
+	if err == nil {
 		t.Fatal("zero TLSOptions accepted a server the system roots do not trust")
+	}
+	// Pin the reason, not just the failure.
+	var unknownAuthority x509.UnknownAuthorityError
+	if !errors.As(err, &unknownAuthority) {
+		t.Fatalf("expected an unknown-authority rejection, got %v", err)
 	}
 }
