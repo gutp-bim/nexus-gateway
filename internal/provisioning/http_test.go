@@ -70,7 +70,7 @@ func TestHTTPClient_InitialFetch_ReturnsFull(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := provisioning.NewHTTPClient(srv.URL, "gw-test",
+	c := mustHTTPClient(t, srv.URL, "gw-test",
 		map[string]string{"bacnet": "bacnet-01"})
 
 	result, err := c.Fetch(context.Background(), "")
@@ -96,7 +96,7 @@ func TestHTTPClient_ETagMatch_ReturnsNil(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := provisioning.NewHTTPClient(srv.URL, "gw-test", map[string]string{})
+	c := mustHTTPClient(t, srv.URL, "gw-test", map[string]string{})
 	result, err := c.Fetch(context.Background(), "etag-v1")
 	require.NoError(t, err)
 	assert.Nil(t, result, "304 must return nil (unchanged)")
@@ -123,7 +123,7 @@ func TestHTTPClient_DiffResponse_ReturnsDelta(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := provisioning.NewHTTPClient(srv.URL, "gw-test",
+	c := mustHTTPClient(t, srv.URL, "gw-test",
 		map[string]string{"bacnet": "bacnet-01"})
 	result, err := c.Fetch(context.Background(), "etag-old")
 	require.NoError(t, err)
@@ -155,7 +155,7 @@ func TestHTTPClient_DiffFullFallback_ReturnsFull(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := provisioning.NewHTTPClient(srv.URL, "gw-test", map[string]string{})
+	c := mustHTTPClient(t, srv.URL, "gw-test", map[string]string{})
 	result, err := c.Fetch(context.Background(), "etag-evicted")
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -180,7 +180,7 @@ func TestHTTPClient_ExplicitProtocolField_UsedAsIs(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := provisioning.NewHTTPClient(srv.URL, "gw-test",
+	c := mustHTTPClient(t, srv.URL, "gw-test",
 		map[string]string{"opcua": "opcua-01"})
 
 	result, err := c.Fetch(context.Background(), "")
@@ -210,7 +210,7 @@ func TestHTTPClient_ProtocolCasingAndWhitespace_NormalizedBeforeConnectorLookup(
 	}))
 	defer srv.Close()
 
-	c := provisioning.NewHTTPClient(srv.URL, "gw-test",
+	c := mustHTTPClient(t, srv.URL, "gw-test",
 		map[string]string{"opcua": "opcua-01", "bacnet": "bacnet-01"})
 
 	result, err := c.Fetch(context.Background(), "")
@@ -239,7 +239,7 @@ func TestHTTPClient_NoProtocolNoNativeUnresolvableLocalID_FallsBackToUnknown(t *
 	}))
 	defer srv.Close()
 
-	c := provisioning.NewHTTPClient(srv.URL, "gw-test", map[string]string{})
+	c := mustHTTPClient(t, srv.URL, "gw-test", map[string]string{})
 
 	result, err := c.Fetch(context.Background(), "")
 	require.NoError(t, err)
@@ -249,3 +249,12 @@ func TestHTTPClient_NoProtocolNoNativeUnresolvableLocalID_FallsBackToUnknown(t *
 
 // HTTPClient must satisfy the Client interface.
 var _ provisioning.Client = (*provisioning.HTTPClient)(nil)
+
+// mustHTTPClient builds a client for the plain-HTTP fixtures in this file.
+// TLS options are exercised separately in http_tls_test.go (#135).
+func mustHTTPClient(t *testing.T, baseURL, gatewayID string, cmap map[string]string) *provisioning.HTTPClient {
+	t.Helper()
+	c, err := provisioning.NewHTTPClient(baseURL, gatewayID, cmap, provisioning.TLSOptions{})
+	require.NoError(t, err)
+	return c
+}
