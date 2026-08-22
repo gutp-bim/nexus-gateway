@@ -23,10 +23,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"nexus-gateway/connector/sdk"
 	"nexus-gateway/internal/adminapi"
 	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/lifecycle"
 	"nexus-gateway/internal/metrics"
+	"nexus-gateway/internal/mqttsync"
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/version"
 )
@@ -486,6 +488,142 @@ func TestDevices_NilSource_Returns404(t *testing.T) {
 
 	resp, _ := http.Get(apiSrv.URL + "/devices")
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+// ── MQTT subscription sync (#119) ──────────────────────────────────────────
+
+type mockMQTTSyncSource struct {
+	diff       mqttsync.Diff
+	previewErr error
+	reply      sdk.SubscriptionApplyReply
+	applyErr   error
+	lastID     string
+}
+
+func (m *mockMQTTSyncSource) Preview(_ context.Context, connectorID string) (mqttsync.Diff, error) {
+	m.lastID = connectorID
+	return m.diff, m.previewErr
+}
+
+func (m *mockMQTTSyncSource) Apply(_ context.Context, connectorID string) (sdk.SubscriptionApplyReply, error) {
+	m.lastID = connectorID
+	return m.reply, m.applyErr
+}
+
+func TestMQTTSubscriptionsPreview_ReturnsDiff(t *testing.T) {
+	src := &mockMQTTSyncSource{diff: mqttsync.Diff{
+		Added:           []sdk.SubscriptionSpec{{Topic: "sensors/new"}},
+		CurrentRevision: "sha256:old",
+		TargetRevision:  "sha256:new",
+		SubscribedCount: 3,
+	}}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{MQTTSync: src})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/connectors/mqtt-01/mqtt-subscriptions/preview")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "mqtt-01", src.lastID)
+
+	var diff mqttsync.Diff
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&diff))
+	require.Len(t, diff.Added, 1)
+	assert.Equal(t, "sensors/new", diff.Added[0].Topic)
+	assert.Equal(t, "sha256:old", diff.CurrentRevision)
+	assert.Equal(t, "sha256:new", diff.TargetRevision)
+	assert.Equal(t, 3, diff.SubscribedCount)
+}
+
+func TestMQTTSubscriptionsPreview_UpstreamError_Returns502(t *testing.T) {
+	src := &mockMQTTSyncSource{previewErr: errors.New("connector unreachable")}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{MQTTSync: src})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/connectors/mqtt-01/mqtt-subscriptions/preview")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
+}
+
+func TestMQTTSubscriptionsApply_ReturnsReply(t *testing.T) {
+	src := &mockMQTTSyncSource{reply: sdk.SubscriptionApplyReply{
+		Applied: true, AppliedRevision: "sha256:new", SubscribedCount: 3,
+		Added: []string{"sensors/new"},
+	}}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{MQTTSync: src})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Post(apiSrv.URL+"/connectors/mqtt-01/mqtt-subscriptions/apply", "", nil)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "mqtt-01", src.lastID)
+
+	var reply sdk.SubscriptionApplyReply
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&reply))
+	assert.True(t, reply.Applied)
+	assert.Equal(t, "sha256:new", reply.AppliedRevision)
+	assert.Equal(t, []string{"sensors/new"}, reply.Added)
+}
+
+func TestMQTTSubscriptionsApply_UpstreamError_Returns502(t *testing.T) {
+	src := &mockMQTTSyncSource{applyErr: errors.New("nats timeout")}
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{MQTTSync: src})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Post(apiSrv.URL+"/connectors/mqtt-01/mqtt-subscriptions/apply", "", nil)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
+}
+
+func TestMQTTSubscriptions_NilSource_Returns404(t *testing.T) {
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/connectors/mqtt-01/mqtt-subscriptions/preview")
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+	resp2, err := http.Post(apiSrv.URL+"/connectors/mqtt-01/mqtt-subscriptions/apply", "", nil)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, resp2.StatusCode)
+}
+
+// TestMQTTSubscriptionsApply_RequiresOperatorRole confirms apply is gated
+// behind RoleOperator while preview only needs RoleViewer (#119: apply is an
+// operator-gated write; preview is read-only).
+func TestMQTTSubscriptionsApply_RequiresOperatorRole(t *testing.T) {
+	src := &mockMQTTSyncSource{reply: sdk.SubscriptionApplyReply{Applied: true}}
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	pub, err := jwk.PublicKeyOf(privKey)
+	require.NoError(t, err)
+	require.NoError(t, pub.Set(jwk.KeyIDKey, "test-key"))
+	require.NoError(t, pub.Set(jwk.AlgorithmKey, jwa.RS256))
+	set := jwk.NewSet()
+	require.NoError(t, set.AddKey(pub))
+	jwksServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(set) //nolint:errcheck
+	}))
+	t.Cleanup(jwksServer.Close)
+
+	srv := adminapi.NewSecureServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{MQTTSync: src},
+		adminapi.JWTConfig{JWKSURL: jwksServer.URL, Audience: "nexus-gateway", Issuer: "test-issuer"})
+	t.Cleanup(srv.Shutdown)
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	viewerToken := signToken(t, privKey, "test-issuer", "nexus-gateway", []string{"gateway-viewer"}, time.Now().Add(time.Hour))
+
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, apiSrv.URL+"/connectors/mqtt-01/mqtt-subscriptions/apply", nil)
+	req.Header.Set("Authorization", "Bearer "+viewerToken)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, "gateway-viewer must not be able to apply")
 }
 
 // ── gateway log source (#42) ──────────────────────────────────────────────────

@@ -10,7 +10,7 @@ The Point List's single source of truth is the Building OS twin (OxiGraph `sbco:
 ## Acceptance Criteria
 
 - [x] Gateway polls a cheap version token and fetches the authoritative Point List snapshot only when it changes (gateway-scoped, versioned provisioning API — `gutp-building-os-oss` #224).
-- [~] On snapshot change, the gateway **diffs** against its local copy and reconverges: Normalizer mapping reload + Connector poll/subscribe list reload, without restarting components. — *Partial: diff + atomic Normalizer mapping reload land without restart; live connector poll-list reload is **deferred** — connectors pick up list changes on restart via the lifecycle manager, acceptable at MVP scale.*
+- [x] On snapshot change, the gateway **diffs** against its local copy and reconverges: Normalizer mapping reload + Connector poll/subscribe list reload, without restarting components. — *Normalizer mapping reload has landed since this epic closed. Connector poll/subscribe list reload landed for the MQTT connector under #119 (docs/adr/0008): `internal/mqttsync` derives the desired subscription set from this same resolver and pushes it to a running MQTT connector over `cfg.mqtt.<id>.apply`, which converges live (Subscribe/Unsubscribe) without a restart, atomically retaining the previous subscriptions on failure. BACnet/OPC-UA/WebSocket/ZeroMQ connectors still pick up Point List changes on restart only — deferred, acceptable at MVP scale.*
 - [x] One shared resolver serves both lookups: `local_id`→`point_id` (Normalizer) and `point_id`→native `(protocol, device/object/instance)` + writeability/control schema (control dispatch).
 - [x] The synced copy survives gateway restart (local persistence) and reconverges on next poll.
 - [x] Point List drift vs Building OS surfaces operationally as the per-`point_id` drift counter on the Ingress uplink (`accepted < sent`, EP-003) — no separate reconciliation protocol.
@@ -50,7 +50,7 @@ The Point List's single source of truth is the Building OS twin (OxiGraph `sbco:
        what actually proves hostname verification isn't the failure mode, since
        the error type alone cannot on darwin. Behavior-only fix;
        internal/provisioning is unchanged. -->
-- [~] FEAT-026: Diff & convergence engine (Normalizer mapping + Connector poll list reload) — *connector live reload deferred (see above).*
+- [x] FEAT-026: Diff & convergence engine (Normalizer mapping + Connector poll list reload) — *MQTT connector live reload landed under #119 (docs/adr/0008); other protocols still restart-only (see above).*
 - [x] FEAT-027: Shared bidirectional resolver (`local_id`↔`point_id`, writeability/control schema lookup)
 
 ## Dependencies

@@ -43,6 +43,7 @@ export function Nav() {
       <Link href="/connectors" style={{ fontWeight: path === "/connectors" ? 700 : 400 }}>{t("connectors")}</Link>
       <Link href="/catalog" style={{ fontWeight: path === "/catalog" ? 700 : 400 }}>{t("catalog")}</Link>
       <Link href="/devices" style={{ fontWeight: path === "/devices" ? 700 : 400 }}>{t("devices")}</Link>
+      <Link href="/mqtt-sync" style={{ fontWeight: path === "/mqtt-sync" ? 700 : 400 }}>{t("mqttSync")}</Link>
       <Link href="/telemetry" style={{ fontWeight: path === "/telemetry" ? 700 : 400 }}>{t("telemetry")}</Link>
       <Link href="/logs" style={{ fontWeight: path === "/logs" ? 700 : 400 }}>{t("logs")}</Link>
       <span style={{ marginLeft: "auto", fontSize: "0.875rem", color: "#6b7280" }}>{session?.user?.email}</span>

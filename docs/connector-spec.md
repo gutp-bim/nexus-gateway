@@ -97,6 +97,42 @@ cmd.<protocol>.<connector_id>
 
 The gateway sends a NATS core `Request` to this subject. Connectors **subscribe** to it and must **reply** synchronously (within the request timeout, default 5 s). This is not JetStream; it is NATS core request-reply.
 
+### 2.4 MQTT subscription-sync subjects (#119, docs/adr/0008)
+
+```
+cfg.mqtt.<connector_id>.status
+cfg.mqtt.<connector_id>.apply
+```
+
+MQTT-only. Same NATS core request-reply shape as §2.3, used by the gateway's `internal/mqttsync` to converge a running MQTT connector's broker subscriptions to the Building OS Point List without a restart — see §6.3 for the point config fields these carry.
+
+`.status` takes an empty request and replies with the connector's currently applied state:
+
+```json
+{
+  "applied_revision": "sha256:...",
+  "subscriptions": [ { "topic": "...", "qos": 1, "writable": false, ... } ]
+}
+```
+
+`.apply` takes a full desired subscription set and replies with the outcome:
+
+```json
+// request
+{ "revision": "sha256:...", "points": [ { "topic": "...", "qos": 1, ... } ] }
+
+// reply
+{
+  "applied": true,
+  "applied_revision": "sha256:...",
+  "subscribed_count": 12,
+  "added": ["..."], "changed": ["..."], "removed": ["..."],
+  "errors": []
+}
+```
+
+The connector Subscribes every added/changed topic first; if any of them fails, it aborts without touching anything else — `applied` is `false`, `applied_revision`/`subscriptions` are unchanged from before the request, and the previously applied subscriptions are retained. Only once every addition/change succeeds are the removed topics Unsubscribed (best-effort — a failure there is reported in `errors` but does not block the commit) and the new state applied. A topic already covered by a static `MQTT_SUBSCRIPTIONS` wildcard filter never gets its own explicit Subscribe/Unsubscribe call — only its point-list-routing metadata changes.
+
 ---
 
 ## 3. Telemetry channel — Common Event
@@ -351,7 +387,7 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `MQTT_MAX_PAYLOAD_BYTES` | `1024` | Maximum MQTT application payload size in bytes. Larger payloads are acknowledged and discarded before JSON decoding. Must be greater than zero. |
 | `MQTT_POINTS` | `[]` | JSON array of point configs (see §6.3). |
 | `MQTT_POINTS_FILE` | _(empty)_ | Read-only JSON file containing the same array as `MQTT_POINTS`. When set, it takes precedence; recommended for large point lists. |
-| `MQTT_SUBSCRIPTIONS` | `[]` | JSON array of `{filter,qos}` MQTT topic filters. Supports `+` and `#`. When empty, each `MQTT_POINTS[].topic` is subscribed at QoS 1 for backward compatibility. |
+| `MQTT_SUBSCRIPTIONS` | `[]` | JSON array of `{filter,qos}` MQTT topic filters. Supports `+` and `#`. When empty, each `MQTT_POINTS[].topic` is subscribed at QoS 1 for backward compatibility. A topic already covered by one of these filters is never separately Subscribed for a Point-List-synced point (§2.4). |
 | `MQTT_IGNORE_TOPICS` | `[]` | JSON array of exact topics to acknowledge and ignore, e.g. `["tas/heartbeat"]`. |
 | `MQTT_CA_FILE` | _(system roots)_ | Optional PEM CA bundle path for server verification. |
 | `MQTT_CERT_FILE` | _(empty)_ | PEM client certificate path for mutual TLS. Must be set with `MQTT_KEY_FILE`. |
@@ -444,7 +480,9 @@ The point list tells a connector which data points to poll and how to address th
   "unit":             "Cel",
   "writable":         false,
   "command_topic":    "",
-  "payload_template": ""
+  "payload_template": "",
+  "qos":              0,
+  "command_qos":      0
 }
 ```
 
@@ -454,8 +492,12 @@ The point list tells a connector which data points to poll and how to address th
 | `device_ref` | string | **Yes** | Opaque device reference echoed in all events. |
 | `unit` | string | **Yes** | Engineering unit echoed in events. May be empty (`""`). |
 | `writable` | boolean | No | `true` if the gateway may send write commands for this point. Default `false`. |
-| `command_topic` | string | Conditional | MQTT topic the connector publishes writes to. Required when `writable` is `true`; may differ from `topic`. |
+| `command_topic` | string | Conditional | MQTT topic the connector publishes writes to. Required when `writable` is `true`; may differ from `topic`. When it equals `topic`, the connector Subscribes with MQTT5 `No Local` so its own writes are never echoed back to it as telemetry (#119, docs/adr/0008). |
 | `payload_template` | string | No | `fmt.Sprintf` template for the outbound write payload. The single argument is the `value` (float64); use `%g` for a compact decimal. Examples: `"%g"` → `"22.5"`, `{"setpoint":%g}` → `{"setpoint":22.5}`. When empty, the connector writes a plain float string. An invalid verb falls back silently to a plain float string. |
+| `qos` | integer | No | Subscribe QoS for `topic` (0 or 1). `0`/omitted falls back to `1` (#119). |
+| `command_qos` | integer | No | Publish QoS used for writes to `command_topic` (0 or 1). `0`/omitted falls back to `1`. Independent of `qos` (#119). |
+
+Point-List-synced subscriptions (§2.4) use this same shape, derived from the Building OS Point List: `topic` = the point's `local_id`; for a `writable` point, `command_topic` is the same string as `topic` (Building OS's Point model carries no separate write-topic field for MQTT — confirmed convention, docs/adr/0008); `qos`/`command_qos` come from the gateway's per-connector `MQTT_SYNC_DEFAULT_QOS_JSON`/`MQTT_SYNC_DEFAULT_COMMAND_QOS_JSON` (default `1`), not from the Point List itself.
 
 ### 6.4 Connector responsibilities
 

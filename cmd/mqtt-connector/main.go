@@ -31,6 +31,10 @@ type pointEnv struct {
 	Writable        bool   `json:"writable"`
 	CommandTopic    string `json:"command_topic"`
 	PayloadTemplate string `json:"payload_template"`
+	// QoS/CommandQoS are optional per-point overrides (#119, docs/adr/0008);
+	// omitted (0) falls back to the connector's implicit QoS 1 default.
+	QoS        byte `json:"qos"`
+	CommandQoS byte `json:"command_qos"`
 }
 
 type subscriptionEnv struct {
@@ -104,19 +108,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Validate every point at startup to surface misconfiguration immediately
-	// rather than silently misbehaving at runtime.
-	for i, p := range envPoints {
-		if p.Topic == "" {
-			slog.Error("MQTT_POINTS: topic must not be empty", "index", i)
-			os.Exit(1)
-		}
-		if p.Writable && p.CommandTopic == "" {
-			slog.Error("MQTT_POINTS: writable point requires command_topic", "index", i, "topic", p.Topic)
-			os.Exit(1)
-		}
-	}
-
 	points := make([]mqttconn.PointConfig, len(envPoints))
 	for i, p := range envPoints {
 		points[i] = mqttconn.PointConfig{
@@ -126,7 +117,17 @@ func main() {
 			Writable:        p.Writable,
 			CommandTopic:    p.CommandTopic,
 			PayloadTemplate: p.PayloadTemplate,
+			QoS:             p.QoS,
+			CommandQoS:      p.CommandQoS,
 		}
+	}
+
+	// Validate every point at startup to surface misconfiguration immediately
+	// rather than silently misbehaving at runtime. Shared with internal/mqttsync's
+	// pre-apply validation (#119, docs/adr/0008).
+	if err := mqttconn.ValidatePoints(points); err != nil {
+		slog.Error("MQTT points configuration invalid", "err", err)
+		os.Exit(1)
 	}
 
 	tlsConfig, err := mqttconn.LoadTLSConfig(
