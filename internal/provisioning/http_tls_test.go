@@ -6,7 +6,6 @@ package provisioning
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -278,9 +277,21 @@ func TestHTTPClient_ZeroOptionsKeepsSystemRootVerification(t *testing.T) {
 	if err == nil {
 		t.Fatal("zero TLSOptions accepted a server the system roots do not trust")
 	}
-	// Pin the reason, not just the failure.
-	var unknownAuthority x509.UnknownAuthorityError
-	if !errors.As(err, &unknownAuthority) {
-		t.Fatalf("expected an unknown-authority rejection, got %v", err)
+	// Pin the reason, not just the failure — but by the OS-independent wrapper,
+	// not the underlying x509 error type. On darwin, verification with a nil
+	// RootCAs is delegated to Security.framework rather than Go's own chain
+	// builder, so the wrapped reason is a platform error string, not
+	// x509.UnknownAuthorityError (#144). crypto/tls always wraps a handshake
+	// certificate rejection in *tls.CertificateVerificationError before
+	// returning it, on every platform (crypto/tls/handshake_client.go), so that
+	// type is the portable thing to assert on. UnverifiedCertificates being
+	// non-empty rules out passing for an unrelated failure — a certificate was
+	// actually presented and rejected on trust.
+	var certErr *tls.CertificateVerificationError
+	if !errors.As(err, &certErr) {
+		t.Fatalf("expected a certificate verification rejection, got %v", err)
+	}
+	if len(certErr.UnverifiedCertificates) == 0 {
+		t.Fatalf("expected the rejected certificate to be attached to the error, got %v", certErr)
 	}
 }

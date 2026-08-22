@@ -19,6 +19,19 @@ The Point List's single source of truth is the Building OS twin (OxiGraph `sbco:
 ## Child Features
 
 - [x] FEAT-025: Point List snapshot client (version-token poll, snapshot fetch, local persistence)
+  <!-- Known issue (#144, fixed): TestHTTPClient_ZeroOptionsKeepsSystemRootVerification
+       pinned the TLS rejection reason to errors.As(err, &x509.UnknownAuthorityError{}).
+       On darwin, a nil RootCAs verification is delegated to Security.framework
+       rather than Go's own chain builder, so the wrapped reason is a generic
+       *errors.errorString ("... certificate is not trusted"), not
+       x509.UnknownAuthorityError — the test failed on every macOS dev machine
+       while the connection was in fact correctly rejected. Fixed by asserting on
+       the OS-independent wrapper crypto/tls.CertificateVerificationError instead
+       (constructed identically on every platform in
+       crypto/tls/handshake_client.go — verified against go1.27 stdlib source),
+       plus UnverifiedCertificates being non-empty so the test still proves a
+       certificate was presented and rejected on trust rather than passing on an
+       unrelated failure. Behavior-only fix; internal/provisioning is unchanged. -->
 - [~] FEAT-026: Diff & convergence engine (Normalizer mapping + Connector poll list reload) — *connector live reload deferred (see above).*
 - [x] FEAT-027: Shared bidirectional resolver (`local_id`↔`point_id`, writeability/control schema lookup)
 
