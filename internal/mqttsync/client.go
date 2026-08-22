@@ -72,9 +72,14 @@ func (c *Client) commandQoS(connectorID string) byte {
 }
 
 // desired recomputes the Point-List-derived subscription set fresh from the
-// current resolver snapshot — Preview and Apply each call this independently
-// rather than sharing a cached value, so a request always reflects the
-// latest sync (no TOCTOU window between an operator's preview and apply).
+// current resolver snapshot on every call, rather than caching the result of
+// a prior Preview for a later Apply to reuse. This means Apply always pushes
+// whatever the Point List currently says, not what a possibly-stale Preview
+// showed the operator — freshness is chosen over preview/apply consistency;
+// if the Point List changes between an operator's Preview and their Apply,
+// the applied set can differ from what was previewed. A future Apply call
+// against a still-current resolver snapshot converges to the same result
+// either way.
 func (c *Client) desired(connectorID string) []sdk.SubscriptionSpec {
 	return Derive(c.resolver.Snapshot(), connectorID, c.subscribeQoS(connectorID), c.commandQoS(connectorID))
 }

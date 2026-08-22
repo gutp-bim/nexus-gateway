@@ -43,7 +43,10 @@ type SubscriptionSpec struct {
 // broker subscriptions to Points, sent over NATS request-reply
 // (subject: cfg.mqtt.<connectorID>.apply).
 type SubscriptionApplyRequest struct {
-	Revision string             `json:"revision"` // Building OS ETag this set was derived from
+	// Revision is a content-hash of Points (internal/mqttsync.revisionOf,
+	// "sha256:..."), not a Building OS Point List ETag passed through
+	// verbatim — it changes exactly when the desired subscription set does.
+	Revision string             `json:"revision"`
 	Points   []SubscriptionSpec `json:"points"`
 }
 

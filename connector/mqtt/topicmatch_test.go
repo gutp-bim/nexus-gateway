@@ -48,3 +48,31 @@ func TestHasWildcard(t *testing.T) {
 		}
 	}
 }
+
+func TestValidatePoints(t *testing.T) {
+	cases := []struct {
+		name    string
+		points  []PointConfig
+		wantErr bool
+	}{
+		{"valid read-only", []PointConfig{{Topic: "a"}}, false},
+		{"valid writable", []PointConfig{{Topic: "a", Writable: true, CommandTopic: "a"}}, false},
+		{"empty topic", []PointConfig{{Topic: ""}}, true},
+		{"writable without command_topic", []PointConfig{{Topic: "a", Writable: true}}, true},
+		{"valid qos 0", []PointConfig{{Topic: "a", QoS: 0}}, false},
+		{"valid qos 1", []PointConfig{{Topic: "a", QoS: 1}}, false},
+		{"invalid qos 2", []PointConfig{{Topic: "a", QoS: 2}}, true},
+		{"invalid command_qos", []PointConfig{{Topic: "a", Writable: true, CommandTopic: "a", CommandQoS: 5}}, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := ValidatePoints(c.points)
+			if c.wantErr && err == nil {
+				t.Errorf("ValidatePoints(%+v) = nil, want error", c.points)
+			}
+			if !c.wantErr && err != nil {
+				t.Errorf("ValidatePoints(%+v) = %v, want nil", c.points, err)
+			}
+		})
+	}
+}

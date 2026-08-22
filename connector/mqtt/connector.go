@@ -176,6 +176,16 @@ func ValidatePoints(points []PointConfig) error {
 		if p.Writable && p.CommandTopic == "" {
 			return fmt.Errorf("point %d (%s): writable point requires command_topic", i, p.Topic)
 		}
+		// Only QoS 0/1 are supported (matches parseSubscriptionEnv's existing
+		// MQTT_SUBSCRIPTIONS check in cmd/mqtt-connector) — QoS 2 is documented
+		// as unsupported (docs/connector-spec.md) and would otherwise be
+		// silently accepted here only to behave inconsistently at the broker.
+		if p.QoS > 1 {
+			return fmt.Errorf("point %d (%s): qos must be 0 or 1, got %d", i, p.Topic, p.QoS)
+		}
+		if p.CommandQoS > 1 {
+			return fmt.Errorf("point %d (%s): command_qos must be 0 or 1, got %d", i, p.Topic, p.CommandQoS)
+		}
 	}
 	return nil
 }
@@ -321,7 +331,17 @@ func (c *Connector) runFreshnessFloor(ctx context.Context, subject string) {
 			return
 		case now := <-ticker.C:
 			for _, topic := range c.dueForRepublish(now) {
-				point := c.topics.Load().points[topic]
+				point, ok := c.topics.Load().points[topic]
+				if !ok {
+					// ApplySubscriptions (#119) removed this topic from routing,
+					// but a prior recordValue() call already seeded c.lkv for it —
+					// prune it here instead of republishing a Common Event with
+					// zero-value device_ref/unit for a point that's no longer synced.
+					c.lkvMu.Lock()
+					delete(c.lkv, topic)
+					c.lkvMu.Unlock()
+					continue
+				}
 				c.lkvMu.Lock()
 				state := c.lkv[topic]
 				if state == nil || now.Sub(state.lastEmit) < c.cfg.FreshnessInterval {
@@ -759,6 +779,15 @@ func (c *Connector) ApplySubscriptions(ctx context.Context, cm *autopaho.Connect
 	desired := make(map[string]PointConfig, len(req.Points))
 	for _, spec := range req.Points {
 		desired[spec.Topic] = pointConfigFromSpec(spec)
+	}
+
+	// cfg.mqtt.<id>.apply is a control surface reachable by anything on the
+	// deployment's NATS bus, not just the trusted gateway's own mqttsync
+	// client (which already validates before sending) — reject a malformed
+	// request here too rather than trusting the caller and ending up with an
+	// inconsistent in-memory topicIndex or subscribing to invalid topics.
+	if err := ValidatePoints(pointConfigsOf(desired)); err != nil {
+		return sdk.SubscriptionApplyReply{Errors: []string{"invalid_request: " + err.Error()}}
 	}
 
 	var added, changed, removed []string

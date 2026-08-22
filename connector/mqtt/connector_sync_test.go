@@ -294,6 +294,79 @@ func TestMQTT_ApplySubscriptionsWildcardCoveredTopicNotDuplicated(t *testing.T) 
 	assert.Equal(t, "sensors/static", evtStatic.LocalID)
 }
 
+// TestMQTT_ApplySubscriptionsRejectsInvalidQoS: cfg.mqtt.<id>.apply is a
+// control surface reachable by anything on the deployment's NATS bus, not
+// just the trusted gateway's own mqttsync client (which already validates
+// before sending) — a QoS outside 0/1 must be rejected without touching the
+// existing subscriptions, not silently accepted (review on #146).
+func TestMQTT_ApplySubscriptionsRejectsInvalidQoS(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID: "mqtt-badqos", BrokerURL: "mqtt://" + brokerAddr,
+		ClientID: "nexus-gw-badqos", KeepAlive: 30,
+		Points: []mqttconn.PointConfig{{Topic: "sensors/ok", DeviceRef: "dev-ok"}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+
+	reply := applySubscriptions(t, ctx, nc, "mqtt-badqos", sdk.SubscriptionApplyRequest{
+		Revision: "rev-badqos",
+		Points:   []sdk.SubscriptionSpec{{Topic: "sensors/bad", QoS: 2}},
+	})
+	assert.False(t, reply.Applied)
+	assert.NotEmpty(t, reply.Errors)
+
+	status := subscriptionStatus(t, ctx, nc, "mqtt-badqos")
+	assert.Equal(t, "", status.AppliedRevision)
+	require.Len(t, status.Subscriptions, 1)
+	assert.Equal(t, "sensors/ok", status.Subscriptions[0].Topic)
+}
+
+// TestMQTT_FreshnessFloorSkipsRemovedTopic: once ApplySubscriptions removes a
+// topic, the freshness floor must not go on republishing its last-known
+// value — that value's PointConfig lookup now misses, so a naive republish
+// would emit a Common Event with empty device_ref/unit for a point that's no
+// longer synced (review on #146).
+func TestMQTT_FreshnessFloorSkipsRemovedTopic(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID:       "mqtt-fresh-remove",
+		BrokerURL:         "mqtt://" + brokerAddr,
+		ClientID:          "nexus-gw-fresh-remove",
+		KeepAlive:         30,
+		FreshnessInterval: 150 * time.Millisecond,
+		Points:            []mqttconn.PointConfig{{Topic: "sensors/temp", DeviceRef: "dev-1"}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+
+	// Seed a last-known value so the freshness floor has something to
+	// (mis)republish once the point is removed.
+	publishMQTT(t, brokerAddr, "sensors/temp", []byte("21.0"))
+	consumeOneEvent(t, ctx, js, "evt.mqtt.mqtt-fresh-remove") // the direct publish's own event
+
+	reply := applySubscriptions(t, ctx, nc, "mqtt-fresh-remove", sdk.SubscriptionApplyRequest{
+		Revision: "rev-remove",
+		Points:   []sdk.SubscriptionSpec{},
+	})
+	require.True(t, reply.Applied, "errors: %v", reply.Errors)
+
+	// Wait past several freshness intervals — no further event must arrive
+	// for the removed topic.
+	time.Sleep(400 * time.Millisecond)
+	assertNoMoreEvents(t, ctx, js, "evt.mqtt.mqtt-fresh-remove")
+}
+
 // ── sync-test helpers ───────────────────────────────────────────────────────
 
 // denySubscribeHook denies subscribing to a single forbidden topic filter
