@@ -8,7 +8,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.1.7
 	github.com/mochi-mqtt/server/v2 v2.7.9
 	github.com/nats-io/nats-server/v2 v2.14.5
-	github.com/nats-io/nats.go v1.52.0
+	github.com/nats-io/nats.go v1.53.1
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/stretchr/testify v1.12.0
 	google.golang.org/grpc v1.83.0
