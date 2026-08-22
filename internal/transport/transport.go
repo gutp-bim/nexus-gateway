@@ -51,8 +51,28 @@ func ClientCredentials(cfg Config) (credentials.TransportCredentials, error) {
 		return insecure.NewCredentials(), nil
 	}
 
+	tlsCfg, err := TLSConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return credentials.NewTLS(tlsCfg), nil
+}
+
+// TLSConfig builds the *tls.Config described by cfg, for callers that need the
+// standard-library form rather than gRPC credentials — notably the HTTP Point
+// List provisioning client (#135), which reaches the same Building OS edge over
+// the same kind of certificate material.
+//
+// Sharing this with ClientCredentials is deliberate: the gateway's two links to
+// Building OS should agree on what a CA bundle, a client key pair and a server
+// name override mean, and should fail the same way when they are wrong. It
+// ignores cfg.Insecure — plaintext is a property of how a link is dialled, not
+// of a TLS configuration, so each caller answers that question itself.
+func TLSConfig(cfg Config) (*tls.Config, error) {
 	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
 
+	// Leaving RootCAs nil is what selects the host's system roots. "No custom CA"
+	// must never be read as "no verification".
 	if cfg.CAFile != "" {
 		pem, err := os.ReadFile(cfg.CAFile)
 		if err != nil {
@@ -80,5 +100,5 @@ func ClientCredentials(cfg Config) (credentials.TransportCredentials, error) {
 		tlsCfg.ServerName = cfg.ServerName
 	}
 
-	return credentials.NewTLS(tlsCfg), nil
+	return tlsCfg, nil
 }
