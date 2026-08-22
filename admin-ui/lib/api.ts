@@ -140,6 +140,48 @@ export async function getConnectorLogs(token: string | undefined, id: string, ta
 }
 
 
+// MQTT subscription sync (#119, docs/adr/0008): preview/apply the MQTT
+// Connector subscription state derived from the Building OS Point List.
+export type SubscriptionSpec = {
+  topic: string;
+  qos: number;
+  writable?: boolean;
+  command_topic?: string;
+  command_qos?: number;
+  device_ref?: string;
+  unit?: string;
+  payload_template?: string;
+};
+
+export type MqttSyncDiff = {
+  added?: SubscriptionSpec[];
+  changed?: SubscriptionSpec[];
+  removed?: SubscriptionSpec[];
+  current_revision: string;
+  target_revision: string;
+  subscribed_count: number;
+};
+
+export type SubscriptionApplyReply = {
+  applied: boolean;
+  applied_revision: string;
+  subscribed_count: number;
+  added?: string[];
+  changed?: string[];
+  removed?: string[];
+  errors?: string[];
+};
+
+export async function previewMqttSubscriptions(token: string | undefined, id: string): Promise<MqttSyncDiff> {
+  const res = await adminFetch(`/connectors/${encodeURIComponent(id)}/mqtt-subscriptions/preview`, token);
+  return res.json();
+}
+
+export async function applyMqttSubscriptions(token: string | undefined, id: string): Promise<SubscriptionApplyReply> {
+  const res = await adminFetch(`/connectors/${encodeURIComponent(id)}/mqtt-subscriptions/apply`, token, { method: "POST" });
+  return res.json();
+}
+
 export async function connectorAction(
   token: string | undefined,
   id: string,

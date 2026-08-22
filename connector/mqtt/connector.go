@@ -33,6 +33,28 @@ type PointConfig struct {
 	Writable        bool   // point accepts write commands
 	CommandTopic    string // MQTT topic to publish writes to; required when Writable is true
 	PayloadTemplate string // fmt.Sprintf template for the write payload, e.g. `{"present_value": %g}`; defaults to plain float string
+	// QoS is the Subscribe QoS for Topic; zero falls back to 1 (matches the
+	// pre-#119 hardcoded default).
+	QoS byte
+	// CommandQoS is the Publish QoS used for writes to CommandTopic; zero
+	// falls back to 1. Independent of QoS (docs/adr/0008).
+	CommandQoS byte
+}
+
+// subscribeQoS returns p.QoS, defaulting to 1 when unset.
+func (p PointConfig) subscribeQoS() byte {
+	if p.QoS == 0 {
+		return 1
+	}
+	return p.QoS
+}
+
+// commandQoS returns p.CommandQoS, defaulting to 1 when unset.
+func (p PointConfig) commandQoS() byte {
+	if p.CommandQoS == 0 {
+		return 1
+	}
+	return p.CommandQoS
 }
 
 // SubscriptionConfig is an MQTT topic filter independent of the exact point
@@ -61,6 +83,101 @@ type Config struct {
 	// QoS>0 messages the broker may have in flight to this connector before it
 	// must wait for a PUBACK. Zero uses defaultReceiveMaximum.
 	ReceiveMaximum uint16
+}
+
+// topicIndex is the atomically-swapped view of what this connector currently
+// knows: which topics route to which PointConfig, and which of those topics
+// this connector itself explicitly Subscribed to at the broker — as opposed
+// to being covered by a static MQTT_SUBSCRIPTIONS wildcard filter, which is
+// fixed for the connector's lifetime and never touched by a live apply
+// (docs/adr/0008). explicitSubs is what ApplySubscriptions diffs against to
+// decide what needs an actual Subscribe/Unsubscribe call.
+type topicIndex struct {
+	points       map[string]PointConfig
+	explicitSubs map[string]paho.SubscribeOptions
+	revision     string
+}
+
+// newTopicIndex builds a topicIndex from points, skipping an explicit
+// Subscribe for any topic already covered by a static wildcard filter.
+func newTopicIndex(points []PointConfig, staticWildcards []SubscriptionConfig, revision string) *topicIndex {
+	idx := &topicIndex{
+		points:       make(map[string]PointConfig, len(points)),
+		explicitSubs: make(map[string]paho.SubscribeOptions, len(points)),
+		revision:     revision,
+	}
+	for _, p := range points {
+		idx.points[p.Topic] = p
+		if !coveredByWildcard(p.Topic, staticWildcards) {
+			idx.explicitSubs[p.Topic] = subscribeOptionsFor(p)
+		}
+	}
+	return idx
+}
+
+// coveredByWildcard reports whether topic is already reachable through one of
+// the connector's static MQTT_SUBSCRIPTIONS filters — including a literal
+// (non-wildcard) filter that happens to equal topic exactly.
+func coveredByWildcard(topic string, wildcards []SubscriptionConfig) bool {
+	for _, w := range wildcards {
+		if filterMatches(w.Filter, topic) {
+			return true
+		}
+	}
+	return false
+}
+
+// subscribeOptionsFor builds the broker Subscribe options for one point,
+// setting MQTT5 No Local when the point's command topic is the same as its
+// subscribe topic — otherwise a write this connector itself publishes would
+// be echoed back to it and mis-recorded as telemetry (docs/adr/0008).
+func subscribeOptionsFor(p PointConfig) paho.SubscribeOptions {
+	return paho.SubscribeOptions{
+		Topic:   p.Topic,
+		QoS:     p.subscribeQoS(),
+		NoLocal: p.Writable && p.CommandTopic == p.Topic,
+	}
+}
+
+// pointConfigsOf flattens a topic→PointConfig map into a slice, for feeding
+// back into newTopicIndex.
+func pointConfigsOf(m map[string]PointConfig) []PointConfig {
+	out := make([]PointConfig, 0, len(m))
+	for _, p := range m {
+		out = append(out, p)
+	}
+	return out
+}
+
+// pointConfigFromSpec converts a Point-List-sync wire spec into the internal
+// PointConfig shape (docs/adr/0008).
+func pointConfigFromSpec(spec sdk.SubscriptionSpec) PointConfig {
+	return PointConfig{
+		Topic:           spec.Topic,
+		DeviceRef:       spec.DeviceRef,
+		Unit:            spec.Unit,
+		Writable:        spec.Writable,
+		CommandTopic:    spec.CommandTopic,
+		PayloadTemplate: spec.PayloadTemplate,
+		QoS:             spec.QoS,
+		CommandQoS:      spec.CommandQoS,
+	}
+}
+
+// ValidatePoints checks that every point has a topic and, if writable, a
+// command topic. Shared by cmd/mqtt-connector's startup validation and
+// internal/mqttsync's pre-apply validation of a Point-List-derived set
+// (docs/adr/0008), so both reject the same malformed configuration.
+func ValidatePoints(points []PointConfig) error {
+	for i, p := range points {
+		if p.Topic == "" {
+			return fmt.Errorf("point %d: topic must not be empty", i)
+		}
+		if p.Writable && p.CommandTopic == "" {
+			return fmt.Errorf("point %d (%s): writable point requires command_topic", i, p.Topic)
+		}
+	}
+	return nil
 }
 
 const (
@@ -110,6 +227,14 @@ type Connector struct {
 	dedup     *sdk.CommandDedup
 	lkvMu     sync.Mutex
 	lkv       map[string]*lkvState
+
+	// topics is the atomically-swapped live subscription state (#119,
+	// docs/adr/0008). Run() stores the initial snapshot; ApplySubscriptions
+	// swaps in a new one after successfully converging the broker session.
+	topics atomic.Pointer[topicIndex]
+	// applyMu serializes ApplySubscriptions calls so two concurrent apply
+	// requests cannot interleave their Subscribe/Unsubscribe/Store steps.
+	applyMu sync.Mutex
 
 	// Ingest counters served at /metrics (#117). received is incremented at the
 	// very top of the receive callback — before the ignore/unknown-topic filters —
@@ -182,7 +307,12 @@ func (c *Connector) recordValue(topic string, value float64, timestamp time.Time
 	c.lkvMu.Unlock()
 }
 
-func (c *Connector) runFreshnessFloor(ctx context.Context, subject string, points map[string]PointConfig) {
+// runFreshnessFloor re-publishes each point's last-known value once per
+// interval so a static MQTT point still meets the 1-minute acquisition cadence
+// (connector-spec §3.6). It reads c.topics fresh on every republish rather
+// than a snapshot taken at Run() startup, so a point added by a live
+// ApplySubscriptions (#119) gets its correct metadata immediately.
+func (c *Connector) runFreshnessFloor(ctx context.Context, subject string) {
 	ticker := time.NewTicker(c.cfg.FreshnessInterval)
 	defer ticker.Stop()
 	for {
@@ -191,7 +321,7 @@ func (c *Connector) runFreshnessFloor(ctx context.Context, subject string, point
 			return
 		case now := <-ticker.C:
 			for _, topic := range c.dueForRepublish(now) {
-				point := points[topic]
+				point := c.topics.Load().points[topic]
 				c.lkvMu.Lock()
 				state := c.lkv[topic]
 				if state == nil || now.Sub(state.lastEmit) < c.cfg.FreshnessInterval {
@@ -327,21 +457,15 @@ func (c *Connector) AwaitReady(ctx context.Context) error {
 // Run connects to the MQTT broker and processes messages until ctx is cancelled.
 // autopaho handles reconnection automatically.
 func (c *Connector) Run(ctx context.Context) {
-	topicMap := make(map[string]PointConfig, len(c.cfg.Points))
 	ignoredTopics := make(map[string]struct{}, len(c.cfg.IgnoreTopics))
 	for _, topic := range c.cfg.IgnoreTopics {
 		ignoredTopics[topic] = struct{}{}
 	}
-	subs := make([]paho.SubscribeOptions, 0, len(c.cfg.Points)+len(c.cfg.Subscriptions))
-	for _, p := range c.cfg.Points {
-		topicMap[p.Topic] = p
-		if len(c.cfg.Subscriptions) == 0 {
-			subs = append(subs, paho.SubscribeOptions{Topic: p.Topic, QoS: 1})
-		}
-	}
-	for _, sub := range c.cfg.Subscriptions {
-		subs = append(subs, paho.SubscribeOptions{Topic: sub.Filter, QoS: sub.QoS})
-	}
+	// c.cfg.Subscriptions (the static MQTT_SUBSCRIPTIONS wildcard filters) is
+	// fixed for the life of the connection; every topicIndex built during this
+	// Run (initial and every later ApplySubscriptions) is diffed against it
+	// (docs/adr/0008).
+	c.topics.Store(newTopicIndex(c.cfg.Points, c.cfg.Subscriptions, ""))
 
 	brokerURL, err := url.Parse(c.cfg.BrokerURL)
 	if err != nil {
@@ -359,13 +483,38 @@ func (c *Connector) Run(ctx context.Context) {
 	sub, err := c.nc.Subscribe("cmd.mqtt."+c.cfg.ConnectorID, func(msg *nats.Msg) {
 		// Each write runs in its own goroutine so the NATS dispatch goroutine is
 		// never blocked by the up-to-8 s cm.Publish call.
-		go c.handleWrite(ctx, cm.Load(), topicMap, msg)
+		go c.handleWrite(ctx, cm.Load(), msg)
 	})
 	if err != nil {
 		slog.Error("mqtt: write handler subscribe failed", "err", err)
 		return
 	}
 	defer sub.Unsubscribe()
+
+	// Point-List-sync control plane (#119, docs/adr/0008): status reports the
+	// currently applied subscription state; apply converges it to a new set.
+	// Registered before the connection starts, matching the write handler above.
+	statusSub, err := c.nc.Subscribe("cfg.mqtt."+c.cfg.ConnectorID+".status", func(msg *nats.Msg) {
+		data, err := json.Marshal(c.SubscriptionStatus())
+		if err != nil {
+			return
+		}
+		_ = msg.Respond(data)
+	})
+	if err != nil {
+		slog.Error("mqtt: subscription-status handler subscribe failed", "err", err)
+		return
+	}
+	defer statusSub.Unsubscribe()
+
+	applySub, err := c.nc.Subscribe("cfg.mqtt."+c.cfg.ConnectorID+".apply", func(msg *nats.Msg) {
+		go c.handleSubscriptionApply(ctx, cm.Load(), msg)
+	})
+	if err != nil {
+		slog.Error("mqtt: subscription-apply handler subscribe failed", "err", err)
+		return
+	}
+	defer applySub.Unsubscribe()
 
 	// The publisher gets its own context so Run can stop it on every exit path —
 	// including a connection manager that finished while the caller's ctx is still
@@ -415,6 +564,10 @@ func (c *Connector) Run(ctx context.Context) {
 			slog.Warn("mqtt: broker connection failed", "broker", c.cfg.BrokerURL, "err", err)
 		},
 		OnConnectionUp: func(cm *autopaho.ConnectionManager, _ *paho.Connack) {
+			// Read fresh on every (re)connect — not a value captured once before
+			// NewConnection — so a reconnect after a live ApplySubscriptions (#119)
+			// resubscribes the CURRENT topic set, not the one Run() started with.
+			subs := c.brokerSubscriptions()
 			if len(subs) > 0 {
 				if _, err := cm.Subscribe(ctx, &paho.Subscribe{Subscriptions: subs}); err != nil {
 					slog.Error("mqtt: subscribe failed — disconnecting to trigger retry", "err", err)
@@ -444,7 +597,7 @@ func (c *Connector) Run(ctx context.Context) {
 						_ = pr.Client.Ack(pr.Packet)
 						return true, nil
 					}
-					p, ok := topicMap[pr.Packet.Topic]
+					p, ok := c.topics.Load().points[pr.Packet.Topic]
 					if !ok {
 						// Unknown topic: ack immediately to avoid infinite broker retry.
 						_ = pr.Client.Ack(pr.Packet)
@@ -519,10 +672,164 @@ func (c *Connector) Run(ctx context.Context) {
 	}
 	cm.Store(mgr)
 	if c.cfg.FreshnessInterval > 0 {
-		go c.runFreshnessFloor(ctx, subject, topicMap)
+		go c.runFreshnessFloor(ctx, subject)
 	}
 
 	<-mgr.Done()
+}
+
+// brokerSubscriptions returns everything that must be (re-)subscribed after a
+// connect: the static MQTT_SUBSCRIPTIONS wildcard filters (fixed for the
+// connector's lifetime) plus every topic this connector currently explicitly
+// owns, read fresh from c.topics (docs/adr/0008).
+func (c *Connector) brokerSubscriptions() []paho.SubscribeOptions {
+	idx := c.topics.Load()
+	subs := make([]paho.SubscribeOptions, 0, len(c.cfg.Subscriptions)+len(idx.explicitSubs))
+	for _, w := range c.cfg.Subscriptions {
+		subs = append(subs, paho.SubscribeOptions{Topic: w.Filter, QoS: w.QoS})
+	}
+	for _, opt := range idx.explicitSubs {
+		subs = append(subs, opt)
+	}
+	return subs
+}
+
+// SubscriptionStatus reports the connector's currently applied subscription
+// state (#119) — served over NATS on cfg.mqtt.<connector_id>.status.
+func (c *Connector) SubscriptionStatus() sdk.SubscriptionStatusReply {
+	idx := c.topics.Load()
+	specs := make([]sdk.SubscriptionSpec, 0, len(idx.points))
+	for _, p := range idx.points {
+		spec := sdk.SubscriptionSpec{
+			Topic:           p.Topic,
+			QoS:             p.subscribeQoS(),
+			Writable:        p.Writable,
+			CommandTopic:    p.CommandTopic,
+			DeviceRef:       p.DeviceRef,
+			Unit:            p.Unit,
+			PayloadTemplate: p.PayloadTemplate,
+		}
+		// CommandQoS only means something alongside a command topic — leave it
+		// at the zero value otherwise so a read-only point's reported status
+		// matches what mqttsync.Derive produces for it (mqttsync/derive.go
+		// only sets CommandQoS for a writable point too), and a diff between
+		// the two never spuriously reports "changed" (#119).
+		if p.Writable {
+			spec.CommandQoS = p.commandQoS()
+		}
+		specs = append(specs, spec)
+	}
+	return sdk.SubscriptionStatusReply{AppliedRevision: idx.revision, Subscriptions: specs}
+}
+
+// handleSubscriptionApply decodes a SubscriptionApplyRequest off NATS and
+// replies with the result of ApplySubscriptions. Run in its own goroutine
+// (like handleWrite) so the NATS dispatch goroutine is never blocked on a
+// broker round-trip.
+func (c *Connector) handleSubscriptionApply(ctx context.Context, cm *autopaho.ConnectionManager, msg *nats.Msg) {
+	var req sdk.SubscriptionApplyRequest
+	if err := json.Unmarshal(msg.Data, &req); err != nil {
+		data, _ := json.Marshal(sdk.SubscriptionApplyReply{Errors: []string{"bad_request"}})
+		_ = msg.Respond(data)
+		return
+	}
+	reply := c.ApplySubscriptions(ctx, cm, req)
+	data, err := json.Marshal(reply)
+	if err != nil {
+		return
+	}
+	_ = msg.Respond(data)
+}
+
+// ApplySubscriptions converges the live broker session to req.Points (#119).
+// Additions and changes are Subscribed first; only once every one of them
+// succeeds is the new state committed (c.topics swapped, AppliedRevision
+// bumped) and removals Unsubscribed. A Subscribe failure aborts before
+// touching anything, so the previously applied subscriptions are always
+// retained on failure (docs/adr/0008).
+func (c *Connector) ApplySubscriptions(ctx context.Context, cm *autopaho.ConnectionManager, req sdk.SubscriptionApplyRequest) sdk.SubscriptionApplyReply {
+	c.applyMu.Lock()
+	defer c.applyMu.Unlock()
+
+	if cm == nil {
+		return sdk.SubscriptionApplyReply{Errors: []string{"not_connected"}}
+	}
+
+	current := c.topics.Load()
+	desired := make(map[string]PointConfig, len(req.Points))
+	for _, spec := range req.Points {
+		desired[spec.Topic] = pointConfigFromSpec(spec)
+	}
+
+	var added, changed, removed []string
+	for topic, p := range desired {
+		if old, ok := current.points[topic]; !ok {
+			added = append(added, topic)
+		} else if old != p {
+			changed = append(changed, topic)
+		}
+	}
+	for topic := range current.points {
+		if _, ok := desired[topic]; !ok {
+			removed = append(removed, topic)
+		}
+	}
+
+	next := newTopicIndex(pointConfigsOf(desired), c.cfg.Subscriptions, req.Revision)
+
+	// Subscribe additions+changes not already covered by a static wildcard
+	// filter. A topic whose QoS/NoLocal shape is unchanged is a harmless
+	// re-subscribe — the broker just updates its existing subscription.
+	var toSubscribe []paho.SubscribeOptions
+	for _, topic := range added {
+		if opt, ok := next.explicitSubs[topic]; ok {
+			toSubscribe = append(toSubscribe, opt)
+		}
+	}
+	for _, topic := range changed {
+		if opt, ok := next.explicitSubs[topic]; ok {
+			toSubscribe = append(toSubscribe, opt)
+		}
+	}
+	if len(toSubscribe) > 0 {
+		if _, err := cm.Subscribe(ctx, &paho.Subscribe{Subscriptions: toSubscribe}); err != nil {
+			slog.Error("mqtt: subscription apply failed — retaining previous subscriptions", "revision", req.Revision, "err", err)
+			return sdk.SubscriptionApplyReply{Errors: []string{"subscribe: " + err.Error()}}
+		}
+	}
+
+	// Only unsubscribe topics this connector itself explicitly subscribed to —
+	// one covered by a static wildcard was never subscribed on its own, so
+	// there is nothing of ours to remove (docs/adr/0008).
+	var toUnsubscribe []string
+	for _, topic := range removed {
+		if _, wasExplicit := current.explicitSubs[topic]; wasExplicit {
+			toUnsubscribe = append(toUnsubscribe, topic)
+		}
+	}
+	var errs []string
+	if len(toUnsubscribe) > 0 {
+		if _, err := cm.Unsubscribe(ctx, &paho.Unsubscribe{Topics: toUnsubscribe}); err != nil {
+			// Best-effort: the state is already committed below, and a broker-side
+			// leftover subscription is harmless — OnPublishReceived acks and drops
+			// anything not in the new c.topics.points.
+			slog.Warn("mqtt: unsubscribe failed during apply — broker-side subscription left in place", "err", err, "topics", toUnsubscribe)
+			errs = append(errs, "unsubscribe: "+err.Error())
+		}
+	}
+
+	c.topics.Store(next)
+	slog.Info("mqtt: subscriptions applied", "revision", req.Revision, "added", len(added), "changed", len(changed), "removed", len(removed))
+
+	return sdk.SubscriptionApplyReply{
+		Applied:         true,
+		AppliedRevision: req.Revision,
+		SubscribedCount: len(next.points),
+		Added:           added,
+		Changed:         changed,
+		Removed:         removed,
+		Errors:          errs,
+	}
 }
 
 func (c *Connector) maxPayloadBytes() uint64 {
@@ -539,7 +846,7 @@ func (c *Connector) receiveMaximum() uint16 {
 	return c.cfg.ReceiveMaximum
 }
 
-func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionManager, topicMap map[string]PointConfig, msg *nats.Msg) {
+func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionManager, msg *nats.Msg) {
 	var req sdk.WriteRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
 		respond(msg, WriteReply{Success: false, Response: "bad_request"})
@@ -565,7 +872,7 @@ func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionMana
 		return
 	}
 
-	p, ok := topicMap[req.LocalID]
+	p, ok := c.topics.Load().points[req.LocalID]
 	if !ok || !p.Writable || p.CommandTopic == "" {
 		reply := WriteReply{Success: false, Response: "not_writable"}
 		c.dedup.Complete(req.ControlID, reply)
@@ -581,7 +888,7 @@ func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionMana
 
 	_, err := cm.Publish(wCtx, &paho.Publish{
 		Topic:   p.CommandTopic,
-		QoS:     1,
+		QoS:     p.commandQoS(),
 		Payload: payload,
 	})
 

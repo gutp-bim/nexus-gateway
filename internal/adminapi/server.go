@@ -12,9 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"nexus-gateway/connector/sdk"
 	"nexus-gateway/internal/catalog"
 	"nexus-gateway/internal/lifecycle"
 	"nexus-gateway/internal/metrics"
+	"nexus-gateway/internal/mqttsync"
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/version"
 )
@@ -50,6 +52,15 @@ type CatalogSource interface {
 // A nil PointListSource disables GET /devices.
 type PointListSource interface {
 	Snapshot() []pointlist.Entry
+}
+
+// MQTTSyncSource previews and applies the MQTT Connector subscription state
+// implied by the synced Point List (#119, docs/adr/0008). A nil
+// MQTTSyncSource disables the /connectors/{id}/mqtt-subscriptions/* routes.
+// Satisfied by *mqttsync.Client.
+type MQTTSyncSource interface {
+	Preview(ctx context.Context, connectorID string) (mqttsync.Diff, error)
+	Apply(ctx context.Context, connectorID string) (sdk.SubscriptionApplyReply, error)
 }
 
 // TelemetrySource exposes Store-and-Forward telemetry counters.
@@ -102,6 +113,7 @@ type ServerOptions struct {
 	Installer   ConnectorInstaller
 	Catalog     CatalogSource
 	PointList   PointListSource
+	MQTTSync    MQTTSyncSource
 	Telemetry   TelemetrySource
 	StreamStats StreamStatSource
 	Recent      *RecentStore
@@ -139,6 +151,7 @@ type Server struct {
 	installer   ConnectorInstaller // nil if catalog is not configured
 	catalog     CatalogSource      // nil if catalog browsing/update is not configured
 	devices     PointListSource    // nil if point list is not configured
+	mqttSync    MQTTSyncSource     // nil if MQTT Connector subscription sync is not configured
 	telemetry   TelemetrySource    // nil if S&F telemetry is not configured
 	streamStats StreamStatSource   // nil if JetStream usage is not available
 	recent      *RecentStore       // nil if recent-value tracking is not configured
@@ -186,6 +199,7 @@ func buildServer(mgr ConnectorManager, monitor HealthSnapshotter, opts ServerOpt
 		installer:   opts.Installer,
 		catalog:     opts.Catalog,
 		devices:     opts.PointList,
+		mqttSync:    opts.MQTTSync,
 		telemetry:   opts.Telemetry,
 		streamStats: opts.StreamStats,
 		recent:      opts.Recent,
@@ -222,6 +236,10 @@ func (s *Server) registerRoutes(authenticated bool) {
 	if s.devices != nil {
 		s.mux.HandleFunc("GET /devices", require(RoleViewer, s.handleListDevices))
 	}
+	if s.mqttSync != nil {
+		s.mux.HandleFunc("GET /connectors/{id}/mqtt-subscriptions/preview", require(RoleViewer, s.handleMQTTSubscriptionsPreview))
+		s.mux.HandleFunc("POST /connectors/{id}/mqtt-subscriptions/apply", require(RoleOperator, s.handleMQTTSubscriptionsApply))
+	}
 	if s.telemetry != nil {
 		s.mux.HandleFunc("GET /telemetry", require(RoleViewer, s.handleTelemetry))
 	}
@@ -239,6 +257,35 @@ func (s *Server) registerRoutes(authenticated bool) {
 
 func (s *Server) handleListDevices(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, s.devices.Snapshot())
+}
+
+// handleMQTTSubscriptionsPreview computes the diff between a live MQTT
+// Connector's currently applied subscriptions and the latest Point-List-
+// derived desired state, without changing anything (#119 — "allow an
+// operator to preview... the synchronized settings").
+func (s *Server) handleMQTTSubscriptionsPreview(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	diff, err := s.mqttSync.Preview(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, diff)
+}
+
+// handleMQTTSubscriptionsApply pushes the latest Point-List-derived
+// subscription state to a live MQTT Connector, which converges to it
+// atomically without a restart — the reply carries the applied revision,
+// subscribed topic count, and any per-topic errors verbatim (#119
+// acceptance criteria).
+func (s *Server) handleMQTTSubscriptionsApply(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	reply, err := s.mqttSync.Apply(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, reply)
 }
 
 type recentResponse struct {

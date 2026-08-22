@@ -15,7 +15,8 @@
     "devices": "Devices",
     "telemetry": "Telemetry",
     "logs": "Logs",
-    "logout": "Logout"
+    "logout": "Logout",
+    "mqttSync": "MQTT Sync"
   },
   "language": {
     "label": "Language",
@@ -203,5 +204,23 @@
     "notPinnedWarning": "Not digest-pinned (@sha256:…). A tag can be re-pointed; pin a digest for a reproducible, verifiable deploy.",
     "submit": "Upgrade to this image",
     "cancel": "Cancel"
+  },
+  "mqttSync": {
+    "title": "MQTT Subscription Sync",
+    "viewerBadge": "viewer — apply disabled",
+    "loadError": "Failed to load",
+    "noConnectors": "No MQTT connectors found",
+    "connectorLabel": "Connector:",
+    "subscribedCount": "{count} subscribed",
+    "currentRevision": "current: {rev}",
+    "targetRevision": "target: {rev}",
+    "inSync": "In sync — nothing to apply",
+    "added": "Added",
+    "changed": "Changed",
+    "removed": "Removed",
+    "apply": "Apply",
+    "applying": "Applying…",
+    "toastApplied": "Applied subscriptions for {id}",
+    "toastApplyFailed": "Apply for {id} failed: {error}"
   }
 }

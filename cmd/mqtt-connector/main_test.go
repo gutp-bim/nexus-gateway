@@ -37,6 +37,19 @@ func TestLoadPointEnv_HandlesTwoThousandPoints(t *testing.T) {
 	assert.Equal(t, want[1999].Topic, got[1999].Topic)
 }
 
+// TestLoadPointEnv_ParsesPerPointQoS: qos/command_qos are optional per-point
+// overrides (#119, docs/adr/0008) — omitted fields decode to the zero value,
+// which mqttconn.PointConfig treats as "fall back to 1".
+func TestLoadPointEnv_ParsesPerPointQoS(t *testing.T) {
+	points, err := loadPointEnv(`[{"topic":"sensors/a","qos":0,"writable":true,"command_topic":"actuators/a","command_qos":1},{"topic":"sensors/b"}]`, "")
+	require.NoError(t, err)
+	require.Len(t, points, 2)
+	assert.EqualValues(t, 0, points[0].QoS)
+	assert.EqualValues(t, 1, points[0].CommandQoS)
+	assert.EqualValues(t, 0, points[1].QoS)
+	assert.EqualValues(t, 0, points[1].CommandQoS)
+}
+
 func TestParseSubscriptionEnv(t *testing.T) {
 	subs, err := parseSubscriptionEnv(`[{"filter":"takenaka.co.jp/Tokyo/THX/#","qos":1}]`)
 	require.NoError(t, err)

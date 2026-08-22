@@ -33,6 +33,7 @@ import (
 	"nexus-gateway/internal/lifecycle"
 	"nexus-gateway/internal/logging"
 	"nexus-gateway/internal/metrics"
+	"nexus-gateway/internal/mqttsync"
 	"nexus-gateway/internal/normalizer"
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/pointsync"
@@ -93,6 +94,8 @@ bacnet:<provisioning-connector-id>.`)
 	devSimInterval := flag.Duration("dev-sim-interval", 60*time.Second, "Publish interval for --dev-sim (1-min default; lower for fast local feedback)")
 	allowAdhocUpgrade := flag.Bool("allow-adhoc-upgrade", envOrDefault("ALLOW_ADHOC_UPGRADE", "") == "true", "Enable the dev-only POST /connectors/{id}/upgrade?image= action; MVP update path is catalog-driven (ADR-0006)")
 	syncInterval := flag.Duration("point-sync-interval", 10*time.Minute, "Point List poll interval after the initial sync (the list is near-static, ADR-0003)")
+	mqttSyncSubQoS := flag.String("mqtt-sync-default-qos", envOrDefault("MQTT_SYNC_DEFAULT_QOS_JSON", "{}"), "JSON map of connector_id to default Subscribe QoS for Point-List-synced MQTT topics (#119, docs/adr/0008); a missing or zero entry falls back to 1")
+	mqttSyncCmdQoS := flag.String("mqtt-sync-default-command-qos", envOrDefault("MQTT_SYNC_DEFAULT_COMMAND_QOS_JSON", "{}"), "JSON map of connector_id to default write QoS for Point-List-synced MQTT command topics (#119, docs/adr/0008); a missing or zero entry falls back to 1")
 	healthCheckpointStale := flag.Duration("health-checkpoint-stale", 60*time.Second, "/health degrades the uplink when a pending backlog is un-checkpointed this long (#45)")
 	healthNearCapacityFrac := flag.Float64("health-near-capacity-frac", 0.9, "/health degrades the buffer when depth/capacity exceeds this fraction (#45)")
 	bosInsecure := flag.Bool("bos-insecure", envOrDefault("BOS_INSECURE", "") == "true", "Dial Building OS over plaintext h2c (no TLS) — dev/CI only (ADR-0007)")
@@ -267,6 +270,24 @@ bacnet:<provisioning-connector-id>.`)
 	// authoritative provisioning source (HTTP API, or a file-backed stand-in)
 	// always overrides the local fixture bootstrap once synced.
 	resolver := pointlist.NewSynced(nil)
+
+	var mqttSyncSubQoSMap, mqttSyncCmdQoSMap map[string]byte
+	if err := json.Unmarshal([]byte(*mqttSyncSubQoS), &mqttSyncSubQoSMap); err != nil {
+		slog.Error("MQTT_SYNC_DEFAULT_QOS_JSON: invalid JSON", "err", err)
+		os.Exit(1)
+	}
+	if err := json.Unmarshal([]byte(*mqttSyncCmdQoS), &mqttSyncCmdQoSMap); err != nil {
+		slog.Error("MQTT_SYNC_DEFAULT_COMMAND_QOS_JSON: invalid JSON", "err", err)
+		os.Exit(1)
+	}
+	// mqttSync drives the MQTT Connector subscription-sync Admin API routes
+	// (#119, docs/adr/0008): it derives the desired subscription set from this
+	// same resolver's synced Point List snapshot on every preview/apply call.
+	mqttSync := mqttsync.NewClient(nc, resolver, mqttsync.Config{
+		DefaultSubscribeQoS: mqttSyncSubQoSMap,
+		DefaultCommandQoS:   mqttSyncCmdQoSMap,
+	})
+
 	var provClient provisioning.Client
 	switch {
 	case *provURL != "":
@@ -471,6 +492,7 @@ bacnet:<provisioning-connector-id>.`)
 		Installer:         catalogInstaller,
 		Catalog:           catalogSrc,
 		PointList:         resolver,
+		MQTTSync:          mqttSync,
 		Telemetry:         buf,
 		StreamStats:       eventsStreamStats{js: js},
 		Recent:            recentStore,
