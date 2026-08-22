@@ -15,7 +15,8 @@
     "devices": "デバイス",
     "telemetry": "テレメトリー",
     "logs": "ログ",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "mqttSync": "MQTT同期"
   },
   "language": {
     "label": "言語",
@@ -203,5 +204,23 @@
     "notPinnedWarning": "ダイジェスト固定 (@sha256:…) されていません。タグは再指定される可能性があります。再現性と検証可能なデプロイのためにダイジェストを固定してください。",
     "submit": "このイメージにアップグレード",
     "cancel": "キャンセル"
+  },
+  "mqttSync": {
+    "title": "MQTT購読同期",
+    "viewerBadge": "閲覧者 — 適用は無効",
+    "loadError": "読み込みに失敗しました",
+    "noConnectors": "MQTTコネクタが見つかりません",
+    "connectorLabel": "コネクタ:",
+    "subscribedCount": "{count} 件購読中",
+    "currentRevision": "現在: {rev}",
+    "targetRevision": "目標: {rev}",
+    "inSync": "同期済み — 適用の必要はありません",
+    "added": "追加",
+    "changed": "変更",
+    "removed": "削除",
+    "apply": "適用",
+    "applying": "適用中…",
+    "toastApplied": "{id} の購読を適用しました",
+    "toastApplyFailed": "{id} への適用に失敗しました: {error}"
   }
 }
