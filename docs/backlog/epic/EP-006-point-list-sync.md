@@ -23,15 +23,33 @@ The Point List's single source of truth is the Building OS twin (OxiGraph `sbco:
        pinned the TLS rejection reason to errors.As(err, &x509.UnknownAuthorityError{}).
        On darwin, a nil RootCAs verification is delegated to Security.framework
        rather than Go's own chain builder, so the wrapped reason is a generic
-       *errors.errorString ("... certificate is not trusted"), not
+       error string ("... certificate is not trusted"), not
        x509.UnknownAuthorityError — the test failed on every macOS dev machine
        while the connection was in fact correctly rejected. Fixed by asserting on
        the OS-independent wrapper crypto/tls.CertificateVerificationError instead
        (constructed identically on every platform in
-       crypto/tls/handshake_client.go — verified against go1.27 stdlib source),
-       plus UnverifiedCertificates being non-empty so the test still proves a
-       certificate was presented and rejected on trust rather than passing on an
-       unrelated failure. Behavior-only fix; internal/provisioning is unchanged. -->
+       crypto/tls/handshake_client.go — verified against go1.27 stdlib source).
+
+       PR review (#145) surfaced a second, sharper issue with that fix on its
+       own: the broader type check alone can't tell "untrusted CA" apart from
+       "wrong hostname" — and crypto/x509's platform-verifier branch (used on
+       darwin whenever RootCAs is nil) folds hostname checking into the same
+       opaque result as trust checking, so no error type can separate them
+       there either (verified against the same source: the darwin branch in
+       Certificate.Verify returns before Go's own VerifyHostname ever runs).
+       Confirmed empirically: dialing the test server by its raw httptest IP
+       instead of "localhost" produced the exact same wrapped error type as an
+       untrusted CA. The test's own setup already tried to dial the certificate's
+       actual "localhost" SAN via a string Replace on "127.0.0.1", but that
+       silently no-ops on the IPv6 loopback net/http/httptest falls back to when
+       IPv4 is unavailable — which would have let the test pass for the wrong
+       reason without anyone noticing. Fixed by reconstructing the dial host with
+       net.JoinHostPort (correct for both loopback forms, covered by
+       TestDialNameFor_HandlesBothLoopbackForms) and adding a positive control:
+       the same server + dial name, with the CA trusted, must succeed — which is
+       what actually proves hostname verification isn't the failure mode, since
+       the error type alone cannot on darwin. Behavior-only fix;
+       internal/provisioning is unchanged. -->
 - [~] FEAT-026: Diff & convergence engine (Normalizer mapping + Connector poll list reload) — *connector live reload deferred (see above).*
 - [x] FEAT-027: Shared bidirectional resolver (`local_id`↔`point_id`, writeability/control schema lookup)
 
