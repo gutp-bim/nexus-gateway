@@ -6,10 +6,11 @@ package provisioning
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -261,16 +262,74 @@ func TestHTTPClient_PlainHTTPStillWorksWithZeroTLSOptions(t *testing.T) {
 	}
 }
 
+// dialNameFor rewrites rawURL's host to "localhost:<port>" — the only name
+// the server's certificate is issued for — regardless of which loopback form
+// net/http/httptest actually bound. httptest binds "127.0.0.1", falling back
+// to the IPv6 loopback "[::1]" when IPv4 is unavailable (some CI/sandbox
+// networks); a caller that only knew about the IPv4 form would silently keep
+// dialing the raw address on that fallback and provoke a HOSTNAME MISMATCH
+// instead of the untrusted-CA rejection this test exists to prove -- and
+// because that failure is also a *tls.CertificateVerificationError, the
+// broader OS-portable assertion below would then be satisfied for the wrong
+// reason without anyone noticing (review comment on #145). Reconstructing the
+// host via net.JoinHostPort -- rather than a substring replace -- is what
+// keeps this correct for the bracketed IPv6 form too.
+func dialNameFor(t *testing.T, rawURL string) string {
+	t.Helper()
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		t.Fatalf("parse httptest URL %q: %v", rawURL, err)
+	}
+	port := u.Port()
+	if port == "" {
+		t.Fatalf("httptest URL %q has no port", rawURL)
+	}
+	u.Host = net.JoinHostPort("localhost", port)
+	return u.String()
+}
+
+// dialNameFor must rewrite either loopback form httptest can hand back to the
+// exact same "localhost:<port>" -- a substring-based rewrite gets this wrong
+// for the bracketed IPv6 form ("[::1]:1234" -> "[localhost]:1234").
+func TestDialNameFor_HandlesBothLoopbackForms(t *testing.T) {
+	cases := map[string]string{
+		"https://127.0.0.1:1234/path": "https://localhost:1234/path",
+		"https://[::1]:1234/path":     "https://localhost:1234/path",
+	}
+	for in, want := range cases {
+		if got := dialNameFor(t, in); got != want {
+			t.Errorf("dialNameFor(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 // A zero TLSOptions must keep verifying ordinary public HTTPS against the system
 // roots — "no custom CA" means default trust, never no trust.
 func TestHTTPClient_ZeroOptionsKeepsSystemRootVerification(t *testing.T) {
-	srv := pointListTLSServer(t, testca.New(t), false) // private CA, not in system roots
+	ca := testca.New(t)
+	srv := pointListTLSServer(t, ca, false) // private CA, not in system roots
+	dialURL := dialNameFor(t, srv.URL)
 
-	// Dial the name the certificate is actually issued for. httptest's URL is
-	// https://127.0.0.1:port and the cert carries only a "localhost" SAN, so
-	// against srv.URL the handshake fails on the hostname — and the test would
-	// pass without ever exercising trust roots, which is the whole claim here.
-	c, err := NewHTTPClient(strings.Replace(srv.URL, "127.0.0.1", "localhost", 1), "gw-001", nil, TLSOptions{})
+	// Positive control: with the CA trusted, the very same server and dial
+	// name must succeed. This is what actually rules out a hostname mismatch
+	// as the cause of the rejection below — on darwin a nil RootCAs
+	// verification is delegated to Security.framework, which folds hostname
+	// checking and trust-chain checking into one opaque result (verified
+	// against the go1.27 crypto/x509 source: the platform-verifier branch in
+	// Certificate.Verify returns before Go's own VerifyHostname ever runs), so
+	// no error type can tell the two failure modes apart there. Proving success
+	// here is the only portable way to isolate trust as the one remaining
+	// variable in the assertion that follows.
+	trusted := TLSOptions{CAFile: testca.WritePEM(t, t.TempDir(), "ca.pem", ca.CertPEM())}
+	trustedClient, err := NewHTTPClient(dialURL, "gw-001", nil, trusted)
+	if err != nil {
+		t.Fatalf("NewHTTPClient (trusted control): %v", err)
+	}
+	if _, err := fetchOnce(t, trustedClient); err != nil {
+		t.Fatalf("control failed — hostname verification itself is broken, independent of trust: %v", err)
+	}
+
+	c, err := NewHTTPClient(dialURL, "gw-001", nil, TLSOptions{})
 	if err != nil {
 		t.Fatalf("NewHTTPClient: %v", err)
 	}
@@ -278,9 +337,21 @@ func TestHTTPClient_ZeroOptionsKeepsSystemRootVerification(t *testing.T) {
 	if err == nil {
 		t.Fatal("zero TLSOptions accepted a server the system roots do not trust")
 	}
-	// Pin the reason, not just the failure.
-	var unknownAuthority x509.UnknownAuthorityError
-	if !errors.As(err, &unknownAuthority) {
-		t.Fatalf("expected an unknown-authority rejection, got %v", err)
+	// Pin the reason, not just the failure — but by the OS-independent wrapper,
+	// not the underlying x509 error type. x509.UnknownAuthorityError is a
+	// Linux-only shape here (#144): on darwin the wrapped reason is a generic
+	// platform error string instead. crypto/tls wraps a handshake certificate
+	// rejection in *tls.CertificateVerificationError identically on every
+	// platform (crypto/tls/handshake_client.go), so that type is the portable
+	// thing to assert on. UnverifiedCertificates being non-empty proves a
+	// certificate was actually presented and rejected rather than some
+	// unrelated failure; the control above is what proves the rejection is
+	// about trust specifically, not the host name.
+	var certErr *tls.CertificateVerificationError
+	if !errors.As(err, &certErr) {
+		t.Fatalf("expected a certificate verification rejection, got %v", err)
+	}
+	if len(certErr.UnverifiedCertificates) == 0 {
+		t.Fatalf("expected the rejected certificate to be attached to the error, got %v", certErr)
 	}
 }
