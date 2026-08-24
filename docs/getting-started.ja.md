@@ -396,6 +396,42 @@ docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up mqtt-connecto
 `command_topic`, `payload_template`)を定義します。書き込み可能なポイントには
 `writable: true` に加えて `command_topic` の設定が必要です。
 
+**AWS IoT Core を使う場合:** MQTT overlay(`docker-compose.mqtt.yml`)は設定済みの
+ATS エンドポイントに接続し `#` を購読するのがデフォルトです。クライアント証明書と
+秘密鍵は git 管理外の `secrets/` ディレクトリから読み取り専用の Compose secrets と
+してマウントされます(秘密鍵を環境変数やイメージに含めないこと)。
+
+上記の compose コマンドは、実際に `secrets/` を配置したチェックアウトで実行してください
+— `secrets/` は git 管理外なので、置いた場所にしか存在せず、このリポジトリの他の
+clone や worktree には自動的には現れません。
+
+購読対象の約 2000 トピックは(ワイルドカード購読とは別に)`MQTT_POINTS_FILE`(推奨)
+または `MQTT_POINTS` に**完全一致**で列挙する必要があります — `#` で購読していても、
+一覧に無いトピックのメッセージはコネクタが即座に ACK して捨てます
+(`connector/mqtt/connector.go`)。`tas/heartbeat` は ACK の上で無視されます。
+
+このトピック一覧を SBCO 標準ポイントリスト CSV(`--provisioning-file` /
+`PROVISIONING_FILE` が読む形式。詳細は [README.ja.md](../README.ja.md) の
+「設定(フラグ / 環境変数)」節を参照)から作る場合、**そのCSVを
+`MQTT_POINTS_FILE` にそのまま使うことはできません** — 2 つのポイントリストは
+スキーマも役割も別物です。ゲートウェイ本体の Point List CSV はコネクタの
+`local_id` を正規の `point_id` に解決する(正規化)ためのもの、コネクタの
+`MQTT_POINTS_FILE` は「どのトピックを購読するか」と `device_ref`/`unit`/`writable`
+を決める、`{topic, device_ref, unit, writable, command_topic, payload_template}`
+というフラットな JSON 配列です。CSV から後者を生成するには:
+
+```bash
+python3 scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
+```
+
+を実行し、生成された JSON を `MQTT_POINTS_FILE` に指定します
+(`docker-compose.mqtt.yml` はデフォルトで `fixtures/mqtt/aws_iot_points.json` を
+そこにマウント済みです)。ゲートウェイ本体の Point List は引き続き CSV を直接
+指すようにしてください
+(`PROVISIONING_FILE=secrets/THX_StandardPointList_v1.confirmed.csv`,
+`CONNECTOR_MAP=mqtt:mqtt-01`)— そうしないと受信したイベントが `point_id` に
+解決できず、未解決として破棄されます(ADR-0002, ADR-0003)。
+
 ---
 
 ## 9. 次のステップ
