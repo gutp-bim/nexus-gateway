@@ -206,14 +206,85 @@ NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 
 > **本番(ADR-0006):** cosign フラグ(`--cosign-key`、または keyless の場合 `--cosign-identity` + `--cosign-oidc-issuer`)を設定し、コネクタイメージを install/update 前に署名検証する。未設定だと検証は無効になり起動時に警告ログが出る(ローカル/dev のみ許容)。
 
-### 本番: Building OS への TLS/mTLS(ADR-0007)
+### シミュレータ統合(設備なし)
 
-`BOS_INSECURE=true`(平文 h2c)は **dev/CI 専用**です(エッジプロキシの無いローカル用)。
-本番では `--bos-insecure` を外し、CA + クライアント証明書/鍵を渡します。gRPC リンクは
-Building OS の Traefik エッジ(`TLSOption` + `passTLSClientCert`)で **mTLS 終端**され、
-`gateway_id` がクライアント証明書の CN(cert-manager 発行)に束縛されます。エッジは証明書
-由来の信頼ヘッダ `X-Gateway-Id` を注入し、Building OS がフレームの `gateway_id` と一致を
-強制します。ゲートウェイ自身は `X-Gateway-Id` を送りません(エッジが付与)。
+隣接リポ `../bacnet-sim-gateway` と `../opcua-sim-gateway` が標準準拠の BACnet/IP・
+OPC-UA シミュレータを提供します。本チェックアウトの隣に clone してください
+(sibling が無いと `../…-sim-gateway: no such file or directory` のビルド
+コンテキストエラーになります):
+
+```bash
+# nexus-gateway/ を既に含む親ディレクトリで
+git clone https://github.com/takashikasuya/bacnet-sim-gateway
+git clone https://github.com/takashikasuya/opcua-sim-gateway
+```
+
+詳細は [`fixtures/integration/`](fixtures/integration/README.md):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile opcua up
+```
+
+### 実際の Building OS と接続する
+
+mock-bos の代わりに、ゲートウェイを実際の Building OS スタックに向けます:
+
+```bash
+# Building OS OSS スタック(github.com/gutp-bim/gutp-building-os-ri 参照)
+docker compose -f /path/to/gutp-building-os-ri/docker-compose.oss.yaml up -d
+
+# SPLIT された BOS ingress/egress アドレスと SoS Point List でゲートウェイを起動。
+# テレメトリ ingress と制御プレーンの egress は**別ポート**で終端される
+# (egress は 5051 ではなく 5052)— 両方設定しないと Control Command が
+# サイレントに接続できなくなる。
+GATEWAY_ID=GW-SOS-001 \
+BOS_INGRESS_ADDR=localhost:5051 \
+BOS_EGRESS_ADDR=localhost:5052 \
+BOS_INSECURE=true \
+PROVISIONING_FILE=/path/to/mvp-pointlist.csv \
+go run ./cmd/gateway
+```
+
+> `BOS_INSECURE=true`(平文 h2c)は **dev/CI 専用**です(エッジプロキシの無い
+> ローカル実行用)。本番では使用しないでください。
+
+#### `go run` の代わりに Docker Compose を使う
+
+両スタックを同じマシン上で Docker Compose として動かす場合は、
+[`docker-compose.live-bos.yml`](docker-compose.live-bos.yml) オーバレイを使います。
+これは `gateway` サービスの ingress/egress を `mock-bos` の代わりに
+`host.docker.internal:5051`/`:5052` に向けます:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.live-bos.yml up --build
+```
+
+`mock-bos` はこのオーバレイと一緒に(Compose はオーバレイファイルでベースサービスを
+選択的に外せないため)引き続き起動しますが、アイドル状態になります — ゲートウェイは
+もう `mock-bos` と通信しません。Linux での `host.docker.internal` に関する注意点
+(このオーバレイが追加する `extra_hosts: host-gateway` マッピングには Docker Engine
+≥ 20.10 が必要)は `docker-compose.live-bos.yml` のコメントヘッダを参照してください。
+
+**Building OS 自身の SoS デモに接続する場合(#81):** 本リポジトリのデフォルトの
+namespace(`GATEWAY_ID=gw-001`、ポイント `supply_air_temp`/`fan_run`)は、
+Building OS の OSS スタックがデフォルトで自動投入する `GATEWAY_ID=GW-SOS-001` /
+`SOS-PT-*` の twin とは**一致しません** — デフォルトのゲートウェイをそこに向けると、
+すべてのフレームが unknown-point として捨てられます。
+[`docker-compose.sos-demo.yml`](docker-compose.sos-demo.yml) も重ねて適用してください
+(`gutp-building-os-ri` の sibling checkout が必要。コメントヘッダ参照):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.live-bos.yml \
+  -f docker-compose.sos-demo.yml up --build
+```
+
+#### 本番: Building OS への TLS/mTLS(ADR-0007)
+
+本番では、gateway↔Building OS の gRPC リンクは Building OS の Traefik エッジ
+(`TLSOption` + `passTLSClientCert`)で **mTLS 終端**され、`gateway_id` がクライアント
+証明書の CN(cert-manager 発行)に束縛されます。エッジは証明書由来の信頼ヘッダ
+`X-Gateway-Id` を注入し、Building OS がフレームの `gateway_id` と一致することを
+強制します。`--bos-insecure` を外し、代わりに CA + クライアント証明書/鍵を渡します:
 
 ```bash
 GATEWAY_ID=GW-SOS-001 \
@@ -223,13 +294,32 @@ BOS_CERT_FILE=/etc/nexus/tls/gateway.crt \   # CN/SAN に GATEWAY_ID を埋め�
 BOS_KEY_FILE=/etc/nexus/tls/gateway.key \
 BOS_SERVER_NAME=bos.example.com \            # 任意: SNI/検証名の上書き
 PROVISIONING_URL=https://bos.example.com/provisioning \
+PROVISIONING_CA_FILE=/etc/nexus/tls/ca.pem \
+PROVISIONING_CERT_FILE=/etc/nexus/tls/gateway.crt \
+PROVISIONING_KEY_FILE=/etc/nexus/tls/gateway.key \
 go run ./cmd/gateway
 ```
 
-- `--bos-cert`/`--bos-key` を省くと **サーバ認証のみ**(CA 検証)、付けると **mTLS**。
-- CN/SAN ↔ `gateway_id` の束縛が Building OS の所有権チェックの前提です。
+- `--bos-cert`/`--bos-key` を省くと **サーバ認証のみ**(CA 検証、クライアント証明書
+  無し)、付けると **mTLS**。
+- **Point List のチャンネルは別に設定します**(`PROVISIONING_*`)。上記トポロジと
+  同じエッジに到達しますが、2 つのリンクは別のプロキシで終端し得るため、片方が
+  もう片方の資格情報を暗黙に引き継ぐことはありません — `PROVISIONING_CA_FILE`、
+  `PROVISIONING_CERT_FILE`、`PROVISIONING_KEY_FILE` を明示的に設定してください。
+  未設定のままだと通常の HTTPS(システムルートで検証)になるだけで、検証が
+  無効になることはありません。証明書だけ・鍵だけの設定は(逆の場合も)サイレントに
+  無視されず、起動時に拒否されます(#135)。
+- `PROVISIONING_*` の TLS 変数を 1 つでも設定した場合、**`PROVISIONING_URL` は
+  `https://` である必要があります**。それ以外では起動自体を拒否します —
+  `http://` エンドポイントに対しては資格情報が使われないまま Point List が平文で
+  流れてしまい、設定上は保護されているように見えてしまうためです。
+- 証明書 CN ↔ `gateway_id` の束縛が Building OS の所有権チェックの前提です。
+  ゲートウェイ自身は `X-Gateway-Id` を送りません(Traefik エッジが証明書から付与)。
   [SECURITY.md](SECURITY.md) と
   [ADR-0007](docs/adr/0007-transport-security-mtls-at-edge.md) を参照。
+
+Building OS に対するフル E2E テストスイートは
+**[`docs/e2e-test-overview.md`](docs/e2e-test-overview.md)** を参照してください。
 
 #### Admin UI 認証: Basic 認証(デフォルト)または Keycloak(オプトイン)
 
@@ -278,25 +368,6 @@ ADMIN_API_URL=https://gateway-admin-api.example.com
 | Building OS 統合環境 | Building OS 側 Keycloak |
 | 本番 | Building OS 側 Keycloak または組織共通 IdP |
 | Gateway ↔ Building OS | mTLS — Keycloak 不使用 |
-
-### シミュレータ統合(設備なし)
-
-隣接リポ `../bacnet-sim-gateway` と `../opcua-sim-gateway` が標準準拠の BACnet/IP・
-OPC-UA シミュレータを提供します。本チェックアウトの隣に clone してください
-(sibling が無いと `../…-sim-gateway: no such file or directory` のビルド
-コンテキストエラーになります):
-
-```bash
-# nexus-gateway/ を既に含む親ディレクトリで
-git clone https://github.com/takashikasuya/bacnet-sim-gateway
-git clone https://github.com/takashikasuya/opcua-sim-gateway
-```
-
-詳細は [`fixtures/integration/`](fixtures/integration/README.md):
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.integration.yml --profile opcua up
-```
 
 ---
 

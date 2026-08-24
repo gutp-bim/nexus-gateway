@@ -277,6 +277,33 @@ or `MQTT_POINTS`; wildcard subscription reduces broker subscriptions but does
 not bypass exact Point List validation. `tas/heartbeat` is acknowledged and
 ignored.
 
+Run the compose commands above from whichever checkout you actually placed
+`secrets/` in — it is git-ignored, so it exists only where you put it, not in
+every clone or worktree of this repo.
+
+If your topics come from an SBCO standard point-list CSV (the same file format
+`--provisioning-file` / `PROVISIONING_FILE` accepts — see the
+[configuration table](../README.md#configuration-flags--env) in the README), that CSV is
+**not** directly usable as `MQTT_POINTS_FILE` — the two point lists have
+different schemas and different jobs. The gateway's Point List CSV resolves a
+connector's `local_id` to a canonical `point_id` for normalization; the MQTT
+connector's own `MQTT_POINTS_FILE` is a flat JSON array of
+`{topic, device_ref, unit, writable, command_topic, payload_template}` that
+tells the connector which topics to subscribe to in the first place, and it
+acks-and-drops any message on a topic not listed there — wildcard subscription
+does not bypass that. Generate the connector's file from the CSV with:
+
+```bash
+python3 scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
+```
+
+and point `MQTT_POINTS_FILE` at the result (`docker-compose.mqtt.yml` already
+mounts `fixtures/mqtt/aws_iot_points.json` there by default). The gateway's
+own Point List should still be pointed at the CSV directly
+(`PROVISIONING_FILE=secrets/THX_StandardPointList_v1.confirmed.csv`,
+`CONNECTOR_MAP=mqtt:mqtt-01`) so incoming events actually resolve to
+`point_id`s instead of being dropped as unresolved (ADR-0002, ADR-0003).
+
 Observed payloads use `datetime` as their RFC 3339 observation timestamp and a
 numeric JSON `value` or numeric string. Both are converted to the gateway's
 numeric telemetry value. General strings are preserved in
