@@ -12,11 +12,20 @@ whose topic is not in MQTT_POINTS_FILE, even under a wildcard subscription
 be listed there explicitly, in this different schema.
 
 Usage:
-    scripts/csv-to-mqtt-points.py POINT_LIST.csv MQTT_POINTS.json
+    python3 scripts/csv-to-mqtt-points.py POINT_LIST.csv MQTT_POINTS.json
 
-Only rows whose local_id contains "/" are kept (the same MQTT-topic shape
-heuristic InferProtocol uses in internal/pointlist/csv.go), and duplicate
-topics are collapsed, first row wins.
+A row is kept as MQTT when its "protocol" column (if present) says "mqtt", or,
+absent that column, when its local_id has the MQTT-topic shape ("/") — the
+same fallback InferProtocol uses in internal/pointlist/csv.go. An explicit
+protocol=mqtt row is kept even if its local_id has no "/", since a bare MQTT
+topic (no path segments) is legal. Duplicate topics are collapsed, first row
+wins.
+
+The CSV has no command_topic/payload_template columns, so a row cannot be
+trusted as writable here: the MQTT connector refuses to start at all if any
+point has writable=true without a command_topic (cmd/mqtt-connector/main.go).
+Every generated point is therefore writable=false; fill in command_topic (and
+flip writable back to true) by hand for the points that actually need it.
 """
 import argparse
 import csv
@@ -29,18 +38,29 @@ def convert(csv_path, json_path):
         reader = csv.DictReader(f)
         seen = set()
         points = []
+        skipped_writable = 0
         for row in reader:
             topic = (row.get("local_id") or "").strip()
-            if not topic or "/" not in topic:
+            if not topic:
+                continue
+            protocol = (row.get("protocol") or "").strip().lower()
+            if protocol:
+                if protocol != "mqtt":
+                    continue
+            elif "/" not in topic:
                 continue
             if topic in seen:
                 continue
             seen.add(topic)
+            if (row.get("writable") or "").strip().lower() == "true":
+                skipped_writable += 1
             points.append({
                 "topic": topic,
                 "device_ref": (row.get("device_id") or "").strip(),
                 "unit": (row.get("unit") or "").strip(),
-                "writable": (row.get("writable") or "").strip().lower() == "true",
+                "writable": False,
+                "command_topic": "",
+                "payload_template": "",
             })
 
     with open(json_path, "w", encoding="utf-8") as f:
@@ -48,6 +68,13 @@ def convert(csv_path, json_path):
         f.write("\n")
 
     print(f"{len(points)} MQTT points written to {json_path}", file=sys.stderr)
+    if skipped_writable:
+        print(
+            f"{skipped_writable} point(s) were writable in the CSV but have no "
+            "command_topic; written as writable=false — set command_topic and "
+            "writable=true by hand for the ones that need write support",
+            file=sys.stderr,
+        )
 
 
 def main():

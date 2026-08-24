@@ -294,7 +294,7 @@ acks-and-drops any message on a topic not listed there — wildcard subscription
 does not bypass that. Generate the connector's file from the CSV with:
 
 ```bash
-scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
+python3 scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
 ```
 
 and point `MQTT_POINTS_FILE` at the result (`docker-compose.mqtt.yml` already

@@ -421,7 +421,7 @@ clone や worktree には自動的には現れません。
 というフラットな JSON 配列です。CSV から後者を生成するには:
 
 ```bash
-scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
+python3 scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
 ```
 
 を実行し、生成された JSON を `MQTT_POINTS_FILE` に指定します
