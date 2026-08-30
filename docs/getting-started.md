@@ -304,6 +304,15 @@ own Point List should still be pointed at the CSV directly
 `CONNECTOR_MAP=mqtt:mqtt-01`) so incoming events actually resolve to
 `point_id`s instead of being dropped as unresolved (ADR-0002, ADR-0003).
 
+If Building OS's own provisioning API (`PROVISIONING_URL`) will eventually be
+available but isn't yet, add `PROVISIONING_MODE=fallback` alongside
+`PROVISIONING_FILE`/`PROVISIONING_URL`: the gateway starts from this CSV and
+permanently promotes to Building OS the first time it answers, with no
+restart needed (EP-013). Without `PROVISIONING_MODE` set, the CSV stays
+pinned for the life of the process — see the
+[configuration table](../README.md#configuration-flags--env) for the other
+`--provisioning-mode` values.
+
 Observed payloads use `datetime` as their RFC 3339 observation timestamp and a
 numeric JSON `value` or numeric string. Both are converted to the gateway's
 numeric telemetry value. General strings are preserved in

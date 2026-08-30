@@ -73,7 +73,13 @@ func main() {
 	plFile := flag.String("point-list", envOrDefault("POINT_LIST_FILE", "fixtures/point_list.json"), "Bootstrap fixture point list (used when both --provisioning-url and --provisioning-file are empty)")
 	plPersist := flag.String("point-list-persist", envOrDefault("POINT_LIST_PERSIST", "data/point_list.json"), "Path to persist the synced point list")
 	provURL := flag.String("provisioning-url", envOrDefault("PROVISIONING_URL", ""), "Provisioning API base URL (empty = fixture only)")
-	provFile := flag.String("provisioning-file", envOrDefault("PROVISIONING_FILE", ""), "File-backed Point List provisioning source (.csv or .json); overridden by --provisioning-url")
+	provFile := flag.String("provisioning-file", envOrDefault("PROVISIONING_FILE", ""), "File-backed Point List provisioning source (.csv or .json); overridden by --provisioning-url unless --provisioning-mode says otherwise")
+	provMode := flag.String("provisioning-mode", envOrDefault("PROVISIONING_MODE", ""), `Point List source selection (EP-013, ADR-0003): "file" pins to --provisioning-file
+and never dials --provisioning-url even if set; "url" pins to --provisioning-url and
+never reads --provisioning-file; "fallback" starts from --provisioning-file while
+--provisioning-url is unreachable and permanently promotes to it on first success
+(requires both flags set). Empty (default) reproduces the pre-EP-013 behavior:
+--provisioning-url if set, else --provisioning-file, else the --point-list fixture.`)
 	provConnID := flag.String("provisioning-connector-id", envOrDefault("PROVISIONING_CONNECTOR_ID", "bacnet-01"), "Connector id stamped on entries loaded from a provisioning CSV")
 	// Point List TLS is configured separately from the gRPC link's BOS_* settings
 	// (#135): the two can terminate at different edges, so neither should inherit
@@ -132,6 +138,11 @@ bacnet:<provisioning-connector-id>.`)
 	}
 	if (*catalogURL != "" || *catalogFile != "") && *catalogPollInterval <= 0 {
 		slog.Error("invalid duration flag: must be positive", "flag", "--catalog-poll-interval", "value", *catalogPollInterval)
+		os.Exit(1)
+	}
+	resolvedProvMode, err := resolveProvisioningMode(*provMode, *provURL, *provFile)
+	if err != nil {
+		slog.Error("invalid --provisioning-mode / PROVISIONING_MODE", "err", err)
 		os.Exit(1)
 	}
 
@@ -288,9 +299,11 @@ bacnet:<provisioning-connector-id>.`)
 		DefaultCommandQoS:   mqttSyncCmdQoSMap,
 	})
 
-	var provClient provisioning.Client
-	switch {
-	case *provURL != "":
+	// newProvHTTPClient and newProvFileClient factor out construction shared by
+	// more than one provisioningMode branch below (EP-013) — each still exits
+	// the process on its own misconfiguration, matching every other flag
+	// validation in this function.
+	newProvHTTPClient := func() *provisioning.HTTPClient {
 		httpProv, err := provisioning.NewHTTPClient(*provURL, *gatewayID, cmap, provisioning.TLSOptions{
 			CAFile:     *provCA,
 			CertFile:   *provCert,
@@ -303,8 +316,9 @@ bacnet:<provisioning-connector-id>.`)
 			slog.Error("provisioning: TLS configuration invalid", "err", err)
 			os.Exit(1)
 		}
-		provClient = httpProv
-	case *provFile != "":
+		return httpProv
+	}
+	newProvFileClient := func() *provisioning.FileClient {
 		// Fail fast on a bad path rather than spinning the startup wait and then
 		// running with an empty Point List.
 		switch fi, err := os.Stat(*provFile); {
@@ -315,7 +329,29 @@ bacnet:<provisioning-connector-id>.`)
 			slog.Error("provisioning file is not a regular file", "path", *provFile)
 			os.Exit(1)
 		}
-		provClient = provisioning.NewFileClient(*provFile, *provConnID, cmap)
+		return provisioning.NewFileClient(*provFile, *provConnID, cmap)
+	}
+
+	var provClient provisioning.Client
+	switch resolvedProvMode {
+	case provisioningModeURL:
+		provClient = newProvHTTPClient()
+	case provisioningModeFile:
+		provClient = newProvFileClient()
+	case provisioningModeFallback:
+		fb := provisioning.NewFallbackClient(newProvHTTPClient(), newProvFileClient())
+		fb.OnPromote(func(etag string) {
+			slog.Info("provisioning: promoted from local file to Building OS", "url", *provURL, "etag", etag)
+			metrics.SetProvisioningPromoted(true)
+		})
+		provClient = fb
+	default: // provisioningModeAuto: pre-EP-013 behavior, byte-for-byte.
+		switch {
+		case *provURL != "":
+			provClient = newProvHTTPClient()
+		case *provFile != "":
+			provClient = newProvFileClient()
+		}
 	}
 	// Ensure the persist directory exists before the sync loop tries to write.
 	if *plPersist != "" {
@@ -728,6 +764,60 @@ func parseConnectorMap(s string) (map[string]string, error) {
 		m[k] = v
 	}
 	return m, nil
+}
+
+// provisioningMode selects which provisioning.Client construction main() uses
+// (EP-013, ADR-0003).
+type provisioningMode string
+
+const (
+	// provisioningModeAuto reproduces the historical, pre-EP-013 selection:
+	// --provisioning-url if set, else --provisioning-file, else the one-shot
+	// --point-list fixture. It is the default so an unset --provisioning-mode
+	// changes no existing deployment's behavior.
+	provisioningModeAuto provisioningMode = ""
+	// provisioningModeFile pins to --provisioning-file only, for the process
+	// lifetime; --provisioning-url is never dialed even if also set. This is
+	// the explicit "never sync to Building OS" mode offline/dev/E2E/CI
+	// deployments depend on.
+	provisioningModeFile provisioningMode = "file"
+	// provisioningModeURL pins to --provisioning-url only; --provisioning-file
+	// is never read even if also set.
+	provisioningModeURL provisioningMode = "url"
+	// provisioningModeFallback starts from --provisioning-file while
+	// --provisioning-url is unreachable and permanently promotes to it on its
+	// first success (provisioning.FallbackClient).
+	provisioningModeFallback provisioningMode = "fallback"
+)
+
+// resolveProvisioningMode validates --provisioning-mode/PROVISIONING_MODE
+// against the given --provisioning-url/--provisioning-file values and
+// normalizes case/whitespace. It performs no I/O. An empty mode always
+// resolves to provisioningModeAuto regardless of which of url/file are set —
+// see provisioningModeAuto's doc comment for why that must not fail fast on
+// an "incomplete" pair the way the three explicit modes below do.
+func resolveProvisioningMode(mode, url, file string) (provisioningMode, error) {
+	switch m := provisioningMode(strings.ToLower(strings.TrimSpace(mode))); m {
+	case provisioningModeAuto:
+		return provisioningModeAuto, nil
+	case provisioningModeFile:
+		if file == "" {
+			return "", fmt.Errorf("--provisioning-mode=file requires --provisioning-file to be set")
+		}
+		return provisioningModeFile, nil
+	case provisioningModeURL:
+		if url == "" {
+			return "", fmt.Errorf("--provisioning-mode=url requires --provisioning-url to be set")
+		}
+		return provisioningModeURL, nil
+	case provisioningModeFallback:
+		if url == "" || file == "" {
+			return "", fmt.Errorf("--provisioning-mode=fallback requires both --provisioning-url and --provisioning-file to be set")
+		}
+		return provisioningModeFallback, nil
+	default:
+		return "", fmt.Errorf("invalid --provisioning-mode %q: want %q, %q, or %q", mode, provisioningModeFile, provisioningModeURL, provisioningModeFallback)
+	}
 }
 
 func splitComma(s string) []string {

@@ -183,6 +183,7 @@ NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 | `--point-list-persist` | `POINT_LIST_PERSIST` | `data/point_list.json` | 同期済み Point List の永続化パス(再起動をまたぐ) |
 | `--provisioning-url` | `PROVISIONING_URL` | – | Building OS の Point List provisioning API |
 | `--provisioning-file` | `PROVISIONING_FILE` | – | file/CSV ベースの Point List(dev/E2E) |
+| `--provisioning-mode` | `PROVISIONING_MODE` | – | `file`(`--provisioning-file`に固定し`--provisioning-url`には一切接続しない)、`url`(`--provisioning-url`のみに固定)、`fallback`(Building OS到達不能の間はfileから起動し、初回成功時に恒久的にBOSへ昇格 — 両フラグの設定が必須)のいずれかを選択。未設定時は従来どおり URL→file→fixtureの優先順位(EP-013, ADR-0003) |
 | `--provisioning-connector-id` | `PROVISIONING_CONNECTOR_ID` | `bacnet-01` | `--connector-map` にエントリのないプロトコルの行に付与するフォールバック connector ID |
 | `--connector-map` | `CONNECTOR_MAP` | – | `protocol:connectorID` のカンマ区切りペア。file/HTTP 両方の provisioning 経路で共通利用(例: `bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01`)。エントリのないプロトコルは `--provisioning-connector-id` にフォールバック |
 | `--point-sync-interval` | – | `10m` | 初回同期後の Point List ポーリング間隔 |
