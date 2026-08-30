@@ -432,6 +432,13 @@ python3 scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed
 `CONNECTOR_MAP=mqtt:mqtt-01`)— そうしないと受信したイベントが `point_id` に
 解決できず、未解決として破棄されます(ADR-0002, ADR-0003)。
 
+Building OS 側のprovisioning API(`PROVISIONING_URL`)を後から使う予定がある場合は、
+`PROVISIONING_FILE`/`PROVISIONING_URL`と一緒に`PROVISIONING_MODE=fallback`を
+指定してください — このCSVから起動し、Building OSが初めて応答した時点で再起動なしに
+恒久的にそちらへ昇格します(EP-013)。`PROVISIONING_MODE`を指定しない場合、CSVは
+プロセスの生存期間中ずっと固定されたままです。他の`--provisioning-mode`の値については
+[設定表](../README.ja.md)を参照してください。
+
 ---
 
 ## 9. 次のステップ

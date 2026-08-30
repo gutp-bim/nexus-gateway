@@ -606,6 +606,10 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "# HELP uplink_connected Whether the Building OS telemetry uplink is currently healthy (1/0).\n")
 	fmt.Fprintf(w, "# TYPE uplink_connected gauge\n")
 	fmt.Fprintf(w, "uplink_connected %d\n", metrics.UplinkConnectedGauge())
+	// EP-013: only meaningful under --provisioning-mode=fallback; stays 0 in every other mode.
+	fmt.Fprintf(w, "# HELP provisioning_fallback_promoted Whether a fallback-mode Point List provisioning source has promoted from its local-file bootstrap to Building OS (1/0).\n")
+	fmt.Fprintf(w, "# TYPE provisioning_fallback_promoted gauge\n")
+	fmt.Fprintf(w, "provisioning_fallback_promoted %d\n", metrics.ProvisioningPromotedGauge())
 	fmt.Fprintf(w, "# HELP normalizer_invalid_total Common Events the Normalizer could not parse.\n")
 	fmt.Fprintf(w, "# TYPE normalizer_invalid_total counter\n")
 	fmt.Fprintf(w, "normalizer_invalid_total %d\n", metrics.NormalizerInvalid())

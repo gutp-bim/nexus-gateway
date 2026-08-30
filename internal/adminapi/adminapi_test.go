@@ -803,6 +803,42 @@ func TestMetrics_IncludesConnectivityAndConnectorUp(t *testing.T) {
 	}
 }
 
+// /metrics must expose whether a fallback-mode provisioning source has
+// promoted from its local-file bootstrap to Building OS (EP-013), the same
+// way nats_connected/uplink_connected already expose other connectivity
+// gauges — without it, confirming a fallback deployment actually converged
+// after a restart requires log-scraping.
+func TestMetrics_IncludesProvisioningPromoted(t *testing.T) {
+	metrics.SetProvisioningPromoted(true)
+	t.Cleanup(func() { metrics.SetProvisioningPromoted(false) })
+
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/metrics")
+	require.NoError(t, err)
+	b, _ := io.ReadAll(resp.Body)
+	body := string(b)
+
+	assert.Contains(t, body, "# TYPE provisioning_fallback_promoted gauge")
+	assert.Contains(t, body, "provisioning_fallback_promoted 1")
+}
+
+func TestMetrics_ProvisioningPromoted_DefaultsToZero(t *testing.T) {
+	metrics.SetProvisioningPromoted(false)
+
+	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})
+	apiSrv := httptest.NewServer(srv)
+	t.Cleanup(apiSrv.Close)
+
+	resp, err := http.Get(apiSrv.URL + "/metrics")
+	require.NoError(t, err)
+	b, _ := io.ReadAll(resp.Body)
+
+	assert.Contains(t, string(b), "provisioning_fallback_promoted 0")
+}
+
 // /metrics must expose gateway_build_info carrying the single-source version (#22).
 func TestMetrics_IncludesBuildInfo(t *testing.T) {
 	srv := adminapi.NewServer(&mockManager{}, &mockMonitor{}, adminapi.ServerOptions{})

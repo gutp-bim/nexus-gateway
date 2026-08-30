@@ -154,6 +154,79 @@ func TestParseConnectorMap_KeyCaseNormalizedToLowercase(t *testing.T) {
 	}
 }
 
+func TestResolveProvisioningMode_UnsetIsAuto(t *testing.T) {
+	mode, err := resolveProvisioningMode("", "", "")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeAuto, mode)
+}
+
+func TestResolveProvisioningMode_UnsetIsAutoRegardlessOfFlags(t *testing.T) {
+	// An unset --provisioning-mode must reproduce today's flag-precedence
+	// behavior byte-for-byte (EP-013) — it must not require any particular
+	// combination of --provisioning-url/--provisioning-file to be valid.
+	mode, err := resolveProvisioningMode("", "https://bos.example.com/provisioning", "")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeAuto, mode)
+
+	mode, err = resolveProvisioningMode("", "", "/path/pl.csv")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeAuto, mode)
+}
+
+func TestResolveProvisioningMode_File_RequiresFileFlag(t *testing.T) {
+	mode, err := resolveProvisioningMode("file", "", "/path/pl.csv")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeFile, mode)
+
+	_, err = resolveProvisioningMode("file", "", "")
+	assert.Error(t, err, "--provisioning-mode=file with no --provisioning-file must fail fast")
+}
+
+func TestResolveProvisioningMode_File_IgnoresURLFlagPresence(t *testing.T) {
+	// file mode must be selectable (and must not require --provisioning-url to
+	// be absent) — this is the explicit "never dial Building OS" mode EP-013
+	// preserves even when a URL happens to also be configured.
+	mode, err := resolveProvisioningMode("file", "https://bos.example.com/provisioning", "/path/pl.csv")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeFile, mode)
+}
+
+func TestResolveProvisioningMode_URL_RequiresURLFlag(t *testing.T) {
+	mode, err := resolveProvisioningMode("url", "https://bos.example.com/provisioning", "")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeURL, mode)
+
+	_, err = resolveProvisioningMode("url", "", "")
+	assert.Error(t, err, "--provisioning-mode=url with no --provisioning-url must fail fast")
+}
+
+func TestResolveProvisioningMode_Fallback_RequiresBothFlags(t *testing.T) {
+	mode, err := resolveProvisioningMode("fallback", "https://bos.example.com/provisioning", "/path/pl.csv")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeFallback, mode)
+}
+
+func TestResolveProvisioningMode_Fallback_MissingURL_Errors(t *testing.T) {
+	_, err := resolveProvisioningMode("fallback", "", "/path/pl.csv")
+	assert.Error(t, err, "fallback mode needs --provisioning-url as well as --provisioning-file")
+}
+
+func TestResolveProvisioningMode_Fallback_MissingFile_Errors(t *testing.T) {
+	_, err := resolveProvisioningMode("fallback", "https://bos.example.com/provisioning", "")
+	assert.Error(t, err, "fallback mode needs --provisioning-file as well as --provisioning-url")
+}
+
+func TestResolveProvisioningMode_InvalidValue_Errors(t *testing.T) {
+	_, err := resolveProvisioningMode("bogus", "https://bos.example.com/provisioning", "/path/pl.csv")
+	assert.Error(t, err)
+}
+
+func TestResolveProvisioningMode_CaseAndWhitespaceInsensitive(t *testing.T) {
+	mode, err := resolveProvisioningMode("  FALLBACK  ", "https://bos.example.com/provisioning", "/path/pl.csv")
+	require.NoError(t, err)
+	assert.Equal(t, provisioningModeFallback, mode)
+}
+
 // The Connector Catalog install gate must read the gateway version from the
 // single-source version package (#22), and that value must be a valid semver so
 // a fresh (uninjected) build still satisfies a manifest's min_gateway_version —
