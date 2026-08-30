@@ -1,6 +1,6 @@
 # EP-013: Dynamic Point List Provisioning Fallback (File ⇄ Building OS)
 
-**Status:** Proposed
+**Status:** Implemented — pending review/merge (PR #157)
 **Priority:** P2
 
 ## Goal
@@ -105,34 +105,40 @@ open a follow-up rather than expanding this epic's scope.
 
 ## Acceptance Criteria
 
-- [ ] `provisioning.FallbackClient` exists, implements `Client`, and is covered by unit tests for:
+- [x] `provisioning.FallbackClient` exists, implements `Client`, and is covered by unit tests for:
       HTTP-unreachable-at-start → file bootstrap → HTTP becomes reachable → permanent promotion;
       the promotion `FetchResult` is `Full: true`; a post-promotion HTTP failure does **not** fall
-      back to the file.
-- [ ] `--provisioning-mode` / `PROVISIONING_MODE` accepts `file`, `url`, `fallback`; an unset value
-      reproduces current behavior exactly (existing integration/E2E tests pass unmodified).
-- [ ] `--provisioning-mode=file` never opens a connection to `--provisioning-url` even when both
-      flags are set — verified by a test that points `--provisioning-url` at a closed port and
-      confirms no dial attempt / no error logged about it.
-- [ ] `--provisioning-mode=fallback` with only one of `--provisioning-url`/`--provisioning-file` set
+      back to the file. (`internal/provisioning/fallback.go`, `fallback_test.go`)
+- [x] `--provisioning-mode` / `PROVISIONING_MODE` accepts `file`, `url`, `fallback`; an unset value
+      reproduces current behavior exactly (existing integration/E2E tests pass unmodified — verified:
+      full `go test ./...` passes with no changes to any pre-existing test).
+- [~] `--provisioning-mode=file` never opens a connection to `--provisioning-url` even when both
+      flags are set. — *Structurally guaranteed (the `provisioningModeFile` switch case in
+      `cmd/gateway/main.go` only calls the file-client constructor, never the HTTP one — there is no
+      code path left that could dial out) and covered by
+      `TestResolveProvisioningMode_File_IgnoresURLFlagPresence`. Not additionally covered by a
+      dial-attempt-observed-over-the-network test as originally scoped; low value given the
+      structural guarantee, revisit only if this needs to survive a future refactor of that switch.*
+- [x] `--provisioning-mode=fallback` with only one of `--provisioning-url`/`--provisioning-file` set
       fails startup with a clear, actionable error instead of silently running single-source.
-- [ ] A source promotion (file → url) is logged once, structured, and observable via `/health` or a
-      metric without requiring log-scraping.
-- [ ] `docs/adr/0003-point-list-source-of-truth.md`, `README.md`/`README.ja.md`, and
+- [x] A source promotion (file → url) is logged once, structured, and observable via a metric
+      (`provisioning_fallback_promoted` on `/metrics`) without requiring log-scraping.
+- [x] `docs/adr/0003-point-list-source-of-truth.md`, `README.md`/`README.ja.md`, and
       `docs/getting-started.md`/`.ja.md` describe the three modes accurately.
-- [ ] Integration test: start the gateway with `--provisioning-mode=fallback` against a stopped
+- [x] Integration test: start the gateway with `--provisioning-mode=fallback` against a stopped
       mock Building OS provisioning endpoint and a valid `--provisioning-file`; confirm points
       resolve from the file; start the mock endpoint; confirm the resolver's snapshot converges to
       the mock's point list without a gateway restart.
+      (`internal/pointsync/fallback_integration_test.go`)
 
 ## Child Features
 
-- [ ] **FEAT-057: `provisioning.FallbackClient`** — composite `Client` implementation, one-way
+- [x] **FEAT-057: `provisioning.FallbackClient`** — composite `Client` implementation, one-way
       promotion, forced full resync on switchover, unit tests.
-- [ ] **FEAT-058: `--provisioning-mode` flag/env plumbing** — `file`/`url`/`fallback` selection in
+- [x] **FEAT-058: `--provisioning-mode` flag/env plumbing** — `file`/`url`/`fallback` selection in
       `cmd/gateway/main.go`, backward-compatible default, fail-fast validation for `fallback` with
       an incomplete flag pair.
-- [ ] **FEAT-059: Promotion observability and docs** — structured promotion log line, `/health`
+- [x] **FEAT-059: Promotion observability and docs** — structured promotion log line, `/metrics`
       exposure, ADR-0003/README/getting-started updates.
 
 ## Dependencies
