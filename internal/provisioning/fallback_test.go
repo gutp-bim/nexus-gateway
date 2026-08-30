@@ -180,7 +180,11 @@ func TestFallbackClient_PromoteHookFiresExactlyOnceOnPromotion(t *testing.T) {
 	secondary := &fakeClient{fn: alwaysResult(&provisioning.FetchResult{ETag: "file-etag", Full: true})}
 
 	var hookCalls int
-	fb := provisioning.NewFallbackClient(primary, secondary).OnPromote(func() { hookCalls++ })
+	var hookETags []string
+	fb := provisioning.NewFallbackClient(primary, secondary).OnPromote(func(etag string) {
+		hookCalls++
+		hookETags = append(hookETags, etag)
+	})
 	ctx := context.Background()
 
 	_, _ = fb.Fetch(ctx, "") // file
@@ -189,6 +193,9 @@ func TestFallbackClient_PromoteHookFiresExactlyOnceOnPromotion(t *testing.T) {
 	primaryUp = true
 	_, _ = fb.Fetch(ctx, "") // promotes
 	assert.Equal(t, 1, hookCalls)
+	require.Len(t, hookETags, 1)
+	assert.Equal(t, "bos-etag", hookETags[0],
+		"the promote hook must receive the applied revision/ETag so it can be logged (EP-013 Observability)")
 
 	_, _ = fb.Fetch(ctx, "bos-etag") // steady state on primary
 	assert.Equal(t, 1, hookCalls, "the promote hook must fire exactly once, not on every subsequent tick")

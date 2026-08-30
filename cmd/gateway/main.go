@@ -340,8 +340,8 @@ bacnet:<provisioning-connector-id>.`)
 		provClient = newProvFileClient()
 	case provisioningModeFallback:
 		fb := provisioning.NewFallbackClient(newProvHTTPClient(), newProvFileClient())
-		fb.OnPromote(func() {
-			slog.Info("provisioning: promoted from local file to Building OS", "url", *provURL)
+		fb.OnPromote(func(etag string) {
+			slog.Info("provisioning: promoted from local file to Building OS", "url", *provURL, "etag", etag)
 			metrics.SetProvisioningPromoted(true)
 		})
 		provClient = fb

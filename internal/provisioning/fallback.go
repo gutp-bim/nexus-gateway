@@ -35,7 +35,7 @@ type FallbackClient struct {
 
 	mu        sync.Mutex
 	promoted  bool
-	onPromote func()
+	onPromote func(etag string)
 }
 
 // NewFallbackClient returns a Client that prefers primary and falls back to
@@ -45,10 +45,14 @@ func NewFallbackClient(primary, secondary Client) *FallbackClient {
 }
 
 // OnPromote registers a callback invoked exactly once, synchronously within
-// Fetch, the moment FallbackClient promotes to primary-only. Intended for
-// observability (structured log line, metrics gauge) — see EP-013 FEAT-059.
-// Not safe to call concurrently with Fetch; register it before first use.
-func (f *FallbackClient) OnPromote(fn func()) *FallbackClient {
+// Fetch, the moment FallbackClient promotes to primary-only. fn receives the
+// promoted FetchResult's ETag (empty if the primary's first successful Fetch
+// returned nil — i.e. an unchanged/304 result, which an empty-knownETag call
+// should not normally produce, but is handled rather than panicking) so a
+// caller can log or expose exactly which Building OS revision triggered the
+// switch (EP-013 Observability: "with the applied revision/ETag"). Not safe
+// to call concurrently with Fetch; register it before first use.
+func (f *FallbackClient) OnPromote(fn func(etag string)) *FallbackClient {
 	f.onPromote = fn
 	return f
 }
@@ -86,13 +90,15 @@ func (f *FallbackClient) promote(result *FetchResult) {
 	hook := f.onPromote
 	f.mu.Unlock()
 
+	etag := ""
 	if result != nil {
 		result.Full = true
 		result.Added = nil
 		result.Removed = nil
 		result.Changed = nil
+		etag = result.ETag
 	}
 	if hook != nil {
-		hook()
+		hook(etag)
 	}
 }

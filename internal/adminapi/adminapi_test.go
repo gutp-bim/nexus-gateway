@@ -818,7 +818,9 @@ func TestMetrics_IncludesProvisioningPromoted(t *testing.T) {
 
 	resp, err := http.Get(apiSrv.URL + "/metrics")
 	require.NoError(t, err)
-	b, _ := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
 	body := string(b)
 
 	assert.Contains(t, body, "# TYPE provisioning_fallback_promoted gauge")
@@ -834,7 +836,9 @@ func TestMetrics_ProvisioningPromoted_DefaultsToZero(t *testing.T) {
 
 	resp, err := http.Get(apiSrv.URL + "/metrics")
 	require.NoError(t, err)
-	b, _ := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
 
 	assert.Contains(t, string(b), "provisioning_fallback_promoted 0")
 }
