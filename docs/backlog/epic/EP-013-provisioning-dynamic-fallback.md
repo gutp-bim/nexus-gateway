@@ -18,7 +18,7 @@ edge sites, dev, E2E/CI) depend on the gateway never dialing out to a provisioni
 
 ## Current Gap
 
-- `cmd/gateway/main.go:270-298` selects exactly one `provisioning.Client` — `HTTPClient` or
+- `cmd/gateway/main.go:291-319` selects exactly one `provisioning.Client` — `HTTPClient` or
   `FileClient` — in a `switch` evaluated once at startup. `--provisioning-file`'s own flag help
   text already says "overridden by --provisioning-url", but that override is a **static flag
   precedence**, not a live behavior: if `--provisioning-url` is empty, the file is used forever,
@@ -80,7 +80,8 @@ edge sites, dev, E2E/CI) depend on the gateway never dialing out to a provisioni
 - Log a single structured line on every source promotion (`file` → `url`) with the applied
   revision/ETag, so an operator can see in logs exactly when and why the Point List source changed.
 - Expose the currently-active provisioning source (`file` vs `url`) as a `/health`-visible field or
-  metric, mirroring how `metrics.SetUplinkConnected` already exposes ingress connectivity state —
+  metric, in the same style `internal/metrics`'s `SetUplinkConnected`/`UplinkConnectedGauge` already
+  expose the Building OS telemetry-uplink connection state (a different link, same pattern) —
   useful for confirming a fallback deployment actually promoted to Building OS after a restart.
 
 ### 4. Documentation
