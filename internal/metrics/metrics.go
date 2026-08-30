@@ -19,6 +19,12 @@ var (
 	// exposition handler and the telemetry payload read.
 	natsConnected   atomic.Bool
 	uplinkConnected atomic.Bool
+
+	// provisioningPromoted is set once provisioning.FallbackClient permanently
+	// switches from its local-file bootstrap to Building OS (EP-013,
+	// ADR-0003). Only meaningful when --provisioning-mode=fallback is active;
+	// stays false otherwise.
+	provisioningPromoted atomic.Bool
 )
 
 // IncNormalizerInvalid counts a Common Event the Normalizer could not parse
@@ -57,6 +63,18 @@ func b2f(v bool) int {
 	return 0
 }
 
-// NatsConnectedGauge / UplinkConnectedGauge return the 1/0 gauge value for exposition.
-func NatsConnectedGauge() int   { return b2f(natsConnected.Load()) }
-func UplinkConnectedGauge() int { return b2f(uplinkConnected.Load()) }
+// SetProvisioningPromoted records whether a fallback-mode provisioning.Client
+// has switched from its local-file bootstrap to Building OS (EP-013). Called
+// once, from FallbackClient's promotion hook; never reverts to false at
+// runtime (the promotion itself is one-way).
+func SetProvisioningPromoted(v bool) { provisioningPromoted.Store(v) }
+
+// ProvisioningPromoted reports whether a fallback-mode provisioning source has
+// promoted to Building OS.
+func ProvisioningPromoted() bool { return provisioningPromoted.Load() }
+
+// NatsConnectedGauge / UplinkConnectedGauge / ProvisioningPromotedGauge return
+// the 1/0 gauge value for exposition.
+func NatsConnectedGauge() int        { return b2f(natsConnected.Load()) }
+func UplinkConnectedGauge() int      { return b2f(uplinkConnected.Load()) }
+func ProvisioningPromotedGauge() int { return b2f(provisioningPromoted.Load()) }

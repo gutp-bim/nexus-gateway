@@ -191,6 +191,7 @@ NATS_URL=nats://localhost:14222 go run ./cmd/gateway --dev-sim
 | `--point-list-persist` | `POINT_LIST_PERSIST` | `data/point_list.json` | Path to persist the synced Point List across restarts |
 | `--provisioning-url` | `PROVISIONING_URL` | – | Building OS Point List provisioning API |
 | `--provisioning-file` | `PROVISIONING_FILE` | – | File/CSV-backed Point List (dev/E2E) |
+| `--provisioning-mode` | `PROVISIONING_MODE` | – | `file` (pin to `--provisioning-file`, never dial `--provisioning-url`), `url` (pin to `--provisioning-url`), or `fallback` (start from the file while Building OS is unreachable, permanently promote to it on first success — requires both flags set); empty reproduces the historical URL-else-file-else-fixture selection (EP-013, ADR-0003) |
 | `--provisioning-connector-id` | `PROVISIONING_CONNECTOR_ID` | `bacnet-01` | Fallback connector ID stamped on CSV-loaded entries whose protocol has no `--connector-map` entry |
 | `--connector-map` | `CONNECTOR_MAP` | – | Comma-separated `protocol:connectorID` pairs, shared by the file and HTTP provisioning paths (e.g. `bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01`); falls back to `--provisioning-connector-id` for any protocol with no entry |
 | `--point-sync-interval` | – | `10m` | Point List poll interval after initial sync |
