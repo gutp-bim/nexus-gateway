@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-table": "^9.2.4",
     "next": "^16.3.0",
     "next-auth": "^4.24.15",
     "next-intl": "^4.13.5",
