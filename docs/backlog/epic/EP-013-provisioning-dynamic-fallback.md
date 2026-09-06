@@ -1,6 +1,6 @@
 # EP-013: Dynamic Point List Provisioning Fallback (File ⇄ Building OS)
 
-**Status:** Implemented — pending review/merge (PR #157)
+**Status:** Merged (PR #157, 2026-08-30). Issue #158 closed.
 **Priority:** P2
 
 ## Goal
