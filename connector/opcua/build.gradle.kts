@@ -25,7 +25,7 @@ dependencies {
     implementation("org.eclipse.milo:stack-client:$miloVersion")
     implementation("io.nats:jnats:$natsVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
-    implementation("org.slf4j:slf4j-api:2.0.18")
+    implementation("org.slf4j:slf4j-api:2.0.19")
     runtimeOnly("ch.qos.logback:logback-classic:1.6.3")
     runtimeOnly("net.logstash.logback:logstash-logback-encoder:9.0")
 
