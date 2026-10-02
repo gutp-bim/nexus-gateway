@@ -351,4 +351,5 @@ the broker topic the connector should publish writes to.
 | `403 Forbidden` on a `POST` action | Keycloak mode only: token is a `viewer`, not an `operator`. |
 | Token request fails | Keycloak not healthy yet — `docker compose ps` and retry once it's up. |
 | `/telemetry` `buffer_depth` keeps growing | The uplink to Building OS is down; frames are buffering (expected during a `mock-bos` restart). |
+| Queued frames or the synced Point List vanished after recreating the gateway | They live in the `gateway-data` volume (`/data`). `docker compose up --force-recreate` keeps it; `docker compose down -v` deletes it, along with every queued frame. |
 | Gateway can't manage connectors | The container needs the host Docker socket mounted (`/var/run/docker.sock`); see `docker-compose.yml`. |
