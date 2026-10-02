@@ -86,6 +86,12 @@ services:
       #- BOS_INGRESS_ADDR=<bos-host>:5051
       #- BOS_EGRESS_ADDR=<bos-host>:5052
       - POINT_LIST_FILE=/fixtures/point_list.json
+      # Durable state lives under /data, which is a named volume (gateway-data, below):
+      # the Store-and-Forward buffer (queued telemetry + cursor) and the synced Point
+      # List must survive `docker compose up --force-recreate` (#175). Spelled out
+      # as absolute paths so they never depend on the image's working directory.
+      - SF_DB=/data/storeforward.db
+      - POINT_LIST_PERSIST=/data/point_list.json
       # CONNECTOR_MAP maps BOS native.protocol values to connector IDs for the HTTP provisioning path.
       # When unset, falls back to {"bacnet": PROVISIONING_CONNECTOR_ID} for backward compatibility.
       # For multi-protocol deployments (BACnet + OPC-UA), set e.g.:
@@ -115,6 +121,7 @@ services:
     ports:
       - "18080:8080"
     volumes:
+      - gateway-data:/data
       - ./fixtures:/fixtures:ro
       # Mount host Docker socket so the gateway can manage connector containers.
       - /var/run/docker.sock:/var/run/docker.sock
@@ -172,3 +179,4 @@ services:
 
 volumes:
   nats-data:
+  gateway-data:

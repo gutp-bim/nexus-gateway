@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -348,4 +350,86 @@ func startMockBOSWithAccepted(t *testing.T, received chan *pb.TelemetryFrame) *m
 	go func() { _ = srv.Serve(lis) }()
 	t.Cleanup(srv.GracefulStop)
 	return &mockBOSHandle{addr: lis.Addr().String(), srv: srv}
+}
+
+// TestSF_QueuedFramesSurviveRecreation models `docker compose up --force-recreate`
+// during a Building OS outage (#175): frames queued in the buffer must still be on
+// disk after the process is replaced, and be forwarded exactly once, in order,
+// once Building OS is back. The buffer file stands in for the /data volume; the
+// compose side of the guarantee (the volume is actually mounted) is asserted by
+// TestCompose_GatewayDataDirIsDurable.
+func TestSF_QueuedFramesSurviveRecreation(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	ns := startEmbeddedNATS(t)
+	nc, err := nats.Connect(ns.ClientURL())
+	require.NoError(t, err)
+	t.Cleanup(nc.Close)
+	js, err := jetstream.New(nc)
+	require.NoError(t, err)
+	_, err = js.CreateStream(ctx, jetstream.StreamConfig{
+		Name: "EVENTS", Subjects: []string{"evt.>"}, Storage: jetstream.MemoryStorage,
+	})
+	require.NoError(t, err)
+	pl := pointlist.NewFixture([]pointlist.Entry{
+		{ConnectorID: "sim-01", Protocol: "sim", LocalID: "l1", PointID: "p1"},
+	})
+
+	dbPath := t.TempDir() + "/data/storeforward.db" // the "volume": outlives the first process
+	require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0o755))
+
+	// ── First container: Building OS is down, so nothing is forwarded. ──
+	firstCtx, stopFirst := context.WithCancel(ctx)
+	norm, err := normalizer.New(firstCtx, js, pl, "gw-001")
+	require.NoError(t, err)
+	buf, err := storeforward.Open(dbPath, 1000)
+	require.NoError(t, err)
+	pumpDone := make(chan struct{})
+	go func() { defer close(pumpDone); storeforward.Pump(firstCtx, norm.Frames(), buf) }()
+
+	const queued = 5
+	for i := 1; i <= queued; i++ {
+		publish(t, js, "sim-01", "l1", float64(i))
+	}
+	require.Eventually(t, func() bool { return buf.Depth() == queued }, 5*time.Second, 20*time.Millisecond,
+		"frames queue up while Building OS is unreachable")
+
+	// ── Recreate: the process is replaced, only the data directory survives. ──
+	stopFirst()
+	<-pumpDone
+	require.NoError(t, buf.Close())
+
+	// ── Second container: same data directory, Building OS is back. ──
+	buf2, err := storeforward.Open(dbPath, 1000)
+	require.NoError(t, err)
+	t.Cleanup(func() { buf2.Close() })
+	require.Equal(t, int64(queued), buf2.Depth(), "queued frames must survive recreation")
+
+	received := make(chan *pb.TelemetryFrame, 100)
+	var accepted atomic.Int64
+	bos := startMockBOS(t, received, &accepted)
+	cfg := uplink.Config{CheckpointSize: 1000, CheckpointAge: 100 * time.Millisecond}
+	ul, err := uplink.NewIngress(ctx, bos.addr, "gw-001", buf2, cfg, insecureCreds())
+	require.NoError(t, err)
+	go ul.Run(ctx)
+
+	var vals []float64
+	for range queued {
+		select {
+		case f := <-received:
+			vals = append(vals, f.GetValueNum())
+		case <-ctx.Done():
+			t.Fatalf("timeout: only %d of %d preserved frames drained", len(vals), queued)
+		}
+	}
+	assert.Equal(t, []float64{1, 2, 3, 4, 5}, vals, "preserved frames drain in order")
+
+	select {
+	case f := <-received:
+		t.Fatalf("frame forwarded more than once: %v", f)
+	case <-time.After(500 * time.Millisecond):
+	}
+	require.Eventually(t, func() bool { return buf2.Depth() == 0 }, 5*time.Second, 20*time.Millisecond,
+		"backlog is fully drained and checkpointed")
 }
