@@ -9,8 +9,9 @@ package metrics
 import "sync/atomic"
 
 var (
-	normalizerInvalid    atomic.Int64
-	normalizerUnresolved atomic.Int64
+	normalizerInvalid     atomic.Int64
+	normalizerUnresolved  atomic.Int64
+	normalizerRedelivered atomic.Int64
 
 	// Connectivity gauges (#23). Cross-cutting process state that belongs to a
 	// specific connection object (the NATS conn, the Building OS uplink) rather
@@ -34,6 +35,14 @@ func IncNormalizerInvalid() { normalizerInvalid.Add(1) }
 // IncNormalizerUnresolved counts a Common Event whose local_id is absent from
 // the Point List (point-list miss) and was terminated.
 func IncNormalizerUnresolved() { normalizerUnresolved.Add(1) }
+
+// IncNormalizerRedelivered counts a Common Event JetStream delivered more than
+// once (NumDelivered > 1) — typically one that waited past its ack deadline while
+// the pipeline was behind (#186).
+func IncNormalizerRedelivered() { normalizerRedelivered.Add(1) }
+
+// NormalizerRedelivered returns the current redelivery count.
+func NormalizerRedelivered() int64 { return normalizerRedelivered.Load() }
 
 // NormalizerInvalid returns the current poison count.
 func NormalizerInvalid() int64 { return normalizerInvalid.Load() }

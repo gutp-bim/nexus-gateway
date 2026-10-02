@@ -681,6 +681,7 @@ type mockTelemetrySource struct {
 	evictedSent    int64
 	lostUnsent     int64
 	writeErrors    int64
+	duplicates     int64
 	capacity       int
 	checkpoints    int64
 	sendErrors     int64
@@ -697,6 +698,7 @@ func (m *mockTelemetrySource) Dropped() int64            { return m.dropped }
 func (m *mockTelemetrySource) EvictedSent() int64        { return m.evictedSent }
 func (m *mockTelemetrySource) LostUnsent() int64         { return m.lostUnsent }
 func (m *mockTelemetrySource) WriteErrors() int64        { return m.writeErrors }
+func (m *mockTelemetrySource) Duplicates() int64         { return m.duplicates }
 func (m *mockTelemetrySource) Capacity() int             { return m.capacity }
 func (m *mockTelemetrySource) Checkpoints() int64        { return m.checkpoints }
 func (m *mockTelemetrySource) SendErrors() int64         { return m.sendErrors }
