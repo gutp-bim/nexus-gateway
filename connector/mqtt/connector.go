@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -79,6 +80,13 @@ type Config struct {
 	IgnoreTopics      []string
 	Points            []PointConfig
 	FreshnessInterval time.Duration
+	// WildcardMinInterval is the minimum spacing between accepted messages on one
+	// concrete topic that matched only a wildcard Point (not an exact one). A
+	// wildcard such as "#" can sweep in topics nobody asked for, some of them
+	// publishing every second; unless a topic is configured exactly, its extra
+	// messages are acknowledged and dropped before they load the pipeline (#173).
+	// Zero uses defaultWildcardMinInterval; a negative value disables the limit.
+	WildcardMinInterval time.Duration
 	// ReceiveMaximum is the MQTT Receive Maximum advertised in CONNECT: how many
 	// QoS>0 messages the broker may have in flight to this connector before it
 	// must wait for a PUBACK. Zero uses defaultReceiveMaximum.
@@ -95,7 +103,11 @@ type Config struct {
 type topicIndex struct {
 	points       map[string]PointConfig
 	explicitSubs map[string]paho.SubscribeOptions
-	revision     string
+	// wildcards are the Points whose Topic is itself a filter ("+" / "#"), most
+	// specific first. A received concrete topic that is not an exact key of
+	// points falls back to these (#173).
+	wildcards []PointConfig
+	revision  string
 }
 
 // newTopicIndex builds a topicIndex from points, skipping an explicit
@@ -108,11 +120,93 @@ func newTopicIndex(points []PointConfig, staticWildcards []SubscriptionConfig, r
 	}
 	for _, p := range points {
 		idx.points[p.Topic] = p
-		if !coveredByWildcard(p.Topic, staticWildcards) {
+		if hasWildcard(p.Topic) {
+			idx.wildcards = append(idx.wildcards, p)
+		}
+	}
+	for _, p := range points {
+		// An exact point that a wildcard (static filter or wildcard point) already
+		// reaches gets no Subscribe of its own: some brokers deliver once per
+		// overlapping subscription, which would double-count its telemetry
+		// (docs/adr/0008). Wildcard points always subscribe — they are the cover.
+		covered := coveredByWildcard(p.Topic, staticWildcards)
+		if !covered && !hasWildcard(p.Topic) {
+			for _, w := range idx.wildcards {
+				if filterMatches(w.Topic, p.Topic) {
+					covered = true
+					break
+				}
+			}
+		}
+		if !covered {
 			idx.explicitSubs[p.Topic] = subscribeOptionsFor(p)
 		}
 	}
+	// Deterministic precedence however the points were supplied (the live-apply path
+	// flattens a map): the filter with the most literal levels wins, ties by name.
+	sort.Slice(idx.wildcards, func(i, j int) bool {
+		li, lj := literalLevels(idx.wildcards[i].Topic), literalLevels(idx.wildcards[j].Topic)
+		if li != lj {
+			return li > lj
+		}
+		return idx.wildcards[i].Topic < idx.wildcards[j].Topic
+	})
 	return idx
+}
+
+// planSubscriptions works out the broker calls that move the connector from the
+// current index to next: Subscribe every topic that is newly explicit or whose
+// shape changed (a harmless re-subscribe if only QoS/NoLocal moved), Unsubscribe
+// every topic that was explicit and no longer is. Deriving both from the explicit
+// sets — not from the added/removed point lists — is what keeps a wildcard point
+// appearing or disappearing consistent: the exact topics it covers lose or regain
+// their own subscription even though their points did not change.
+func planSubscriptions(current, next *topicIndex, changed []string) (subscribe []paho.SubscribeOptions, unsubscribe []string) {
+	changedSet := make(map[string]struct{}, len(changed))
+	for _, topic := range changed {
+		changedSet[topic] = struct{}{}
+	}
+	for topic, opt := range next.explicitSubs {
+		_, had := current.explicitSubs[topic]
+		if _, isChanged := changedSet[topic]; !had || isChanged {
+			subscribe = append(subscribe, opt)
+		}
+	}
+	for topic := range current.explicitSubs {
+		if _, still := next.explicitSubs[topic]; !still {
+			unsubscribe = append(unsubscribe, topic)
+		}
+	}
+	sort.Slice(subscribe, func(i, j int) bool { return subscribe[i].Topic < subscribe[j].Topic })
+	sort.Strings(unsubscribe)
+	return subscribe, unsubscribe
+}
+
+// resolve finds the Point governing a received concrete topic. An exact
+// configuration always wins; otherwise the most specific matching wildcard Point
+// supplies the metadata (explicit is false then). Callers must still emit the
+// concrete topic — never the filter — as the event's local_id (#173).
+func (idx *topicIndex) resolve(topic string) (p PointConfig, explicit, ok bool) {
+	if p, ok := idx.points[topic]; ok {
+		return p, true, true
+	}
+	for _, w := range idx.wildcards {
+		if filterMatches(w.Topic, topic) {
+			return w, false, true
+		}
+	}
+	return PointConfig{}, false, false
+}
+
+// literalLevels counts the topic levels that are neither "+" nor "#".
+func literalLevels(filter string) int {
+	n := 0
+	for _, level := range strings.Split(filter, "/") {
+		if level != "+" && level != "#" {
+			n++
+		}
+	}
+	return n
 }
 
 // coveredByWildcard reports whether topic is already reachable through one of
@@ -207,6 +301,13 @@ const (
 	// drainTimeout bounds the shutdown flush of that queue (see drainQueue).
 	drainTimeout = 5 * time.Second
 
+	// defaultWildcardMinInterval is Config.WildcardMinInterval when unset.
+	defaultWildcardMinInterval = 10 * time.Second
+
+	// maxWildcardTracked bounds the per-topic bookkeeping of the wildcard limiter,
+	// so a broker with unbounded topic cardinality cannot grow it without limit.
+	maxWildcardTracked = 1 << 16
+
 	// publishRetryMin and publishRetryMax bound the exponential backoff between
 	// attempts to publish one frame to JetStream (#185). The frame is retried until
 	// it lands — it is never skipped, so ordering and QoS 1 at-least-once hold.
@@ -264,6 +365,13 @@ type Connector struct {
 	received      atomic.Int64
 	published     atomic.Int64
 	publishErrors atomic.Int64
+
+	// wildLast is the limiter state for topics matched only through a wildcard
+	// Point: when each was last accepted (#173).
+	wildMu        sync.Mutex
+	wildLast      map[string]time.Time
+	wildThrottled atomic.Int64
+
 	// failingSince is the UnixNano of the first failure in the current unbroken run
 	// of JetStream publish failures, or 0 while publishing succeeds (#185).
 	failingSince atomic.Int64
@@ -302,6 +410,11 @@ func (c *Connector) Metrics() []sdk.Metric {
 			Value: c.publishErrors.Load(),
 		},
 		{
+			Name: "mqtt_wildcard_throttled_total", Type: "counter",
+			Help:  "Messages dropped because their topic matched only a wildcard Point and repeated within the minimum interval.",
+			Value: c.wildThrottled.Load(),
+		},
+		{
 			Name: "mqtt_publish_stalled_seconds", Type: "gauge",
 			Help:  "Seconds JetStream publishes have been failing continuously; 0 while publishing succeeds.",
 			Value: int64(c.publishStalled().Seconds()),
@@ -329,6 +442,7 @@ func New(cfg Config, nc *nats.Conn, js jetstream.JetStream) *Connector {
 		dedup: sdk.NewCommandDedup(1000),
 		lkv:   make(map[string]*lkvState),
 
+		wildLast: make(map[string]time.Time),
 		retryMin: publishRetryMin,
 		retryMax: publishRetryMax,
 	}
@@ -347,6 +461,48 @@ func (c *Connector) dueForRepublish(now time.Time) []string {
 		}
 	}
 	return due
+}
+
+// wildcardMinInterval resolves Config.WildcardMinInterval: 0 → default, <0 → off.
+func (c *Connector) wildcardMinInterval() time.Duration {
+	switch d := c.cfg.WildcardMinInterval; {
+	case d == 0:
+		return defaultWildcardMinInterval
+	case d < 0:
+		return 0
+	default:
+		return d
+	}
+}
+
+// allowWildcard reports whether a message on a topic matched only through a
+// wildcard Point may proceed: at most one per WildcardMinInterval per topic.
+// Exactly configured topics never come here. The rest are dropped by the caller,
+// so a "#" Point cannot let an unconfigured 1 s publisher load the pipeline (#173).
+func (c *Connector) allowWildcard(topic string, now time.Time) bool {
+	minGap := c.wildcardMinInterval()
+	if minGap == 0 {
+		return true
+	}
+	c.wildMu.Lock()
+	defer c.wildMu.Unlock()
+	if last, seen := c.wildLast[topic]; seen && now.Sub(last) < minGap {
+		return false
+	}
+	if len(c.wildLast) >= maxWildcardTracked {
+		// Entries older than the interval no longer constrain anything; if the table
+		// is still full of live ones, start over rather than grow without bound.
+		for t, last := range c.wildLast {
+			if now.Sub(last) >= minGap {
+				delete(c.wildLast, t)
+			}
+		}
+		if len(c.wildLast) >= maxWildcardTracked {
+			clear(c.wildLast)
+		}
+	}
+	c.wildLast[topic] = now
+	return true
 }
 
 func (c *Connector) recordValue(topic string, value float64, timestamp time.Time) {
@@ -369,7 +525,7 @@ func (c *Connector) runFreshnessFloor(ctx context.Context, subject string) {
 			return
 		case now := <-ticker.C:
 			for _, topic := range c.dueForRepublish(now) {
-				point, ok := c.topics.Load().points[topic]
+				point, _, ok := c.topics.Load().resolve(topic)
 				if !ok {
 					// ApplySubscriptions (#119) removed this topic from routing,
 					// but a prior recordValue() call already seeded c.lkv for it —
@@ -673,9 +829,16 @@ func (c *Connector) Run(ctx context.Context) {
 						_ = pr.Client.Ack(pr.Packet)
 						return true, nil
 					}
-					p, ok := c.topics.Load().points[pr.Packet.Topic]
+					p, explicit, ok := c.topics.Load().resolve(pr.Packet.Topic)
 					if !ok {
 						// Unknown topic: ack immediately to avoid infinite broker retry.
+						_ = pr.Client.Ack(pr.Packet)
+						return true, nil
+					}
+					if !explicit && !c.allowWildcard(pr.Packet.Topic, time.Now()) {
+						// Matched only a wildcard Point and arrived again inside the
+						// limiter window: not configured exactly, so not worth the load.
+						c.wildThrottled.Add(1)
 						_ = pr.Client.Ack(pr.Packet)
 						return true, nil
 					}
@@ -699,12 +862,15 @@ func (c *Connector) Run(ctx context.Context) {
 					evt := common.Event{
 						Protocol:    "mqtt",
 						ConnectorID: c.cfg.ConnectorID,
-						LocalID:     p.Topic,
-						DeviceRef:   p.DeviceRef,
-						Value:       decoded.Value,
-						Unit:        p.Unit,
-						Quality:     "Good",
-						Timestamp:   decoded.Timestamp.Format(time.RFC3339),
+						// The concrete topic the broker delivered, never p.Topic: for a
+						// wildcard Point that is the filter ("#"), which no Point List
+						// entry can match (#173).
+						LocalID:   pr.Packet.Topic,
+						DeviceRef: p.DeviceRef,
+						Value:     decoded.Value,
+						Unit:      p.Unit,
+						Quality:   "Good",
+						Timestamp: decoded.Timestamp.Format(time.RFC3339),
 					}
 					data, err := json.Marshal(evt)
 					if err != nil {
@@ -862,20 +1028,10 @@ func (c *Connector) ApplySubscriptions(ctx context.Context, cm *autopaho.Connect
 
 	next := newTopicIndex(pointConfigsOf(desired), c.cfg.Subscriptions, req.Revision)
 
-	// Subscribe additions+changes not already covered by a static wildcard
-	// filter. A topic whose QoS/NoLocal shape is unchanged is a harmless
-	// re-subscribe — the broker just updates its existing subscription.
-	var toSubscribe []paho.SubscribeOptions
-	for _, topic := range added {
-		if opt, ok := next.explicitSubs[topic]; ok {
-			toSubscribe = append(toSubscribe, opt)
-		}
-	}
-	for _, topic := range changed {
-		if opt, ok := next.explicitSubs[topic]; ok {
-			toSubscribe = append(toSubscribe, opt)
-		}
-	}
+	// Subscribe what is newly explicit or changed, and (below) unsubscribe what
+	// stopped being explicit — either because it was removed, or because a wildcard
+	// now covers it. Anything a wildcard covers gets no subscription of its own.
+	toSubscribe, toUnsubscribe := planSubscriptions(current, next, changed)
 	if len(toSubscribe) > 0 {
 		if _, err := cm.Subscribe(ctx, &paho.Subscribe{Subscriptions: toSubscribe}); err != nil {
 			slog.Error("mqtt: subscription apply failed — retaining previous subscriptions", "revision", req.Revision, "err", err)
@@ -883,15 +1039,9 @@ func (c *Connector) ApplySubscriptions(ctx context.Context, cm *autopaho.Connect
 		}
 	}
 
-	// Only unsubscribe topics this connector itself explicitly subscribed to —
-	// one covered by a static wildcard was never subscribed on its own, so
-	// there is nothing of ours to remove (docs/adr/0008).
-	var toUnsubscribe []string
-	for _, topic := range removed {
-		if _, wasExplicit := current.explicitSubs[topic]; wasExplicit {
-			toUnsubscribe = append(toUnsubscribe, topic)
-		}
-	}
+	// Only topics this connector itself explicitly subscribed to are unsubscribed —
+	// one a wildcard covers was never subscribed on its own, so there is nothing of
+	// ours to remove (docs/adr/0008).
 	var errs []string
 	if len(toUnsubscribe) > 0 {
 		if _, err := cm.Unsubscribe(ctx, &paho.Unsubscribe{Topics: toUnsubscribe}); err != nil {
