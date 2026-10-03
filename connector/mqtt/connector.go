@@ -206,6 +206,17 @@ const (
 
 	// drainTimeout bounds the shutdown flush of that queue (see drainQueue).
 	drainTimeout = 5 * time.Second
+
+	// publishRetryMin and publishRetryMax bound the exponential backoff between
+	// attempts to publish one frame to JetStream (#185). The frame is retried until
+	// it lands — it is never skipped, so ordering and QoS 1 at-least-once hold.
+	publishRetryMin = 100 * time.Millisecond
+	publishRetryMax = 5 * time.Second
+
+	// publishStallThreshold is how long JetStream publishes may fail continuously
+	// before /health reports the connector unhealthy (#185). Shorter outages are a
+	// transient NATS blip the retry loop absorbs.
+	publishStallThreshold = 30 * time.Second
 )
 
 // pendingPublish is one decoded broker message waiting to be published to
@@ -253,6 +264,22 @@ type Connector struct {
 	received      atomic.Int64
 	published     atomic.Int64
 	publishErrors atomic.Int64
+	// failingSince is the UnixNano of the first failure in the current unbroken run
+	// of JetStream publish failures, or 0 while publishing succeeds (#185).
+	failingSince atomic.Int64
+	// retryMin/retryMax are the publish retry backoff bounds; fields so tests can
+	// shrink them.
+	retryMin, retryMax time.Duration
+}
+
+// publishStalled returns how long JetStream publishes have been failing
+// continuously, or 0 when the last publish succeeded.
+func (c *Connector) publishStalled() time.Duration {
+	since := c.failingSince.Load()
+	if since == 0 {
+		return 0
+	}
+	return time.Since(time.Unix(0, since))
 }
 
 // Metrics reports the connector's ingest counters for the /metrics surface the
@@ -271,14 +298,22 @@ func (c *Connector) Metrics() []sdk.Metric {
 		},
 		{
 			Name: "mqtt_publish_error_total", Type: "counter",
-			Help:  "JetStream publish failures; the message is left unacked for QoS 1 redelivery.",
+			Help:  "JetStream publish failures; each failed frame is retried with backoff until it lands.",
 			Value: c.publishErrors.Load(),
+		},
+		{
+			Name: "mqtt_publish_stalled_seconds", Type: "gauge",
+			Help:  "Seconds JetStream publishes have been failing continuously; 0 while publishing succeeds.",
+			Value: int64(c.publishStalled().Seconds()),
 		},
 	}
 }
 
-// Healthy reports whether the MQTT broker session is currently connected.
-func (c *Connector) Healthy() bool { return c.connected.Load() }
+// Healthy reports whether the MQTT broker session is connected and JetStream
+// publishing is not stalled (#185).
+func (c *Connector) Healthy() bool {
+	return c.connected.Load() && c.publishStalled() < publishStallThreshold
+}
 
 type lkvState struct {
 	value    float64
@@ -293,6 +328,9 @@ func New(cfg Config, nc *nats.Conn, js jetstream.JetStream) *Connector {
 		ready: make(chan struct{}),
 		dedup: sdk.NewCommandDedup(1000),
 		lkv:   make(map[string]*lkvState),
+
+		retryMin: publishRetryMin,
+		retryMax: publishRetryMax,
 	}
 }
 
@@ -441,20 +479,38 @@ func (c *Connector) publishDirect(subject string, pending pendingPublish) {
 }
 
 // publishPending publishes one queued message and acks it to the broker on
-// success. It reports false when ctx died mid-publish — the frame is not at fault
-// there, so the caller re-flushes it on a fresh context instead of counting a
-// spurious error. A genuine publish failure returns true: the frame stays unacked
-// for QoS 1 redelivery and the caller carries on.
+// success. A publish failure is retried here with exponential backoff until it
+// lands: withholding the PUBACK instead would leave the frame in the broker's
+// in-flight window, and a broker only redelivers on reconnect — so one NATS
+// timeout stalled ingestion until restart while the broker dropped everything
+// queued behind it (#185). Reconnecting is no remedy either: under the default
+// MQTT_SESSION_EXPIRY=0 the broker discards un-acked QoS 1 state at disconnect.
+//
+// It reports false only when ctx died before the frame landed — the frame is not
+// at fault there, so the caller re-flushes it on a fresh context.
 func (c *Connector) publishPending(ctx context.Context, subject string, pending pendingPublish) bool {
-	if _, err := c.js.Publish(ctx, subject, pending.data); err != nil {
+	backoff := c.retryMin
+	for {
+		_, err := c.js.Publish(ctx, subject, pending.data)
+		if err == nil {
+			break
+		}
 		if ctx.Err() != nil {
 			return false
 		}
 		c.publishErrors.Add(1)
-		slog.Warn("mqtt: nats publish failed — withholding PUBACK for QoS 1 retry", "err", err)
-		// Do not ack: broker will redeliver when NATS is available again.
-		return true
+		c.failingSince.CompareAndSwap(0, time.Now().UnixNano())
+		slog.Warn("mqtt: nats publish failed — retrying", "err", err, "topic", pending.topic, "backoff", backoff)
+		select {
+		case <-time.After(backoff):
+		case <-ctx.Done():
+			return false
+		}
+		if backoff *= 2; backoff > c.retryMax {
+			backoff = c.retryMax
+		}
 	}
+	c.failingSince.Store(0)
 	c.published.Add(1)
 	if pending.hasValue {
 		c.recordValue(pending.topic, pending.value, pending.timestamp)
