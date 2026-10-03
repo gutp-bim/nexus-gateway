@@ -80,7 +80,7 @@ never reads --provisioning-file; "fallback" starts from --provisioning-file whil
 --provisioning-url is unreachable and permanently promotes to it on first success
 (requires both flags set). Empty (default) reproduces the pre-EP-013 behavior:
 --provisioning-url if set, else --provisioning-file, else the --point-list fixture.`)
-	provConnID := flag.String("provisioning-connector-id", envOrDefault("PROVISIONING_CONNECTOR_ID", "bacnet-01"), "Connector id stamped on entries loaded from a provisioning CSV")
+	provConnID := flag.String("provisioning-connector-id", envOrDefault("PROVISIONING_CONNECTOR_ID", "bacnet-01"), "Fallback connector id stamped on Point List entries (provisioning CSV and HTTP) whose protocol has no --connector-map entry")
 	// Point List TLS is configured separately from the gRPC link's BOS_* settings
 	// (#135): the two can terminate at different edges, so neither should inherit
 	// the other's credentials by accident. Empty = system roots, no client cert.
@@ -316,7 +316,9 @@ bacnet:<provisioning-connector-id>.`)
 			slog.Error("provisioning: TLS configuration invalid", "err", err)
 			os.Exit(1)
 		}
-		return httpProv
+		// Same fallback the file path applies: a protocol with no CONNECTOR_MAP entry
+		// gets --provisioning-connector-id instead of an empty connector id.
+		return httpProv.WithFallbackConnectorID(*provConnID)
 	}
 	newProvFileClient := func() *provisioning.FileClient {
 		// Fail fast on a bad path rather than spinning the startup wait and then

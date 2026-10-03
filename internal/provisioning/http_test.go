@@ -4,10 +4,13 @@
 package provisioning_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -340,4 +343,88 @@ func TestHTTPClient_NativeBACnetWithoutTopLevelProtocol_Unchanged(t *testing.T) 
 	assert.Equal(t, "bacnet-01", e.ConnectorID)
 	assert.Equal(t, "analogInput,7", e.LocalID)
 	assert.Equal(t, "1001", e.DeviceRef)
+}
+
+// mixedPointsJSON is a Point List body with two MQTT points (top-level protocol, flat
+// localIds so protocol inference cannot rescue them) and one native BACnet point.
+const mixedPointsJSON = `[
+  {"pointId":"pt-m1","localId":"m1","protocol":"mqtt","native":null},
+  {"pointId":"pt-m2","localId":"m2","protocol":"mqtt","native":null},
+  {"pointId":"pt-b1","native":{"protocol":"bacnet","deviceId":"1","objectType":"analogInput","instanceNo":"1"}}
+]`
+
+// A protocol with no CONNECTOR_MAP entry gets the fallback connector id — the same
+// rule the CSV path applies and --connector-map documents — instead of an empty one
+// that could never resolve an event or receive a command. Mapped protocols are
+// unaffected.
+func TestHTTPClient_UnmappedProtocolGetsFallbackConnectorID(t *testing.T) {
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v1","full":true,"points":`+mixedPointsJSON+`}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", map[string]string{"bacnet": "bacnet-01"}).
+		WithFallbackConnectorID("conn-default")
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, result.Entries, 3)
+	byID := map[string]string{}
+	for _, e := range result.Entries {
+		byID[e.PointID] = e.ConnectorID
+	}
+	assert.Equal(t, "conn-default", byID["pt-m1"], "mqtt has no map entry: fallback")
+	assert.Equal(t, "conn-default", byID["pt-m2"])
+	assert.Equal(t, "bacnet-01", byID["pt-b1"], "a mapped protocol keeps its own connector")
+}
+
+// The delta path maps through the same code.
+func TestHTTPClient_UnmappedProtocolFallbackAlsoInDeltaResponses(t *testing.T) {
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v2","since":"etag-v1","full":false,"added":`+mixedPointsJSON+`}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", nil).WithFallbackConnectorID("mqtt-only")
+
+	result, err := c.Fetch(context.Background(), "etag-v1")
+	require.NoError(t, err)
+	require.Len(t, result.Added, 3)
+	for _, e := range result.Added {
+		assert.Equal(t, "mqtt-only", e.ConnectorID, "an empty map falls back for every protocol: %s", e.PointID)
+	}
+}
+
+// With no fallback configured the old behaviour stands (empty id), but it is no
+// longer silent: it is logged — once per protocol, not once per point.
+func TestHTTPClient_UnmappedProtocolWithoutFallbackIsLoggedOncePerProtocol(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v1","full":true,"points":`+mixedPointsJSON+`}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", map[string]string{"bacnet": "bacnet-01"})
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	for _, e := range result.Entries {
+		if e.Protocol == "mqtt" {
+			assert.Empty(t, e.ConnectorID, "no fallback configured: unchanged")
+		}
+	}
+	assert.Equal(t, 1, strings.Count(buf.String(), "no CONNECTOR_MAP entry"),
+		"two mqtt points, one log line; the mapped bacnet point logs nothing")
+	assert.Contains(t, buf.String(), "protocol=mqtt")
+}
+
+// When the fallback is used it says so, once per protocol.
+func TestHTTPClient_FallbackUseIsWarnedOncePerProtocol(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v1","full":true,"points":`+mixedPointsJSON+`}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", map[string]string{"bacnet": "bacnet-01"}).
+		WithFallbackConnectorID("conn-default")
+
+	_, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	_, err = c.Fetch(context.Background(), "") // a second poll must not repeat the warning
+	require.NoError(t, err)
+	assert.Equal(t, 1, strings.Count(buf.String(), "using the fallback connector id"))
+	assert.Contains(t, buf.String(), "connector_id=conn-default")
 }
