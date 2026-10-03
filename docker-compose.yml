@@ -92,7 +92,8 @@ services:
       # as absolute paths so they never depend on the image's working directory.
       - SF_DB=/data/storeforward.db
       - POINT_LIST_PERSIST=/data/point_list.json
-      # CONNECTOR_MAP maps BOS native.protocol values to connector IDs for the HTTP provisioning path.
+      # CONNECTOR_MAP maps BOS protocol values (top-level `protocol`, else native.protocol) to connector IDs
+      # for the HTTP provisioning path. A protocol with no entry gets PROVISIONING_CONNECTOR_ID.
       # When unset, falls back to {"bacnet": PROVISIONING_CONNECTOR_ID} for backward compatibility.
       # For multi-protocol deployments (BACnet + OPC-UA), set e.g.:
       #- CONNECTOR_MAP=bacnet:bacnet-01,opcua:opcua-01
