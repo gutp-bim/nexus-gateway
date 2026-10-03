@@ -294,13 +294,13 @@ acks-and-drops any message on a topic not listed there — wildcard subscription
 does not bypass that. Generate the connector's file from the CSV with:
 
 ```bash
-python3 scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
+python3 scripts/csv-to-mqtt-points.py secrets/point-list.csv fixtures/mqtt/aws_iot_points.json
 ```
 
 and point `MQTT_POINTS_FILE` at the result (`docker-compose.mqtt.yml` already
 mounts `fixtures/mqtt/aws_iot_points.json` there by default). The gateway's
 own Point List should still be pointed at the CSV directly
-(`PROVISIONING_FILE=secrets/THX_StandardPointList_v1.confirmed.csv`,
+(`PROVISIONING_FILE=secrets/point-list.csv`,
 `CONNECTOR_MAP=mqtt:mqtt-01`) so incoming events actually resolve to
 `point_id`s instead of being dropped as unresolved (ADR-0002, ADR-0003).
 

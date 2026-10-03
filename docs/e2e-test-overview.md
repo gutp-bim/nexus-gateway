@@ -140,7 +140,7 @@ Not a pass/fail test: a measurement of memory, restarts and OOM behaviour over
 hours or days. It needs a *different stack* from the layers above — the base
 compose starts Keycloak and the Admin UI whether or not a run touches them, and
 their memory lands in the same table as the gateway's, which is what made the
-24h THX run's growth impossible to adjudicate (#121).
+24h soak run's growth impossible to adjudicate (#121).
 
 ```bash
 make soak-up                                          # only nats + mock-bos + gateway

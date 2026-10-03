@@ -4,7 +4,7 @@
 #
 #   scripts/soak-preflight.sh [--out DIR] [--skip-health]
 #
-# Two jobs, both learned from the 24h THX run (#120, #121):
+# Two jobs, both learned from the 24h soak run (#120, #121):
 #
 #   1. Refuse to start when the host cannot hold the run. That run finished with
 #      ~2.5 GB free of a 6.69 GiB Docker allocation, most of it consumed by

@@ -79,7 +79,7 @@ def convert(csv_path, json_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("csv_path", help="SBCO point-list CSV (e.g. secrets/THX_StandardPointList_v1.confirmed.csv)")
+    parser.add_argument("csv_path", help="SBCO point-list CSV (e.g. secrets/point-list.csv)")
     parser.add_argument("json_path", help="Output path for the MQTT_POINTS_FILE JSON (e.g. fixtures/mqtt/aws_iot_points.json)")
     args = parser.parse_args()
     convert(args.csv_path, args.json_path)

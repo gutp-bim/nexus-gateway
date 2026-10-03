@@ -8,7 +8,7 @@ The base stack is built for development. It starts five services unconditionally
 and makes the gateway wait for Keycloak to report healthy before it boots — both
 deliberate, and both wrong for a resource evaluation.
 
-The 24h THX run showed the cost. Host free memory fell to roughly 2.5 GB of a
+The 24h soak run showed the cost. Host free memory fell to roughly 2.5 GB of a
 6.69 GiB Docker allocation, and about 3.0 GiB of that was Keycloak: three
 instances across three parallel Compose projects, none of them under test, since
 the gateway advertises no `KEYCLOAK_*` configuration by default and validates no
@@ -72,7 +72,7 @@ starts short of memory produces a graph that looks like a finding.
 
 Memory is read from inside the Docker VM, not from the host OS. On macOS and
 Windows the host's free memory says nothing about what containers can obtain,
-and the numbers that bounded the THX run were the VM's. On native Linux the VM
+and the numbers that bounded the 24h soak run were the VM's. On native Linux the VM
 *is* the host, so it is one measurement either way.
 
 Other Compose projects running alongside are reported, not failed on — a real
