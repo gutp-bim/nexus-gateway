@@ -6,7 +6,6 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/eclipse/paho.golang v0.23.0
 	github.com/lestrrat-go/jwx/v2 v2.1.7
-	github.com/mochi-mqtt/server/v2 v2.7.9
 	github.com/nats-io/nats-server/v2 v2.14.5
 	github.com/nats-io/nats.go v1.53.1
 	github.com/opencontainers/image-spec v1.1.1
@@ -54,7 +53,6 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rs/xid v1.4.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0 // indirect
