@@ -489,7 +489,7 @@ The point list tells a connector which data points to poll and how to address th
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `topic` | string | **Yes** | MQTT topic to subscribe to. For an exact topic this is the `local_id` of emitted events. It may also be a wildcard filter (`+`, `#`): it then applies to every concrete topic that no exact point claims, those events carry the concrete topic as `local_id`, and they are rate-limited (§3.2, `MQTT_WILDCARD_MIN_INTERVAL`). Wildcard points are not command targets — writes need an exact point. |
+| `topic` | string | **Yes** | MQTT topic to subscribe to. For an exact topic this is the `local_id` of emitted events. It may also be a wildcard filter (`+`, `#`): it then applies to every concrete topic that no exact point claims, those events carry the concrete topic as `local_id`, and they are rate-limited (§3.2, `MQTT_WILDCARD_MIN_INTERVAL`). Wildcard points are not command targets — writes need an exact point. An exact point that a wildcard point (or a `MQTT_SUBSCRIPTIONS` filter) already reaches gets no Subscribe of its own, so a broker that delivers once per overlapping subscription cannot double-count it; as with static filters, such a point loses per-topic MQTT5 `No Local`, so do not mark a `writable` point that falls under a wildcard (docs/adr/0008). |
 | `device_ref` | string | **Yes** | Opaque device reference echoed in all events. |
 | `unit` | string | **Yes** | Engineering unit echoed in events. May be empty (`""`). |
 | `writable` | boolean | No | `true` if the gateway may send write commands for this point. Default `false`. |

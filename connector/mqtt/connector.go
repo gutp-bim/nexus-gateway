@@ -123,7 +123,22 @@ func newTopicIndex(points []PointConfig, staticWildcards []SubscriptionConfig, r
 		if hasWildcard(p.Topic) {
 			idx.wildcards = append(idx.wildcards, p)
 		}
-		if !coveredByWildcard(p.Topic, staticWildcards) {
+	}
+	for _, p := range points {
+		// An exact point that a wildcard (static filter or wildcard point) already
+		// reaches gets no Subscribe of its own: some brokers deliver once per
+		// overlapping subscription, which would double-count its telemetry
+		// (docs/adr/0008). Wildcard points always subscribe — they are the cover.
+		covered := coveredByWildcard(p.Topic, staticWildcards)
+		if !covered && !hasWildcard(p.Topic) {
+			for _, w := range idx.wildcards {
+				if filterMatches(w.Topic, p.Topic) {
+					covered = true
+					break
+				}
+			}
+		}
+		if !covered {
 			idx.explicitSubs[p.Topic] = subscribeOptionsFor(p)
 		}
 	}
@@ -137,6 +152,34 @@ func newTopicIndex(points []PointConfig, staticWildcards []SubscriptionConfig, r
 		return idx.wildcards[i].Topic < idx.wildcards[j].Topic
 	})
 	return idx
+}
+
+// planSubscriptions works out the broker calls that move the connector from the
+// current index to next: Subscribe every topic that is newly explicit or whose
+// shape changed (a harmless re-subscribe if only QoS/NoLocal moved), Unsubscribe
+// every topic that was explicit and no longer is. Deriving both from the explicit
+// sets — not from the added/removed point lists — is what keeps a wildcard point
+// appearing or disappearing consistent: the exact topics it covers lose or regain
+// their own subscription even though their points did not change.
+func planSubscriptions(current, next *topicIndex, changed []string) (subscribe []paho.SubscribeOptions, unsubscribe []string) {
+	changedSet := make(map[string]struct{}, len(changed))
+	for _, topic := range changed {
+		changedSet[topic] = struct{}{}
+	}
+	for topic, opt := range next.explicitSubs {
+		_, had := current.explicitSubs[topic]
+		if _, isChanged := changedSet[topic]; !had || isChanged {
+			subscribe = append(subscribe, opt)
+		}
+	}
+	for topic := range current.explicitSubs {
+		if _, still := next.explicitSubs[topic]; !still {
+			unsubscribe = append(unsubscribe, topic)
+		}
+	}
+	sort.Slice(subscribe, func(i, j int) bool { return subscribe[i].Topic < subscribe[j].Topic })
+	sort.Strings(unsubscribe)
+	return subscribe, unsubscribe
 }
 
 // resolve finds the Point governing a received concrete topic. An exact
@@ -929,20 +972,10 @@ func (c *Connector) ApplySubscriptions(ctx context.Context, cm *autopaho.Connect
 
 	next := newTopicIndex(pointConfigsOf(desired), c.cfg.Subscriptions, req.Revision)
 
-	// Subscribe additions+changes not already covered by a static wildcard
-	// filter. A topic whose QoS/NoLocal shape is unchanged is a harmless
-	// re-subscribe — the broker just updates its existing subscription.
-	var toSubscribe []paho.SubscribeOptions
-	for _, topic := range added {
-		if opt, ok := next.explicitSubs[topic]; ok {
-			toSubscribe = append(toSubscribe, opt)
-		}
-	}
-	for _, topic := range changed {
-		if opt, ok := next.explicitSubs[topic]; ok {
-			toSubscribe = append(toSubscribe, opt)
-		}
-	}
+	// Subscribe what is newly explicit or changed, and (below) unsubscribe what
+	// stopped being explicit — either because it was removed, or because a wildcard
+	// now covers it. Anything a wildcard covers gets no subscription of its own.
+	toSubscribe, toUnsubscribe := planSubscriptions(current, next, changed)
 	if len(toSubscribe) > 0 {
 		if _, err := cm.Subscribe(ctx, &paho.Subscribe{Subscriptions: toSubscribe}); err != nil {
 			slog.Error("mqtt: subscription apply failed — retaining previous subscriptions", "revision", req.Revision, "err", err)
@@ -950,15 +983,9 @@ func (c *Connector) ApplySubscriptions(ctx context.Context, cm *autopaho.Connect
 		}
 	}
 
-	// Only unsubscribe topics this connector itself explicitly subscribed to —
-	// one covered by a static wildcard was never subscribed on its own, so
-	// there is nothing of ours to remove (docs/adr/0008).
-	var toUnsubscribe []string
-	for _, topic := range removed {
-		if _, wasExplicit := current.explicitSubs[topic]; wasExplicit {
-			toUnsubscribe = append(toUnsubscribe, topic)
-		}
-	}
+	// Only topics this connector itself explicitly subscribed to are unsubscribed —
+	// one a wildcard covers was never subscribed on its own, so there is nothing of
+	// ours to remove (docs/adr/0008).
 	var errs []string
 	if len(toUnsubscribe) > 0 {
 		if _, err := cm.Unsubscribe(ctx, &paho.Unsubscribe{Topics: toUnsubscribe}); err != nil {
