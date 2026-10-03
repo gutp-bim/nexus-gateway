@@ -4,6 +4,8 @@
 package pointlist_test
 
 import (
+	"bytes"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -269,4 +271,65 @@ PT001,analogInput,1,mqtt
 	require.Len(t, entries, 1)
 	assert.Equal(t, "bacnet", entries[0].Protocol)
 	assert.Equal(t, "bacnet-01", entries[0].ConnectorID)
+}
+
+// captureLogs routes slog output into a buffer for the duration of the test.
+func captureLogs(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+	return &buf
+}
+
+func TestLoadCSV_UnmappedProtocol_WarnsOncePerProtocol(t *testing.T) {
+	const csv = `point_id,local_id,protocol
+PT1,ns=2;s=A,opcua
+PT2,ns=2;s=B,opcua
+PT3,ns=2;s=C,opcua
+PT4,x/y,mqtt
+`
+	logs := captureLogs(t)
+	_, err := pointlist.LoadCSV(strings.NewReader(csv), pointlist.CSVOptions{
+		ConnectorID:  "default-connector",
+		ConnectorMap: map[string]string{"bacnet": "bacnet-01"},
+	})
+	require.NoError(t, err)
+	out := logs.String()
+	assert.Equal(t, 1, strings.Count(out, "protocol=opcua"), "3 opcua rows → one warning; got:\n%s", out)
+	assert.Equal(t, 1, strings.Count(out, "protocol=mqtt"), out)
+	assert.Contains(t, out, "level=WARN")
+}
+
+func TestLoadCSV_FallbackWithoutMap_StaysSilent(t *testing.T) {
+	const csv = `point_id,local_id,protocol
+PT1,ns=2;s=A,opcua
+`
+	logs := captureLogs(t)
+	_, err := pointlist.LoadCSV(strings.NewReader(csv), pointlist.CSVOptions{ConnectorID: "bacnet-01"})
+	require.NoError(t, err)
+	assert.NotContains(t, logs.String(), "CONNECTOR_MAP", "empty map = documented single-connector setup")
+}
+
+func TestLoadCSV_NoFallbackID_LogsError(t *testing.T) {
+	const csv = `point_id,local_id,protocol
+PT1,ns=2;s=A,opcua
+`
+	logs := captureLogs(t)
+	_, err := pointlist.LoadCSV(strings.NewReader(csv), pointlist.CSVOptions{})
+	require.NoError(t, err)
+	assert.Contains(t, logs.String(), "level=ERROR")
+}
+
+func TestLoadCSV_ExplicitConnectorID_NoWarning(t *testing.T) {
+	const csv = `point_id,local_id,protocol,connector_id
+PT1,ns=2;s=A,opcua,opcua-09
+`
+	logs := captureLogs(t)
+	_, err := pointlist.LoadCSV(strings.NewReader(csv), pointlist.CSVOptions{
+		ConnectorMap: map[string]string{"bacnet": "bacnet-01"},
+	})
+	require.NoError(t, err)
+	assert.Empty(t, logs.String())
 }

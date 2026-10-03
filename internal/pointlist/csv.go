@@ -117,6 +117,7 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 
 	var entries []Entry
 	seen := map[string]bool{}
+	warned := map[string]bool{} // protocols already reported as unmapped in this load
 	for _, row := range rows[1:] {
 		pointID := get(row, "point_id")
 		if pointID == "" {
@@ -164,6 +165,7 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 				cid = v
 			} else {
 				cid = opts.ConnectorID
+				warnFallback(warned, opts, proto, pointID)
 			}
 		}
 
@@ -184,6 +186,27 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 		})
 	}
 	return entries, nil
+}
+
+// warnFallback reports, once per protocol per load, a row that fell back to
+// opts.ConnectorID. With an empty ConnectorMap the fallback is the documented
+// single-connector setup and stays silent; once a map is configured, a protocol
+// missing from it is almost always a typo or an unmapped connector, and a row left
+// with no connector id can never match a Common Event or receive a command.
+func warnFallback(warned map[string]bool, opts CSVOptions, proto, pointID string) {
+	if warned[proto] {
+		return
+	}
+	switch {
+	case opts.ConnectorID == "":
+		warned[proto] = true
+		slog.Error("pointlist: protocol has no CONNECTOR_MAP entry and no fallback connector id is set; its points cannot be resolved or commanded",
+			"protocol", proto, "first_point_id", pointID)
+	case len(opts.ConnectorMap) > 0:
+		warned[proto] = true
+		slog.Warn("pointlist: protocol has no CONNECTOR_MAP entry; using the fallback connector id (PROVISIONING_CONNECTOR_ID)",
+			"protocol", proto, "connector_id", opts.ConnectorID, "first_point_id", pointID)
+	}
 }
 
 // InferProtocol matches localID against protocolPatterns in order and
