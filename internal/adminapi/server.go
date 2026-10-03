@@ -78,6 +78,9 @@ type TelemetrySource interface {
 	EvictedSent() int64
 	LostUnsent() int64
 	WriteErrors() int64
+	// Duplicates counts redelivered source messages skipped by the idempotent
+	// buffer write instead of being buffered twice (#186).
+	Duplicates() int64
 	Capacity() int
 	Checkpoints() int64
 	SendErrors() int64
@@ -358,6 +361,8 @@ type telemetryResponse struct {
 	Dropped            int64              `json:"dropped"`
 	Checkpoints        int64              `json:"checkpoints"`
 	SendErrors         int64              `json:"send_errors"`
+	Redelivered        int64              `json:"redelivered"` // EVENTS messages JetStream delivered more than once
+	Duplicates         int64              `json:"duplicates"`  // redeliveries skipped instead of buffered twice
 	Drifts             map[string]int64   `json:"drifts"`
 	DriftTotal         int64              `json:"drift_total"`
 	UplinkConnected    bool               `json:"uplink_connected"`
@@ -375,6 +380,8 @@ func (s *Server) handleTelemetry(w http.ResponseWriter, r *http.Request) {
 		Dropped:            t.Dropped(),
 		Checkpoints:        t.Checkpoints(),
 		SendErrors:         t.SendErrors(),
+		Redelivered:        metrics.NormalizerRedelivered(),
+		Duplicates:         t.Duplicates(),
 		Drifts:             t.Drifts(),
 		DriftTotal:         t.DriftTotal(),
 		UplinkConnected:    metrics.UplinkConnected(),
@@ -616,6 +623,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "# HELP normalizer_unresolved_total Common Events whose local_id is absent from the Point List.\n")
 	fmt.Fprintf(w, "# TYPE normalizer_unresolved_total counter\n")
 	fmt.Fprintf(w, "normalizer_unresolved_total{reason=\"point_list_miss\"} %d\n", metrics.NormalizerUnresolved())
+	fmt.Fprintf(w, "# HELP normalizer_redelivered_total EVENTS messages JetStream delivered more than once (ack deadline expired while the pipeline was behind).\n")
+	fmt.Fprintf(w, "# TYPE normalizer_redelivered_total counter\n")
+	fmt.Fprintf(w, "normalizer_redelivered_total %d\n", metrics.NormalizerRedelivered())
 
 	if s.telemetry != nil {
 		t := s.telemetry
@@ -644,6 +654,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "# HELP storefwd_write_error_total Buffer write attempts that failed to persist (full disk / SQLite error); a frame under persistent failure counts once per redelivery. Distinct from capacity drops.\n")
 		fmt.Fprintf(w, "# TYPE storefwd_write_error_total counter\n")
 		fmt.Fprintf(w, "storefwd_write_error_total %d\n", t.WriteErrors())
+		fmt.Fprintf(w, "# HELP storefwd_duplicate_total Redelivered source messages skipped by the idempotent buffer write instead of being buffered and forwarded twice.\n")
+		fmt.Fprintf(w, "# TYPE storefwd_duplicate_total counter\n")
+		fmt.Fprintf(w, "storefwd_duplicate_total %d\n", t.Duplicates())
 		fmt.Fprintf(w, "# HELP storefwd_checkpoint_total Successful uplink ack-checkpoints.\n")
 		fmt.Fprintf(w, "# TYPE storefwd_checkpoint_total counter\n")
 		fmt.Fprintf(w, "storefwd_checkpoint_total %d\n", t.Checkpoints())
