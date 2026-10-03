@@ -6,14 +6,10 @@ package mqtt_test
 import (
 	"context"
 	"encoding/json"
-	"net"
 	"strings"
 	"testing"
 	"time"
 
-	mochi "github.com/mochi-mqtt/server/v2"
-	"github.com/mochi-mqtt/server/v2/listeners"
-	"github.com/mochi-mqtt/server/v2/packets"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +17,7 @@ import (
 
 	mqttconn "nexus-gateway/connector/mqtt"
 	"nexus-gateway/connector/sdk"
+	"nexus-gateway/internal/testbroker"
 )
 
 // assertNoMoreEvents fetches from the SAME durable consumer consumeOneEvent
@@ -156,7 +153,7 @@ func TestMQTT_ApplySubscriptionsSubscribeFailureRetainsPrevious(t *testing.T) {
 	defer cancel()
 
 	const forbidden = "sensors/forbidden"
-	brokerAddr := startBrokerWithHook(t, &denySubscribeHook{forbidden: forbidden})
+	brokerAddr := testbroker.Start(t, testbroker.DenySubscribe(forbidden))
 	nc, js := startNATS(t)
 
 	conn := mqttconn.New(mqttconn.Config{
@@ -368,50 +365,3 @@ func TestMQTT_FreshnessFloorSkipsRemovedTopic(t *testing.T) {
 }
 
 // ── sync-test helpers ───────────────────────────────────────────────────────
-
-// denySubscribeHook denies subscribing to a single forbidden topic filter
-// (SUBACK reason >= 0x80), which the paho client surfaces as an error from
-// cm.Subscribe — used to exercise the apply-failure path deterministically.
-type denySubscribeHook struct {
-	mochi.HookBase
-	forbidden string
-}
-
-func (h *denySubscribeHook) ID() string { return "deny-subscribe" }
-
-func (h *denySubscribeHook) Provides(b byte) bool {
-	return b == mochi.OnConnectAuthenticate || b == mochi.OnACLCheck
-}
-
-func (h *denySubscribeHook) OnConnectAuthenticate(*mochi.Client, packets.Packet) bool { return true }
-
-func (h *denySubscribeHook) OnACLCheck(_ *mochi.Client, topic string, write bool) bool {
-	return write || topic != h.forbidden
-}
-
-func startBrokerWithHook(t *testing.T, hook mochi.Hook) string {
-	t.Helper()
-	s := mochi.New(nil)
-	require.NoError(t, s.AddHook(hook, nil))
-
-	tcp := listeners.NewTCP(listeners.Config{ID: "t1", Address: "127.0.0.1:0"})
-	require.NoError(t, s.AddListener(tcp))
-
-	go func() { _ = s.Serve() }()
-	t.Cleanup(func() { _ = s.Close() })
-
-	require.Eventually(t, func() bool {
-		addr := tcp.Address()
-		if addr == "" || addr == "127.0.0.1:0" {
-			return false
-		}
-		probe, err := net.DialTimeout("tcp", addr, 100*time.Millisecond)
-		if err != nil {
-			return false
-		}
-		_ = probe.Close()
-		return true
-	}, 3*time.Second, 10*time.Millisecond)
-
-	return tcp.Address()
-}

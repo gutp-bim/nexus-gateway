@@ -21,7 +21,12 @@ jobs:
           cache: true
       - name: Build
         run: go build ./...
+      - name: Install mosquitto
+        # The MQTT connector tests run against a real broker (internal/testbroker).
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mosquitto
       - name: Test
+        env:
+          NEXUS_REQUIRE_MOSQUITTO: "1" # a missing broker must fail the build, not skip the tests
         run: go test -race ./...
 
   compose:
