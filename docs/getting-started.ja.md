@@ -421,14 +421,14 @@ clone や worktree には自動的には現れません。
 というフラットな JSON 配列です。CSV から後者を生成するには:
 
 ```bash
-python3 scripts/csv-to-mqtt-points.py secrets/THX_StandardPointList_v1.confirmed.csv fixtures/mqtt/aws_iot_points.json
+python3 scripts/csv-to-mqtt-points.py secrets/point-list.csv fixtures/mqtt/aws_iot_points.json
 ```
 
 を実行し、生成された JSON を `MQTT_POINTS_FILE` に指定します
 (`docker-compose.mqtt.yml` はデフォルトで `fixtures/mqtt/aws_iot_points.json` を
 そこにマウント済みです)。ゲートウェイ本体の Point List は引き続き CSV を直接
 指すようにしてください
-(`PROVISIONING_FILE=secrets/THX_StandardPointList_v1.confirmed.csv`,
+(`PROVISIONING_FILE=secrets/point-list.csv`,
 `CONNECTOR_MAP=mqtt:mqtt-01`)— そうしないと受信したイベントが `point_id` に
 解決できず、未解決として破棄されます(ADR-0002, ADR-0003)。
 

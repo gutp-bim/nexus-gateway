@@ -24,7 +24,7 @@ func TestLoadPointEnv_FileTakesPrecedence(t *testing.T) {
 func TestLoadPointEnv_HandlesTwoThousandPoints(t *testing.T) {
 	want := make([]pointEnv, 2000)
 	for i := range want {
-		want[i] = pointEnv{Topic: fmt.Sprintf("takenaka.co.jp/Tokyo/THX/device-%04d/value/R", i)}
+		want[i] = pointEnv{Topic: fmt.Sprintf("example.com/site-a/device-%04d/value/R", i)}
 	}
 	data, err := json.Marshal(want)
 	require.NoError(t, err)
@@ -51,10 +51,10 @@ func TestLoadPointEnv_ParsesPerPointQoS(t *testing.T) {
 }
 
 func TestParseSubscriptionEnv(t *testing.T) {
-	subs, err := parseSubscriptionEnv(`[{"filter":"takenaka.co.jp/Tokyo/THX/#","qos":1}]`)
+	subs, err := parseSubscriptionEnv(`[{"filter":"example.com/site-a/#","qos":1}]`)
 	require.NoError(t, err)
 	require.Len(t, subs, 1)
-	assert.Equal(t, "takenaka.co.jp/Tokyo/THX/#", subs[0].Filter)
+	assert.Equal(t, "example.com/site-a/#", subs[0].Filter)
 	assert.Equal(t, byte(1), subs[0].QoS)
 }
 

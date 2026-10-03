@@ -101,12 +101,12 @@ func TestMQTT_WildcardSubscriptionPublishesExactTopic(t *testing.T) {
 
 	brokerAddr := startBroker(t)
 	nc, js := startNATS(t)
-	topic := "takenaka.co.jp/Tokyo/THX/HVAC2F-AHU2NW1/current/R"
+	topic := "example.com/site-a/AHU-01/current/R"
 	conn := mqttconn.New(mqttconn.Config{
 		ConnectorID: "mqtt-wildcard", BrokerURL: "mqtt://" + brokerAddr,
 		ClientID: "nexus-gw-wildcard", KeepAlive: 30,
-		Subscriptions: []mqttconn.SubscriptionConfig{{Filter: "takenaka.co.jp/Tokyo/THX/#", QoS: 1}},
-		Points:        []mqttconn.PointConfig{{Topic: topic, DeviceRef: "HVAC2F-AHU2NW1", Unit: "A"}},
+		Subscriptions: []mqttconn.SubscriptionConfig{{Filter: "example.com/site-a/#", QoS: 1}},
+		Points:        []mqttconn.PointConfig{{Topic: topic, DeviceRef: "AHU-01", Unit: "A"}},
 	}, nc, js)
 	go conn.Run(ctx)
 	require.NoError(t, conn.AwaitReady(ctx))
@@ -179,15 +179,15 @@ func TestMQTT_AWSIoTConfiguredTopicsReachJetStream(t *testing.T) {
 	defer cancel()
 	brokerAddr := startBroker(t)
 	nc, js := startNATS(t)
-	hvacTopic := "takenaka.co.jp/Tokyo/THX/HVAC2F-AHU2NW1/AHU_RT/R"
-	lightTopic := "takenaka.co.jp/Tokyo/THX/LIGHT1F-G13/status_half/R"
+	hvacTopic := "example.com/site-a/AHU-01/AHU_RT/R"
+	lightTopic := "example.com/site-a/LIGHT-01/status_half/R"
 	conn := mqttconn.New(mqttconn.Config{
 		ConnectorID: "mqtt-aws-topics", BrokerURL: "mqtt://" + brokerAddr,
 		ClientID: "nexus-gw-aws-topics", KeepAlive: 30,
 		Subscriptions: []mqttconn.SubscriptionConfig{{Filter: "#", QoS: 1}},
 		Points: []mqttconn.PointConfig{
-			{Topic: hvacTopic, DeviceRef: "HVAC2F-AHU2NW1"},
-			{Topic: lightTopic, DeviceRef: "LIGHT1F-G13"},
+			{Topic: hvacTopic, DeviceRef: "AHU-01"},
+			{Topic: lightTopic, DeviceRef: "LIGHT-01"},
 		},
 	}, nc, js)
 	go conn.Run(ctx)
