@@ -98,10 +98,17 @@ func launch(t testing.TB, bin string, cfg config) (addr string, stop func(), err
 	if err != nil {
 		return "", nil, err
 	}
+	// Every failure path below removes the directory through this one defer; on
+	// success the returned stop function owns it.
+	launched := false
+	defer func() {
+		if !launched {
+			_ = os.RemoveAll(dir)
+		}
+	}()
 	// The files hold no secrets. When the tests run as root, mosquitto drops to its
 	// own user before reading them, so they must be readable by others.
 	if err := os.Chmod(dir, 0o755); err != nil {
-		_ = os.RemoveAll(dir)
 		return "", nil, err
 	}
 
@@ -109,12 +116,10 @@ func launch(t testing.TB, bin string, cfg config) (addr string, stop func(), err
 	if len(cfg.denySubscribe) > 0 {
 		plugin, err := findDynsecPlugin()
 		if err != nil {
-			_ = os.RemoveAll(dir)
 			return "", nil, err
 		}
 		dynsecPath := filepath.Join(dir, "dynamic-security.json")
 		if err := os.WriteFile(dynsecPath, dynsecConfig(cfg.denySubscribe), 0o644); err != nil {
-			_ = os.RemoveAll(dir)
 			return "", nil, err
 		}
 		conf += "plugin " + plugin + "\nplugin_opt_config_file " + dynsecPath + "\n"
@@ -128,7 +133,6 @@ func launch(t testing.TB, bin string, cfg config) (addr string, stop func(), err
 	cmd := exec.Command(bin, "-c", confPath)
 	cmd.Stdout, cmd.Stderr = &out, &out
 	if err := cmd.Start(); err != nil {
-		_ = os.RemoveAll(dir)
 		return "", nil, err
 	}
 	exited := make(chan struct{})
@@ -160,12 +164,12 @@ func launch(t testing.TB, bin string, cfg config) (addr string, stop func(), err
 	for time.Now().Before(deadline) {
 		select {
 		case <-exited: // e.g. address already in use
-			_ = os.RemoveAll(dir)
 			return "", nil, fmt.Errorf("mosquitto exited during startup: %s", out.String())
 		default:
 		}
 		if c, derr := net.DialTimeout("tcp", addr, 100*time.Millisecond); derr == nil {
 			_ = c.Close()
+			launched = true
 			return addr, stop, nil
 		}
 		time.Sleep(20 * time.Millisecond)
