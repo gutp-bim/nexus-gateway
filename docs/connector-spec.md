@@ -177,7 +177,7 @@ The core fields are required; `attributes` is optional. Published as UTF-8 JSON,
 | OPC-UA | `"ns=2;s=Temperature"` |
 | MQTT | `"sensors/floor3/temp"` |
 
-**MQTT:** `local_id` is the exact MQTT topic path configured in `MQTT_POINTS[].topic`. `MQTT_SUBSCRIPTIONS` may use MQTT wildcard filters (`+`, `#`) to keep the broker subscription count bounded, but the received concrete topic is still matched to `MQTT_POINTS` by exact string equality. Messages arriving on a topic not present in the point list are acknowledged immediately and discarded. The gateway Normalizer looks up the concrete topic string in the Point List to resolve the canonical `point_id`; the connector never performs this resolution.
+**MQTT:** `local_id` is always the concrete MQTT topic the broker delivered. `MQTT_SUBSCRIPTIONS` may use MQTT wildcard filters (`+`, `#`) to keep the broker subscription count bounded. The received concrete topic is matched to `MQTT_POINTS` by exact string equality first; if none matches, the most specific `MQTT_POINTS[].topic` that is itself a wildcard filter supplies the metadata (`device_ref`, `unit`), and the concrete topic — never the filter — is emitted as `local_id` (#173). Such wildcard-matched topics are rate-limited (`MQTT_WILDCARD_MIN_INTERVAL`); exactly configured topics never are. Messages arriving on a topic matched by no point are acknowledged immediately and discarded. The gateway Normalizer looks up the concrete topic string in the Point List to resolve the canonical `point_id`; the connector never performs this resolution.
 
 ### 3.3 `quality` semantics
 
@@ -389,6 +389,7 @@ The gateway passes these through from the connector registration. Protocol-speci
 | `MQTT_POINTS_FILE` | _(empty)_ | Read-only JSON file containing the same array as `MQTT_POINTS`. When set, it takes precedence; recommended for large point lists. |
 | `MQTT_SUBSCRIPTIONS` | `[]` | JSON array of `{filter,qos}` MQTT topic filters. Supports `+` and `#`. When empty, each `MQTT_POINTS[].topic` is subscribed at QoS 1 for backward compatibility. A topic already covered by one of these filters is never separately Subscribed for a Point-List-synced point (§2.4). |
 | `MQTT_IGNORE_TOPICS` | `[]` | JSON array of exact topics to acknowledge and ignore, e.g. `["tas/heartbeat"]`. |
+| `MQTT_WILDCARD_MIN_INTERVAL` | `10s` | Minimum spacing between accepted messages on one concrete topic that matched only a wildcard point (§6.3), as a Go duration. Extra messages are acknowledged and dropped, so a `#` point cannot let an unconfigured 1 s publisher load the pipeline. Exactly configured topics are never limited. `0` disables the limit. Dropped messages are counted in `mqtt_wildcard_throttled_total`. |
 | `MQTT_CA_FILE` | _(system roots)_ | Optional PEM CA bundle path for server verification. |
 | `MQTT_CERT_FILE` | _(empty)_ | PEM client certificate path for mutual TLS. Must be set with `MQTT_KEY_FILE`. |
 | `MQTT_KEY_FILE` | _(empty)_ | PEM private-key path for mutual TLS. Must be set with `MQTT_CERT_FILE`. |
@@ -488,7 +489,7 @@ The point list tells a connector which data points to poll and how to address th
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `topic` | string | **Yes** | MQTT topic to subscribe to. Becomes the `local_id` in emitted events. Exact match only — wildcards (`+`, `#`) are not supported (§3.2). |
+| `topic` | string | **Yes** | MQTT topic to subscribe to. For an exact topic this is the `local_id` of emitted events. It may also be a wildcard filter (`+`, `#`): it then applies to every concrete topic that no exact point claims, those events carry the concrete topic as `local_id`, and they are rate-limited (§3.2, `MQTT_WILDCARD_MIN_INTERVAL`). Wildcard points are not command targets — writes need an exact point. An exact point that a wildcard point (or a `MQTT_SUBSCRIPTIONS` filter) already reaches gets no Subscribe of its own, so a broker that delivers once per overlapping subscription cannot double-count it; as with static filters, such a point loses per-topic MQTT5 `No Local`, so do not mark a `writable` point that falls under a wildcard (docs/adr/0008). |
 | `device_ref` | string | **Yes** | Opaque device reference echoed in all events. |
 | `unit` | string | **Yes** | Engineering unit echoed in events. May be empty (`""`). |
 | `writable` | boolean | No | `true` if the gateway may send write commands for this point. Default `false`. |

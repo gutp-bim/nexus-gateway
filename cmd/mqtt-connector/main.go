@@ -86,6 +86,21 @@ func main() {
 		slog.Error("MQTT_FRESHNESS_INTERVAL: invalid duration", "err", err)
 		os.Exit(1)
 	}
+	// MQTT_WILDCARD_MIN_INTERVAL spaces out messages on topics matched only by a
+	// wildcard Point (#173). 0 disables the limit; the package maps Config's zero
+	// value to the default, so "disabled" is passed as a negative duration.
+	wildcardMinInterval, err := parseDurationDefault("MQTT_WILDCARD_MIN_INTERVAL", 10*time.Second)
+	if err != nil {
+		slog.Error("MQTT_WILDCARD_MIN_INTERVAL: invalid duration", "err", err)
+		os.Exit(1)
+	}
+	if wildcardMinInterval < 0 {
+		slog.Error("MQTT_WILDCARD_MIN_INTERVAL must not be negative (use 0 to disable)", "value", wildcardMinInterval)
+		os.Exit(1)
+	}
+	if wildcardMinInterval == 0 {
+		wildcardMinInterval = -1
+	}
 	maxPayloadBytes := envUint("MQTT_MAX_PAYLOAD_BYTES", defaultMaxPayloadBytes)
 	if maxPayloadBytes == 0 {
 		slog.Error("MQTT_MAX_PAYLOAD_BYTES must be greater than zero")
@@ -176,6 +191,8 @@ func main() {
 		Points:            points,
 		FreshnessInterval: freshness,
 		ReceiveMaximum:    receiveMaximum,
+
+		WildcardMinInterval: wildcardMinInterval,
 	}
 
 	ctx, cancel := context.WithCancel(sigCtx)
