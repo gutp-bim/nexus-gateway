@@ -258,3 +258,86 @@ func mustHTTPClient(t *testing.T, baseURL, gatewayID string, cmap map[string]str
 	require.NoError(t, err)
 	return c
 }
+
+// liveMQTTPointJSON is the shape the live Building OS returned for an MQTT gateway
+// (#174): a top-level "protocol", an explicit "native": null, and the other optional
+// blocks present-but-null. Raw JSON, not the DTO structs, because omitempty would
+// never emit the null.
+//
+// The localId deliberately has no "/": pointlist.InferProtocol classifies any id
+// containing one as mqtt, which would let a mapper that ignores "protocol" pass
+// anyway. Without it, only reading the top-level field yields "mqtt".
+const liveMQTTPointJSON = `{
+  "pointId": "pt-mqtt-temp",
+  "localId": "HVAC2F-AHU2NW1.current.R",
+  "protocol": "mqtt",
+  "native": null,
+  "unit": "A",
+  "writable": false,
+  "controlSchema": null,
+  "device": {"id": "HVAC2F-AHU2NW1"}
+}`
+
+func serveRaw(t *testing.T, body string) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", "etag-v1")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// A point carrying only a top-level protocol (native: null) maps to that protocol,
+// gets the configured connector for it, and keeps its localId untouched (#174).
+func TestHTTPClient_TopLevelProtocolWithNullNative_MapsToConfiguredConnector(t *testing.T) {
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v1","full":true,"points":[`+liveMQTTPointJSON+`]}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", map[string]string{"bacnet": "bacnet-01", "mqtt": "mqtt-01"})
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, result.Entries, 1)
+	e := result.Entries[0]
+	assert.Equal(t, "mqtt", e.Protocol)
+	assert.Equal(t, "mqtt-01", e.ConnectorID)
+	assert.Equal(t, "HVAC2F-AHU2NW1.current.R", e.LocalID, "localId must not be rewritten")
+	assert.Equal(t, "pt-mqtt-temp", e.PointID)
+	assert.Equal(t, "HVAC2F-AHU2NW1", e.DeviceRef)
+}
+
+// The delta path (added/changed) maps through the same code and must behave alike.
+func TestHTTPClient_TopLevelProtocolWithNullNative_AlsoInDeltaResponses(t *testing.T) {
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v2","since":"etag-v1","full":false,`+
+		`"added":[`+liveMQTTPointJSON+`],"changed":[`+liveMQTTPointJSON+`]}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", map[string]string{"mqtt": "mqtt-01"})
+
+	result, err := c.Fetch(context.Background(), "etag-v1")
+	require.NoError(t, err)
+	require.Len(t, result.Added, 1)
+	require.Len(t, result.Changed, 1)
+	for _, e := range []struct{ name, protocol, connector string }{
+		{"added", result.Added[0].Protocol, result.Added[0].ConnectorID},
+		{"changed", result.Changed[0].Protocol, result.Changed[0].ConnectorID},
+	} {
+		assert.Equal(t, "mqtt", e.protocol, e.name)
+		assert.Equal(t, "mqtt-01", e.connector, e.name)
+	}
+}
+
+// Native BACnet addressing is unaffected: native.protocol still drives the protocol and
+// objectType/instanceNo still compose the localId when no top-level protocol is sent.
+func TestHTTPClient_NativeBACnetWithoutTopLevelProtocol_Unchanged(t *testing.T) {
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v1","full":true,"points":[`+
+		`{"pointId":"pt-bac","native":{"protocol":"bacnet","deviceId":"1001","objectType":"analogInput","instanceNo":"7"}}]}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", map[string]string{"bacnet": "bacnet-01", "mqtt": "mqtt-01"})
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, result.Entries, 1)
+	e := result.Entries[0]
+	assert.Equal(t, "bacnet", e.Protocol)
+	assert.Equal(t, "bacnet-01", e.ConnectorID)
+	assert.Equal(t, "analogInput,7", e.LocalID)
+	assert.Equal(t, "1001", e.DeviceRef)
+}

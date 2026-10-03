@@ -10,6 +10,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -542,6 +543,52 @@ func TestMQTT_ShutdownFlushesQueuedPublishes(t *testing.T) {
 	}, 5*time.Second, 20*time.Millisecond, "received frames must not be silently dropped at shutdown")
 	assert.Equal(t, int64(burst), metricValue(t, conn.Metrics(), "mqtt_published_total"),
 		"the shutdown flush should publish them, not fail them")
+}
+
+// flakyJS fails the first failLeft Publish calls, standing in for a NATS
+// slowdown that makes a publish time out.
+type flakyJS struct {
+	jetstream.JetStream
+	failLeft atomic.Int32
+}
+
+func (f *flakyJS) Publish(ctx context.Context, subject string, payload []byte, opts ...jetstream.PublishOpt) (*jetstream.PubAck, error) {
+	if f.failLeft.Add(-1) >= 0 {
+		return nil, context.DeadlineExceeded
+	}
+	return f.JetStream.Publish(ctx, subject, payload, opts...)
+}
+
+// TestMQTT_PublishFailureRetriesAndIngestionResumes: a transient JetStream publish
+// failure must not stall ingestion (#185). The failed frame is retried in place and
+// every frame lands exactly once, in order — no reconnect needed.
+func TestMQTT_PublishFailureRetriesAndIngestionResumes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	brokerAddr := startBroker(t)
+	nc, realJS := startNATS(t)
+	js := &flakyJS{JetStream: realJS}
+	js.failLeft.Store(3)
+
+	const n = 5
+	topic := "sensors/retry"
+	conn := mqttconn.New(mqttconn.Config{
+		ConnectorID: "mqtt-retry", BrokerURL: "mqtt://" + brokerAddr,
+		ClientID: "nexus-gw-retry", KeepAlive: 30,
+		Points: []mqttconn.PointConfig{{Topic: topic}},
+	}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+
+	publishMQTTBurst(t, brokerAddr, topic, n)
+
+	got := consumeEvents(t, ctx, realJS, "evt.mqtt.mqtt-retry", n)
+	assert.Equal(t, []float64{0, 1, 2, 3, 4}, got, "every frame lands once, in order")
+	assert.Equal(t, int64(3), metricValue(t, conn.Metrics(), "mqtt_publish_error_total"))
+	assert.Equal(t, int64(n), metricValue(t, conn.Metrics(), "mqtt_published_total"))
+	assert.Zero(t, metricValue(t, conn.Metrics(), "mqtt_publish_stalled_seconds"), "recovered publishes clear the stall")
+	assert.True(t, conn.Healthy())
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
