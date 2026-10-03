@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/transport"
@@ -25,6 +26,42 @@ type HTTPClient struct {
 	gatewayID    string
 	connectorMap map[string]string // protocol → connectorID
 	http         *http.Client
+
+	// fallbackConnectorID is stamped on a point whose protocol has no connectorMap
+	// entry, as the CSV path does (--provisioning-connector-id). Empty = no fallback.
+	fallbackConnectorID string
+	// warnedUnmapped holds the protocols already reported as unmapped, so a
+	// 2,000-point list logs once per protocol instead of once per point.
+	warnedUnmapped sync.Map
+}
+
+// WithFallbackConnectorID sets the connector id used for a point whose protocol
+// has no connector-map entry — the same rule the CSV provisioning path applies, and
+// what --connector-map documents. Call it before the client is used.
+func (c *HTTPClient) WithFallbackConnectorID(id string) *HTTPClient {
+	c.fallbackConnectorID = id
+	return c
+}
+
+// connectorFor resolves a point's connector id: the connector-map entry for its
+// protocol, else the fallback id. A point left with no connector id can never
+// match a Common Event or receive a command (its events arrive under a real
+// connector id; commands are routed to cmd.<protocol>.<connector id>), so the
+// condition is logged once per protocol rather than failing silently.
+func (c *HTTPClient) connectorFor(protocol, pointID string) string {
+	if id := c.connectorMap[protocol]; id != "" {
+		return id
+	}
+	if _, seen := c.warnedUnmapped.LoadOrStore(protocol, struct{}{}); !seen {
+		if c.fallbackConnectorID != "" {
+			slog.Warn("provisioning: protocol has no CONNECTOR_MAP entry; using the fallback connector id (PROVISIONING_CONNECTOR_ID)",
+				"protocol", protocol, "connector_id", c.fallbackConnectorID, "first_point_id", pointID)
+		} else {
+			slog.Error("provisioning: protocol has no CONNECTOR_MAP entry and no fallback connector id is set; its points cannot be resolved or commanded",
+				"protocol", protocol, "first_point_id", pointID)
+		}
+	}
+	return c.fallbackConnectorID
 }
 
 // TLSOptions configures transport security for the provisioning link (#135).
@@ -263,7 +300,7 @@ func (c *HTTPClient) mapDTO(dto gatewayPointDTOJSON) pointlist.Entry {
 			"point_id", dto.PointID, "local_id", e.LocalID)
 	}
 	e.Protocol = protocol
-	e.ConnectorID = c.connectorMap[protocol]
+	e.ConnectorID = c.connectorFor(protocol, dto.PointID)
 
 	if dto.ControlSchema != nil {
 		if data, err := json.Marshal(dto.ControlSchema); err == nil {
