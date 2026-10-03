@@ -37,40 +37,73 @@ type FrameMsg struct {
 	Seq uint64
 }
 
-// dedupWindowSize is how many recently written stream sequences the Pump
-// remembers. A redelivery arrives one AckWait (minutes) after the original
-// delivery, so the window only has to span the messages written in that time;
-// 64Ki entries (~1 MB) covers it at hundreds of messages per second.
-const dedupWindowSize = 1 << 16
+// dedupWindowSeqs is how many consecutive stream sequence numbers the Pump can
+// tell apart: a redelivered message is recognised as long as its original was
+// written within the last dedupWindowSeqs stream messages.
+//
+// What it has to cover is the redelivery delay, one AckWait (2 min, set in
+// internal/normalizer): an ack lost after the write brings the message back that
+// much later. At 2 min the window therefore covers sustained rates up to
+// 2^21 / 120 s ≈ 17,500 messages/s, for 256 KiB (a bitmap indexed by sequence
+// value, not a set of recent entries). Beyond that rate the dedup is best-effort.
+const dedupWindowSeqs = 1 << 21
 
-// seqWindow is a bounded set of recently written stream sequences: lookups are
-// O(1) and, once full, adding evicts the oldest entry. It is confined to the Pump
-// goroutine, so it needs no locking. The window is deliberately in memory: the
-// Pump writes then acks one message at a time, so a crash can leave at most one
-// written-but-unacked message, and the at-most-one duplicate after a restart is
-// within the at-least-once contract of #28.
+// seqWindow remembers which stream sequences in [base, base+n) were written: a
+// bitmap whose bit for sequence s is s mod n, so lookups and inserts are O(1) and
+// sliding forward only clears the bits of sequences that fell out. A sequence
+// older than base can no longer be judged: it reads as unseen and is not recorded.
+// It is confined to the Pump goroutine, so it needs no locking.
+//
+// The window is deliberately in memory: the Pump writes then acks one message at
+// a time, so a crash can leave at most one written-but-unacked message, and the
+// at-most-one duplicate after a restart is within the at-least-once contract of
+// #28.
 type seqWindow struct {
-	seen map[uint64]struct{}
-	ring []uint64 // insertion order; 0 marks an unused slot (Seq 0 is never stored)
-	next int
+	bits []uint64
+	n    uint64 // window span in sequences; a power of two
+	base uint64 // lowest sequence the window covers
 }
 
+// newSeqWindow returns a window spanning at least size sequences (rounded up to a
+// power of two, minimum 64).
 func newSeqWindow(size int) *seqWindow {
-	return &seqWindow{seen: make(map[uint64]struct{}, size), ring: make([]uint64, size)}
+	n := uint64(64)
+	for n < uint64(size) {
+		n <<= 1
+	}
+	return &seqWindow{bits: make([]uint64, n/64), n: n}
 }
 
 func (w *seqWindow) contains(seq uint64) bool {
-	_, ok := w.seen[seq]
-	return ok
+	if seq < w.base || seq-w.base >= w.n {
+		return false
+	}
+	i := seq & (w.n - 1)
+	return w.bits[i>>6]&(1<<(i&63)) != 0
 }
 
 func (w *seqWindow) add(seq uint64) {
-	if old := w.ring[w.next]; old != 0 {
-		delete(w.seen, old)
+	if seq < w.base {
+		return // older than the window: cannot be recorded
 	}
-	w.ring[w.next] = seq
-	w.seen[seq] = struct{}{}
-	w.next = (w.next + 1) % len(w.ring)
+	if seq-w.base >= w.n {
+		w.slide(seq - w.n + 1) // make seq the newest covered sequence
+	}
+	i := seq & (w.n - 1)
+	w.bits[i>>6] |= 1 << (i & 63)
+}
+
+// slide moves base forward to newBase, forgetting the sequences it passes.
+func (w *seqWindow) slide(newBase uint64) {
+	if newBase-w.base >= w.n {
+		clear(w.bits)
+	} else {
+		for s := w.base; s < newBase; s++ {
+			i := s & (w.n - 1)
+			w.bits[i>>6] &^= 1 << (i & 63)
+		}
+	}
+	w.base = newBase
 }
 
 // Pump reads FrameMsgs from src and writes them to buf until ctx is done or src is
@@ -84,7 +117,7 @@ func (w *seqWindow) add(seq uint64) {
 // frame whose stream sequence was already written is acked and counted as a
 // duplicate instead.
 func Pump(ctx context.Context, src <-chan FrameMsg, buf *Buffer) {
-	written := newSeqWindow(dedupWindowSize)
+	written := newSeqWindow(dedupWindowSeqs)
 	for {
 		select {
 		case fm, ok := <-src:
