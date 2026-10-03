@@ -12,9 +12,6 @@ import (
 	"time"
 
 	pahoClient "github.com/eclipse/paho.golang/paho"
-	mochi "github.com/mochi-mqtt/server/v2"
-	mochiauth "github.com/mochi-mqtt/server/v2/hooks/auth"
-	"github.com/mochi-mqtt/server/v2/listeners"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +23,7 @@ import (
 	"nexus-gateway/internal/pointlist"
 	"nexus-gateway/internal/pointsync"
 	"nexus-gateway/internal/provisioning"
+	"nexus-gateway/internal/testbroker"
 )
 
 // TestMQTTSync_LiveSubscriptionReload exercises the full gateway-side chain
@@ -127,29 +125,7 @@ func TestMQTTSync_LiveSubscriptionReload(t *testing.T) {
 
 func startMQTTBroker(t *testing.T) string {
 	t.Helper()
-	s := mochi.New(nil)
-	require.NoError(t, s.AddHook(new(mochiauth.AllowHook), nil))
-
-	tcp := listeners.NewTCP(listeners.Config{ID: "t1", Address: "127.0.0.1:0"})
-	require.NoError(t, s.AddListener(tcp))
-
-	go func() { _ = s.Serve() }()
-	t.Cleanup(func() { _ = s.Close() })
-
-	require.Eventually(t, func() bool {
-		addr := tcp.Address()
-		if addr == "" || addr == "127.0.0.1:0" {
-			return false
-		}
-		probe, err := net.DialTimeout("tcp", addr, 100*time.Millisecond)
-		if err != nil {
-			return false
-		}
-		_ = probe.Close()
-		return true
-	}, 3*time.Second, 10*time.Millisecond)
-
-	return tcp.Address()
+	return testbroker.Start(t)
 }
 
 func publishMQTTMsg(t *testing.T, brokerAddr, topic string, payload []byte) {

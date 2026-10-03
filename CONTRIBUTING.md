@@ -44,6 +44,9 @@ git clone https://github.com/gutp-bim/nexus-gateway
 cd nexus-gateway
 
 # Go toolchain ≥ 1.25 required.
+# The MQTT connector tests run against a real Mosquitto broker: install it first
+# (Debian/Ubuntu: `sudo apt-get install mosquitto`, macOS: `brew install mosquitto`).
+# Without it those tests are skipped; set NEXUS_REQUIRE_MOSQUITTO=1 to make that an error (CI does).
 make build        # buf generate + go build ./...
 make test         # go test ./...    (use `go test -race ./...` locally)
 ```
