@@ -470,4 +470,5 @@ Building OS 側のprovisioning API(`PROVISIONING_URL`)を後から使う予定�
 | ブラウザサインインで `Invalid redirect_uri` | Admin UI のオリジン(compose はホストポート **13000** で公開)を realm クライアントの `redirectUris`/`webOrigins` に登録する必要があります。同梱 dev realm は `http://localhost:13000` を登録済み。独自 realm やホストポート変更時は対応するエントリを追加してください。 |
 | トークン取得に失敗 | Keycloak がまだ healthy でない。`docker compose ps` で確認し、起動後に再試行。 |
 | `/telemetry` の `buffer_depth` が増え続ける | Building OS へのアップリンク断。フレームがバッファ中(`mock-bos` 再起動時など想定内)。 |
+| ゲートウェイ再作成後にキュー済みフレームや同期済み Point List が消えた | `gateway-data` ボリューム(`/data`)に保存されています。`docker compose up --force-recreate` では保持されますが、`docker compose down -v` は全キューごと削除します。 |
 | ゲートウェイがコネクタを管理できない | コンテナに host Docker socket(`/var/run/docker.sock`)のマウントが必要。`docker-compose.yml` 参照。 |
