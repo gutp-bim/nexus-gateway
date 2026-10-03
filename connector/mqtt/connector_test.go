@@ -15,9 +15,6 @@ import (
 	"time"
 
 	pahoClient "github.com/eclipse/paho.golang/paho"
-	mochi "github.com/mochi-mqtt/server/v2"
-	mochiauth "github.com/mochi-mqtt/server/v2/hooks/auth"
-	"github.com/mochi-mqtt/server/v2/listeners"
 	natssrv "github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -27,6 +24,7 @@ import (
 	mqttconn "nexus-gateway/connector/mqtt"
 	"nexus-gateway/connector/sdk"
 	"nexus-gateway/internal/common"
+	"nexus-gateway/internal/testbroker"
 )
 
 func eventNumber(t *testing.T, evt common.Event) float64 {
@@ -604,31 +602,10 @@ func metricValue(t *testing.T, metrics []sdk.Metric, name string) int64 {
 	return 0
 }
 
+// startBroker runs a real Mosquitto broker (see internal/testbroker).
 func startBroker(t *testing.T) string {
 	t.Helper()
-	s := mochi.New(nil)
-	require.NoError(t, s.AddHook(new(mochiauth.AllowHook), nil))
-
-	tcp := listeners.NewTCP(listeners.Config{ID: "t1", Address: "127.0.0.1:0"})
-	require.NoError(t, s.AddListener(tcp))
-
-	go func() { _ = s.Serve() }()
-	t.Cleanup(func() { _ = s.Close() })
-
-	require.Eventually(t, func() bool {
-		addr := tcp.Address()
-		if addr == "" || addr == "127.0.0.1:0" {
-			return false
-		}
-		probe, err := net.DialTimeout("tcp", addr, 100*time.Millisecond)
-		if err != nil {
-			return false
-		}
-		_ = probe.Close()
-		return true
-	}, 3*time.Second, 10*time.Millisecond)
-
-	return tcp.Address()
+	return testbroker.Start(t)
 }
 
 func startNATS(t *testing.T) (*nats.Conn, jetstream.JetStream) {
@@ -660,9 +637,9 @@ func startNATS(t *testing.T) (*nats.Conn, jetstream.JetStream) {
 
 // publishMQTTBurst sends n QoS 1 messages back-to-back over a single connection,
 // each carrying its index as the payload so a gap in the delivered sequence is
-// visible. Keep n below the connector's advertised Receive Maximum: mochi parks
-// packets that exceed a client's receive quota and only resends them on the next
-// connection, which would stall the test for a broker-side reason of its own.
+// visible. Keep n below the broker's per-client queue (Mosquitto's
+// max_queued_messages defaults to 1000): messages past it are dropped by the
+// broker itself, which would fail the test for a broker-side reason of its own.
 func publishMQTTBurst(t *testing.T, brokerAddr, topic string, n int) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
