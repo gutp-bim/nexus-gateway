@@ -1,13 +1,13 @@
 [
   {
-    "topic": "takenaka.co.jp/Tokyo/THX/HVAC2F-AHU2NW1/AHU_RT/R",
-    "device_ref": "HVAC2F-AHU2NW1",
+    "topic": "example.com/site-a/AHU-01/AHU_RT/R",
+    "device_ref": "AHU-01",
     "unit": "",
     "writable": false
   },
   {
-    "topic": "takenaka.co.jp/Tokyo/THX/LIGHT1F-G13/status_half/R",
-    "device_ref": "LIGHT1F-G13",
+    "topic": "example.com/site-a/LIGHT-01/status_half/R",
+    "device_ref": "LIGHT-01",
     "unit": "",
     "writable": false
   }

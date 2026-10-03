@@ -7,7 +7,7 @@
 # The base stack starts five services unconditionally, and `gateway` waits on
 # `keycloak: service_healthy` before it even boots. That is deliberate for dev
 # (see the comment in docker-compose.yml) but ruinous for resource evaluation:
-# during the 24h THX run three Keycloak instances across parallel stacks held
+# during the 24h soak run three Keycloak instances across parallel stacks held
 # ~3.0 GiB while host free memory fell to ~2.5 GB of a 6.69 GiB Docker
 # allocation (#121). Memory pressure created by services the run never touches
 # is indistinguishable, in the resulting graphs, from a leak in the gateway.

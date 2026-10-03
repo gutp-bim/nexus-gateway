@@ -272,13 +272,13 @@ func mustHTTPClient(t *testing.T, baseURL, gatewayID string, cmap map[string]str
 // anyway. Without it, only reading the top-level field yields "mqtt".
 const liveMQTTPointJSON = `{
   "pointId": "pt-mqtt-temp",
-  "localId": "HVAC2F-AHU2NW1.current.R",
+  "localId": "AHU-01.current.R",
   "protocol": "mqtt",
   "native": null,
   "unit": "A",
   "writable": false,
   "controlSchema": null,
-  "device": {"id": "HVAC2F-AHU2NW1"}
+  "device": {"id": "AHU-01"}
 }`
 
 func serveRaw(t *testing.T, body string) *httptest.Server {
@@ -304,9 +304,9 @@ func TestHTTPClient_TopLevelProtocolWithNullNative_MapsToConfiguredConnector(t *
 	e := result.Entries[0]
 	assert.Equal(t, "mqtt", e.Protocol)
 	assert.Equal(t, "mqtt-01", e.ConnectorID)
-	assert.Equal(t, "HVAC2F-AHU2NW1.current.R", e.LocalID, "localId must not be rewritten")
+	assert.Equal(t, "AHU-01.current.R", e.LocalID, "localId must not be rewritten")
 	assert.Equal(t, "pt-mqtt-temp", e.PointID)
-	assert.Equal(t, "HVAC2F-AHU2NW1", e.DeviceRef)
+	assert.Equal(t, "AHU-01", e.DeviceRef)
 }
 
 // The delta path (added/changed) maps through the same code and must behave alike.
