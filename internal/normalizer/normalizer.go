@@ -34,6 +34,9 @@ const (
 // of jetstream.Msg the consume loop needs (which therefore satisfies it directly).
 type EventMsg interface {
 	Data() []byte
+	// Metadata carries the stream sequence (the Pump's idempotency key, #186) and
+	// the delivery count (to meter redeliveries).
+	Metadata() (*jetstream.MsgMetadata, error)
 	Ack() error
 	Term() error
 	Nak() error
@@ -52,6 +55,17 @@ type EventSource interface {
 	Fetch(max int, maxWait time.Duration) iter.Seq[EventMsg]
 }
 
+const (
+	// fetchBatch is the most messages pulled per Fetch.
+	fetchBatch = 32
+
+	// ackWait is the consumer's ack deadline. A message is acked only after the
+	// Pump's durable write, so it can legitimately wait behind the hand-off queues
+	// while the pipeline is busy; the JetStream default (30 s) let such a message
+	// expire and be redelivered under load (#186).
+	ackWait = 2 * time.Minute
+)
+
 // Normalizer is the single durable pull consumer on evt.> (ADR-0001, ADR-0005).
 // It resolves native LocalID → canonical PointID via the resolver, then emits
 // TelemetryFrames downstream. Unknown local_ids are skipped and metered.
@@ -67,6 +81,7 @@ func New(ctx context.Context, js jetstream.JetStream, resolver pointlist.Resolve
 		Durable:       "normalizer",
 		FilterSubject: "evt.>",
 		AckPolicy:     jetstream.AckExplicitPolicy,
+		AckWait:       ackWait,
 		MaxDeliver:    3,
 	})
 	if err != nil {
@@ -95,7 +110,26 @@ func (n *Normalizer) consume(ctx context.Context, src EventSource, resolver poin
 		if ctx.Err() != nil {
 			return
 		}
-		for msg := range src.Fetch(32, 500*time.Millisecond) {
+		// Pull no more than the hand-off channel has room for, so a fetched message
+		// never sits in hand waiting on a full channel while its ack deadline runs
+		// (#186). Only this goroutine sends, so free space can only grow meanwhile.
+		free := cap(n.frames) - len(n.frames)
+		if free == 0 {
+			select {
+			case <-time.After(10 * time.Millisecond):
+			case <-ctx.Done():
+				return
+			}
+			continue
+		}
+		for msg := range src.Fetch(min(fetchBatch, free), 500*time.Millisecond) {
+			var seq uint64
+			if md, err := msg.Metadata(); err == nil {
+				seq = md.Sequence.Stream
+				if md.NumDelivered > 1 {
+					metrics.IncNormalizerRedelivered()
+				}
+			}
 			frame, out := Normalize(msg.Data(), resolver, gatewayID)
 			switch out {
 			case OutcomePoison:
@@ -114,7 +148,7 @@ func (n *Normalizer) consume(ctx context.Context, src EventSource, resolver poin
 			// after a durable buffer write (#28). Do not ack here — a write failure
 			// after an enqueue-time ack would silently lose an already-acked frame.
 			select {
-			case n.frames <- storeforward.FrameMsg{Frame: frame, Msg: msg}:
+			case n.frames <- storeforward.FrameMsg{Frame: frame, Msg: msg, Seq: seq}:
 			case <-ctx.Done():
 				_ = msg.Nak()
 				return

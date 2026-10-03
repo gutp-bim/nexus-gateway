@@ -85,3 +85,71 @@ func TestPump_NaksAndCountsOnWriteError(t *testing.T) {
 	assert.Greater(t, delay, time.Duration(0), "NAK carries a backoff delay")
 	assert.Equal(t, int64(1), buf.WriteErrors())
 }
+
+// A redelivered copy of an already-written source message is acked but not
+// buffered again (#186): without this the copy was written and forwarded twice.
+func TestPump_RedeliveredSequenceIsAckedNotRewritten(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 100)
+	require.NoError(t, err)
+	t.Cleanup(func() { buf.Close() })
+
+	first, redelivered, other := &fakeAckNaker{}, &fakeAckNaker{}, &fakeAckNaker{}
+	src := make(chan storeforward.FrameMsg, 3)
+	for _, fm := range []struct {
+		seq uint64
+		ack storeforward.AckNaker
+	}{{7, first}, {7, redelivered}, {8, other}} {
+		m := frameMsg("p1", fm.ack)
+		m.Seq = fm.seq
+		src <- m
+	}
+	close(src)
+
+	storeforward.Pump(context.Background(), src, buf)
+
+	assert.Equal(t, int64(2), buf.Written(), "seq 7 is written once, seq 8 once")
+	assert.Equal(t, int64(1), buf.Duplicates())
+	for name, a := range map[string]*fakeAckNaker{"first": first, "redelivered": redelivered, "other": other} {
+		acked, naked, _ := a.state()
+		assert.True(t, acked, "%s must be acked", name)
+		assert.False(t, naked, "%s must not be NAK'd", name)
+	}
+}
+
+// Seq 0 means "unknown" and must never be treated as a duplicate of itself.
+func TestPump_ZeroSequenceIsNotDeduplicated(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 100)
+	require.NoError(t, err)
+	t.Cleanup(func() { buf.Close() })
+
+	src := make(chan storeforward.FrameMsg, 2)
+	src <- frameMsg("p1", &fakeAckNaker{})
+	src <- frameMsg("p1", &fakeAckNaker{})
+	close(src)
+
+	storeforward.Pump(context.Background(), src, buf)
+
+	assert.Equal(t, int64(2), buf.Written())
+	assert.Equal(t, int64(0), buf.Duplicates())
+}
+
+// A failed write must not mark the sequence as written: the NAK'd redelivery has
+// to be written, not skipped as a duplicate (#28 still holds).
+func TestPump_FailedWriteDoesNotConsumeSequence(t *testing.T) {
+	buf, err := storeforward.Open(t.TempDir()+"/sf.db", 100)
+	require.NoError(t, err)
+	buf.Close() // every Write fails
+
+	src := make(chan storeforward.FrameMsg, 2)
+	for range 2 {
+		m := frameMsg("p1", &fakeAckNaker{})
+		m.Seq = 5
+		src <- m
+	}
+	close(src)
+
+	storeforward.Pump(context.Background(), src, buf)
+
+	assert.Equal(t, int64(2), buf.WriteErrors(), "both attempts reach the write path")
+	assert.Equal(t, int64(0), buf.Duplicates())
+}

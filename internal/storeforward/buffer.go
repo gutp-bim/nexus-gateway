@@ -48,6 +48,9 @@ type Buffer struct {
 	evictedSent atomic.Int64
 	lostUnsent  atomic.Int64
 	writeErrors atomic.Int64
+	// duplicates counts redelivered source messages the Pump skipped because their
+	// stream sequence was already written (#186).
+	duplicates  atomic.Int64
 	sent        atomic.Int64
 	accepted    atomic.Int64
 	checkpoints atomic.Int64
@@ -253,6 +256,13 @@ func (b *Buffer) RecordWriteError() { b.writeErrors.Add(1) }
 
 // WriteErrors returns the total frames lost to buffer write failures.
 func (b *Buffer) WriteErrors() int64 { return b.writeErrors.Load() }
+
+// RecordDuplicate counts one redelivered source message skipped by the Pump's
+// idempotent write (#186).
+func (b *Buffer) RecordDuplicate() { b.duplicates.Add(1) }
+
+// Duplicates returns the total redelivered messages skipped instead of buffered.
+func (b *Buffer) Duplicates() int64 { return b.duplicates.Load() }
 
 // Capacity returns the buffer's configured ring-buffer capacity in frames, so a
 // near-capacity health rule can compare it against Depth (#45).
