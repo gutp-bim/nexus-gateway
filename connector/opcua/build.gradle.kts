@@ -17,7 +17,7 @@ repositories {
 }
 
 val miloVersion = "0.6.16"
-val natsVersion = "2.26.2"
+val natsVersion = "2.26.4"
 val jacksonVersion = "2.22.1"
 
 dependencies {
