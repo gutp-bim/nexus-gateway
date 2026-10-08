@@ -207,13 +207,18 @@ control path (Building OS → gateway → connector), the
 
 ### MQTT
 
-The MQTT connector connects to any MQTT 5.0 broker. In dev you can use the
-provided Mosquitto overlay; it starts a disposable broker and wires
-`mqtt-connector` to it.
+The MQTT connector connects to any MQTT 5.0 broker. The MQTT compose path is
+**bundled**: `docker-compose.mqtt.yml` starts a disposable Mosquitto broker
+(`mqtt-broker`, host port `11883`), a sample publisher (`mqtt-publisher`) that
+publishes `sensors/room1/temp` and `sensors/room1/humidity` every 10s, and
+`mqtt-connector` wired to that broker — no external infrastructure needed.
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.mqtt.yml -f docker-compose.mqtt-dev.yml up --build
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up --build
 ```
+
+(`docker-compose.mqtt-dev.yml` is no longer required; it is kept as a
+compatible no-op overlay for existing commands.)
 
 `docker-compose.mqtt.yml` defaults are aligned with `fixtures/point_list.json`:
 
@@ -229,7 +234,8 @@ the test topics either are not subscribed or are dropped as unresolved. Keep
 `CONNECTOR_ID=mqtt-01` and make `MQTT_POINTS` match the Point List unless you
 also update `fixtures/point_list.json`.
 
-Publish sample values through the dev broker:
+The publisher already feeds values; to publish your own through the bundled
+broker:
 
 ```bash
 docker run --rm --network nexus-gateway_default eclipse-mosquitto:2 \
@@ -260,26 +266,40 @@ Expected `/recent` entries:
 Against `mock-bos`, `/telemetry` should usually show `buffer_depth: 0` and an
 empty `drifts` object after the frames are accepted.
 
-For an external broker, omit `docker-compose.mqtt-dev.yml` and set
-`MQTT_BROKER_URL` to an address reachable from inside the connector container:
+For an external broker, set `MQTT_BROKER_URL` to an address reachable from
+inside the connector container and start only the connector (skipping the
+bundled broker and publisher):
 
 ```bash
 MQTT_BROKER_URL=mqtt://your-broker:1883 \
-docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up --build
+docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up --build mqtt-connector
 ```
 
-For AWS IoT Core, the MQTT overlay defaults to the configured ATS endpoint and
-subscribes to `#`. It mounts the client certificate and
-private key from the git-ignored `secrets/` directory as read-only Compose
-secrets. Keep the private key out of environment variables and images. Set the
-approximately 2000 exact topic entries through `MQTT_POINTS_FILE` (preferred)
-or `MQTT_POINTS`; wildcard subscription reduces broker subscriptions but does
-not bypass exact Point List validation. `tas/heartbeat` is acknowledged and
-ignored.
+For a TLS / mutual-TLS broker (`mqtts://`, e.g. a cloud MQTT service such as
+AWS IoT Core), mount the CA / client certificate / private key from the
+git-ignored `secrets/` directory with a compose override file and point
+`MQTT_CA_FILE` / `MQTT_CERT_FILE` / `MQTT_KEY_FILE` at the mounted paths. Keep
+key material out of environment variables, images, and this repository:
 
-Run the compose commands above from whichever checkout you actually placed
-`secrets/` in — it is git-ignored, so it exists only where you put it, not in
-every clone or worktree of this repo.
+```yaml
+# docker-compose.mqtt-tls.override.yml (not committed)
+services:
+  mqtt-connector:
+    environment:
+      - MQTT_BROKER_URL=mqtts://your-broker:8883
+      - MQTT_CERT_FILE=/run/secrets/mqtt_client_cert
+      - MQTT_KEY_FILE=/run/secrets/mqtt_client_key
+      - MQTT_SUBSCRIPTIONS=[{"filter":"#","qos":1}]
+    secrets: [mqtt_client_cert, mqtt_client_key]
+secrets:
+  mqtt_client_cert: { file: ./secrets/client.pem.crt }
+  mqtt_client_key:  { file: ./secrets/client.pem.key }
+```
+
+For a large site, set the exact topic entries through `MQTT_POINTS_FILE`
+(preferred) or `MQTT_POINTS`; a wildcard subscription reduces broker
+subscriptions but does not bypass exact Point List validation. Topics to
+acknowledge and drop (e.g. a heartbeat) go in `MQTT_IGNORE_TOPICS`.
 
 If your topics come from an SBCO standard point-list CSV (the same file format
 `--provisioning-file` / `PROVISIONING_FILE` accepts — see the
@@ -297,8 +317,9 @@ does not bypass that. Generate the connector's file from the CSV with:
 python3 scripts/csv-to-mqtt-points.py secrets/point-list.csv fixtures/mqtt/aws_iot_points.json
 ```
 
-and point `MQTT_POINTS_FILE` at the result (`docker-compose.mqtt.yml` already
-mounts `fixtures/mqtt/aws_iot_points.json` there by default). The gateway's
+mount the result into the connector (e.g.
+`./fixtures/mqtt/aws_iot_points.json:/config/mqtt-points.json:ro`) and set
+`MQTT_POINTS_FILE=/config/mqtt-points.json`. The gateway's
 own Point List should still be pointed at the CSV directly
 (`PROVISIONING_FILE=secrets/point-list.csv`,
 `CONNECTOR_MAP=mqtt:mqtt-01`) so incoming events actually resolve to

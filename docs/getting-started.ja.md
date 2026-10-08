@@ -358,29 +358,27 @@ MQTT の compose パスは**バンドル済み**です — Mosquitto ブロー�
 docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up --build
 ```
 
-`mqtt-broker`・読み取りポイント(`sensors/room1/temp`)を 10 秒毎に publish する
-`mqtt-publisher`・`mqtt-connector` が追加されます。MQTT ポイントは 2 つとも
-`fixtures/point_list.json` に定義済み: `room1_temperature`(読み取り専用)と
-`room1_setpoint`(書き込み可能)。テレメトリの到達を確認:
+`mqtt-broker`(ホストポート `11883`)・`sensors/room1/temp` と
+`sensors/room1/humidity` を 10 秒毎に publish する `mqtt-publisher`・
+`mqtt-connector` が追加されます。MQTT ポイントは 2 つとも
+`fixtures/point_list.json` に定義済み: `room1_temperature` と `room1_humidity`
+(いずれも `connector_id=mqtt-01`)。テレメトリの到達を確認:
 
 ```bash
 curl -s http://localhost:18080/telemetry -H "Authorization: Bearer $TOKEN" | jq   # バッファ流入
 curl -s http://localhost:18080/devices   -H "Authorization: Bearer $TOKEN" | jq   # room1 ポイント
 ```
 
-**書き込み可能**ポイントを Command Channel 経由で操作(パブリッシャが setpoint の
-command topic を購読し、受信した書き込みを自身のログにエコーします)。ここでは
-実際に稼働中の Building OS は不要です — コネクタの `command_topic`(実際の
-Command Channel 書き込みでゲートウェイが publish するのと同じトピック)へ直接
-publish し、エコーを確認します:
+任意の値を手動で publish して確認することもできます(ホストポート 11883 が
+バンドル済みブローカー):
 
 ```bash
-# 1つ目のターミナルで、エコーされた書き込みを監視
-docker compose -f docker-compose.yml -f docker-compose.mqtt.yml logs -f mqtt-publisher
-
-# 2つ目のターミナルで書き込みを送信(ホストポート 11883 がバンドル済みブローカー)
-mosquitto_pub -h localhost -p 11883 -t actuators/room1/setpoint/set -m '22.0'
+mosquitto_pub -h localhost -p 11883 -t sensors/room1/temp -m 23.7
+curl -s http://localhost:18080/recent -H "Authorization: Bearer $TOKEN" | jq
 ```
+
+(`docker-compose.mqtt-dev.yml` は不要になりましたが、既存コマンドとの互換のため
+無害な overlay として残しています。)
 
 **バンドルではなく外部ブローカーを使う場合:** `MQTT_BROKER_URL` を上書きして
 コネクタのみ起動:
@@ -396,19 +394,32 @@ docker compose -f docker-compose.yml -f docker-compose.mqtt.yml up mqtt-connecto
 `command_topic`, `payload_template`)を定義します。書き込み可能なポイントには
 `writable: true` に加えて `command_topic` の設定が必要です。
 
-**AWS IoT Core を使う場合:** MQTT overlay(`docker-compose.mqtt.yml`)は設定済みの
-ATS エンドポイントに接続し `#` を購読するのがデフォルトです。クライアント証明書と
-秘密鍵は git 管理外の `secrets/` ディレクトリから読み取り専用の Compose secrets と
-してマウントされます(秘密鍵を環境変数やイメージに含めないこと)。
+**TLS / 相互 TLS ブローカー(`mqtts://`、AWS IoT Core などのクラウド MQTT サービス)
+を使う場合:** git 管理外の `secrets/` ディレクトリにある CA・クライアント証明書・
+秘密鍵を compose の override ファイルでマウントし、`MQTT_CA_FILE` /
+`MQTT_CERT_FILE` / `MQTT_KEY_FILE` にそのパスを指定します(鍵情報を環境変数・
+イメージ・このリポジトリに含めないこと):
 
-上記の compose コマンドは、実際に `secrets/` を配置したチェックアウトで実行してください
-— `secrets/` は git 管理外なので、置いた場所にしか存在せず、このリポジトリの他の
-clone や worktree には自動的には現れません。
+```yaml
+# docker-compose.mqtt-tls.override.yml(コミットしない)
+services:
+  mqtt-connector:
+    environment:
+      - MQTT_BROKER_URL=mqtts://your-broker:8883
+      - MQTT_CERT_FILE=/run/secrets/mqtt_client_cert
+      - MQTT_KEY_FILE=/run/secrets/mqtt_client_key
+      - MQTT_SUBSCRIPTIONS=[{"filter":"#","qos":1}]
+    secrets: [mqtt_client_cert, mqtt_client_key]
+secrets:
+  mqtt_client_cert: { file: ./secrets/client.pem.crt }
+  mqtt_client_key:  { file: ./secrets/client.pem.key }
+```
 
-購読対象の約 2000 トピックは(ワイルドカード購読とは別に)`MQTT_POINTS_FILE`(推奨)
-または `MQTT_POINTS` に**完全一致**で列挙する必要があります — `#` で購読していても、
-一覧に無いトピックのメッセージはコネクタが即座に ACK して捨てます
-(`connector/mqtt/connector.go`)。`tas/heartbeat` は ACK の上で無視されます。
+大規模サイトでは、購読対象トピックを(ワイルドカード購読とは別に)`MQTT_POINTS_FILE`
+(推奨)または `MQTT_POINTS` に**完全一致**で列挙する必要があります — `#` で購読して
+いても、一覧に無いトピックのメッセージはコネクタが即座に ACK して捨てます
+(`connector/mqtt/connector.go`)。ハートビートなど ACK の上で無視したいトピックは
+`MQTT_IGNORE_TOPICS` に列挙します。
 
 このトピック一覧を SBCO 標準ポイントリスト CSV(`--provisioning-file` /
 `PROVISIONING_FILE` が読む形式。詳細は [README.ja.md](../README.ja.md) の
@@ -424,9 +435,10 @@ clone や worktree には自動的には現れません。
 python3 scripts/csv-to-mqtt-points.py secrets/point-list.csv fixtures/mqtt/aws_iot_points.json
 ```
 
-を実行し、生成された JSON を `MQTT_POINTS_FILE` に指定します
-(`docker-compose.mqtt.yml` はデフォルトで `fixtures/mqtt/aws_iot_points.json` を
-そこにマウント済みです)。ゲートウェイ本体の Point List は引き続き CSV を直接
+を実行し、生成された JSON をコネクタにマウントして
+(例: `./fixtures/mqtt/aws_iot_points.json:/config/mqtt-points.json:ro`)
+`MQTT_POINTS_FILE=/config/mqtt-points.json` を指定します。ゲートウェイ本体の
+Point List は引き続き CSV を直接
 指すようにしてください
 (`PROVISIONING_FILE=secrets/point-list.csv`,
 `CONNECTOR_MAP=mqtt:mqtt-01`)— そうしないと受信したイベントが `point_id` に
