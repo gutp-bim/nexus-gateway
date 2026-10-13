@@ -98,3 +98,10 @@ Never do the following without explicit confirmation:
 - Deploy to any environment
 - Modify production configuration
 - Send messages to external services
+
+### Customer data
+
+Real point lists and other customer data (for example files under `secrets/`) contain
+building codes, company names and domains. Do not copy those identifiers into commits,
+docs, tests, fixtures, generated reports or artifacts, or PR text. Use neutral placeholders
+instead (`BLDG`, `example.com`, `SUPPLIER-A`) and describe the data by its shape and counts.
