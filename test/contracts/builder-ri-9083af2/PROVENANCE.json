@@ -1,0 +1,44 @@
+{
+  "nexusBaselineSha": "6c7d3bf684373b13fc4ebfc5baac0e5f854fefdf",
+  "riSourceSha": "9083af2f851a38a442f90420e3cef913081c66a7",
+  "builderSourceSha": "f2f313e044b85f7ef127ef95351afef81afdcbc9",
+  "oracleSha": "9b643391d7273de4d92166d2474de1e5e0ea9f83",
+  "sourceArtifacts": {
+    "ri-606-9083af2/provisioning.json": "b725e01075fbcfcf672e0a6f7021491d96ee584ce49de9bd8de12c0338d8e41e",
+    "ri-606-9083af2/results.md": "4490df12cd535da47ef14e68a5047a2708956396e09c987ea766fa841f9554f2",
+    "ri-606-9083af2/results.json": "9efb82079e3c006e15fb7d67ae8e6d49f937dee441b1751ea4d4862612178572",
+    "builder-44-f2f313e/pointlist-v2.csv": "0813b8d3f60a24d8ba2459c4dd169225f9d50d3810bcf17e31ce9febabcd338e",
+    "builder-44-f2f313e/clocks.json": "356c5213574c234c855269a5c3128ad4eaec4793c813e578c38e4b34b73d6816",
+    "builder-44-f2f313e/model.ttl": "86098affbeb550b0e51a1e8268370ede94120ad45eb32c999a19f9c0eb117c87",
+    "builder-44-f2f313e/results.md": "03d530edc81d23e8b0e4d0105bbd9aac15a330861fe99431c1c63211926b97f6",
+    "builder-44-f2f313e/results.json": "cae9f106ff99b0a6f53011a3b616654bc955a44f02ce272414263bd0f68fa73c"
+  },
+  "files": {
+    "provisioning.json": "b725e01075fbcfcf672e0a6f7021491d96ee584ce49de9bd8de12c0338d8e41e",
+    "points.csv": "f337426d11ec486a92ff7835ba5d9d29d56becdf3a333d40433212bd5a131346",
+    "clocks.json": "356c5213574c234c855269a5c3128ad4eaec4793c813e578c38e4b34b73d6816"
+  },
+  "csvProjection": {
+    "source": "builder-44-f2f313e/pointlist-v2.csv",
+    "columns": [
+      "gateway_id",
+      "point_id",
+      "device_id_bacnet",
+      "object_type_bacnet",
+      "instance_no_bacnet",
+      "protocol",
+      "unit",
+      "writable"
+    ],
+    "format": "UTF-8, LF; field values unchanged; unrelated descriptive columns omitted",
+    "originalFormat": "CRLF; original artifact hash recorded in sourceArtifacts",
+    "normalizedLFSourceSha256": "9e4ae5bcf32376fc2e9808a62419126f9ada00782d5cddc89acbb91a63be2310",
+    "riRecordedFixtureCsvSha256": "9e4ae5bcf32376fc2e9808a62419126f9ada00782d5cddc89acbb91a63be2310"
+  },
+  "scope": {
+    "riSnapshot": "unchanged byte copy of recorded real import/materializer/source/DTO/controller output",
+    "gatewayHttpRouteTested": false,
+    "riExecutionRerun": false,
+    "bacnetResponses": "injected only"
+  }
+}

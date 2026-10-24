@@ -130,6 +130,17 @@ The cross-language test uses the local BACnet venv by default and skips if it is
 absent; explicitly setting `NEXUS_CLOCK_PYTHON` makes a missing interpreter fail.
 The pinned oracle itself and its fixtures require only Python's standard library.
 
+The same pipeline also runs as `TestClockContractPipeline/builder-ri` on the
+unchanged Builder→RI generated snapshot from RI
+`9083af2f851a38a442f90420e3cef913081c66a7` and Builder
+`f2f313e044b85f7ef127ef95351afef81afdcbc9`. See
+[`test/contracts/builder-ri-9083af2`](../test/contracts/builder-ri-9083af2/README.md)
+for provenance, source hashes and independent CSV expectations. This adds a
+second 15-poll / 524-frame run with actual native addresses, mixed units and
+empty-unit omission; the oracle receives each test's own immutable snapshot.
+Both runs check per-point values, canonical resolution and mocked write gating,
+including rejection of the internal clock. Product code is unchanged.
+
 Not implemented in this stage: authenticated provisioning/v1 HTTP polling,
 gateway live stop/drain/atomic apply/rollback with applied-revision ACK, multiple
 connector/device scopes in one snapshot, run-context delivery/authentication/
