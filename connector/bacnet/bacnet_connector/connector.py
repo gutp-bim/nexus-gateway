@@ -249,7 +249,9 @@ class Connector:
                     self._cfg.bacnet_address, self._cfg.bacnet_device_id,
                     [(p.local_id, "presentValue") for p in points],
                 ), timeout=self._cfg.read_timeout)
-                observed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                # Preserve the acquisition instant: rounding down to seconds can
+                # put this timestamp before the start of a fractional-second poll.
+                observed_at = datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
                 for obj_id, value, status in rows:
                     if obj_id not in chunk_ids:
                         continue
@@ -273,7 +275,8 @@ class Connector:
                 quality = "changed"
             else:
                 quality = "stable_unfenced"
-            attrs = {"sim_clock_id": c.clock_id, "sim_clock_revision": self._cfg.clock_revision, "sim_time_quality": quality}
+            attrs = {"sim_clock_id": c.clock_id, "sim_config_revision": self._cfg.clock_revision,
+                     "sim_time_quality": quality, "sim_run_status": "absent"}
             if quality == "stable_unfenced":
                 attrs["sim_time_s"] = str(values[0])
             else:

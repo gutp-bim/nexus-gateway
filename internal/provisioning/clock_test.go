@@ -154,9 +154,20 @@ func TestStageRejectsAmbiguousJSON(t *testing.T) {
 }
 
 func TestClockAttributesSurviveNormalizerAndDurableReplay(t *testing.T) {
+	for _, profile := range []string{"legacy-nexus", "adr-0010"} {
+		t.Run(profile, func(t *testing.T) { clockAttributesSurviveReplay(t, profile) })
+	}
+}
+
+func clockAttributesSurviveReplay(t *testing.T, profile string) {
 	cfg, entries, err := StageClockSnapshot(clockFixture(t), "GW-EXAMPLE", "bacnet-example", 1234)
 	require.NoError(t, err)
 	attrs := map[string]string{"sim_clock_id": cfg.Clocks[0].ClockID, "sim_clock_revision": cfg.Revision, "sim_time_s": "120.0", "sim_time_quality": "stable_unfenced"}
+	if profile == "adr-0010" {
+		delete(attrs, "sim_clock_revision")
+		attrs["sim_config_revision"] = cfg.Revision
+		attrs["sim_run_status"] = "absent"
+	}
 	event := map[string]any{"protocol": "bacnet", "connector_id": cfg.ConnectorID, "local_id": cfg.Points[0].LocalID, "device_ref": "1234", "value": 21.5, "quality": "Good", "timestamp": "2026-01-01T00:00:00Z", "attributes": attrs}
 	data, err := json.Marshal(event)
 	require.NoError(t, err)

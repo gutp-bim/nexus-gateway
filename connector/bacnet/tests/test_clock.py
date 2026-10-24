@@ -64,7 +64,7 @@ async def test_stable_clock_is_metadata_only_and_preserves_native_identity():
     for e in events:
         assert "point_id" not in e and "analogValue,87" != e["local_id"]
         assert e["timestamp"].endswith("Z") and e["quality"] == "Good"
-        assert e["attributes"] == {"sim_clock_id": "urn:clock:a", "sim_clock_revision": bundle()["revision"], "sim_time_s": "120.0", "sim_time_quality": "stable_unfenced"}
+        assert e["attributes"] == {"sim_clock_id": "urn:clock:a", "sim_config_revision": bundle()["revision"], "sim_time_s": "120.0", "sim_time_quality": "stable_unfenced", "sim_run_status": "absent"}
         assert "sim_run_id" not in e["attributes"] and "sim_step_id" not in e["attributes"]
     assert client.requests[0] == [("analogValue,87", "presentValue")]
 
@@ -74,11 +74,11 @@ async def test_timestamp_is_captured_at_equipment_read_before_delayed_publicatio
     class AcquisitionTime:
         @staticmethod
         def now(tz):
-            return datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+            return datetime(2026, 1, 2, 3, 4, 5, 500, tzinfo=timezone.utc)
 
     monkeypatch.setattr("bacnet_connector.connector.datetime", AcquisitionTime)
     _, events, _ = await poll([120] * 3)
-    assert all(e["timestamp"] == "2026-01-02T03:04:05Z" for e in events)
+    assert all(e["timestamp"] == "2026-01-02T03:04:05.000500Z" for e in events)
 
 
 @pytest.mark.asyncio
