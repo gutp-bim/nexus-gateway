@@ -19,6 +19,7 @@ class CommonEvent:
     unit: str
     quality: str    # "Good" | "Bad" | "Uncertain"
     timestamp: str  # RFC3339 UTC
+    attributes: dict[str, str] | None = None
 
 
 def make_event(
@@ -28,6 +29,8 @@ def make_event(
     value: float | str | bool,
     unit: str,
     quality: str,
+    attributes: dict[str, str] | None = None,
+    timestamp: str | None = None,
 ) -> bytes:
     evt = CommonEvent(
         protocol="bacnet",
@@ -37,9 +40,13 @@ def make_event(
         value=value,
         unit=unit,
         quality=quality,
-        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        timestamp=timestamp or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        attributes=attributes,
     )
-    return json.dumps(asdict(evt)).encode()
+    body = asdict(evt)
+    if attributes is None:
+        del body["attributes"]
+    return json.dumps(body).encode()
 
 
 # BACnet status-code to Common Event quality mapping.

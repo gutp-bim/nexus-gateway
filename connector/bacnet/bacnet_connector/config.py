@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass, field
 
 
@@ -92,6 +93,14 @@ class PointConfig:
     writable: bool = False
 
 
+@dataclass(frozen=True)
+class ClockConfig:
+    clock_id: str
+    local_id: str
+    property: str
+    point_local_ids: tuple[str, ...]
+
+
 @dataclass
 class Config:
     connector_id: str
@@ -118,6 +127,57 @@ class Config:
     cov_enabled: bool = True
     # Port for the stdlib health HTTP server (GET /health). Device-reachability proxy.
     health_port: int = 8080
+    clock_revision: str = ""
+    clocks: list[ClockConfig] = field(default_factory=list)
+
+    def apply_clock_bundle(self, bundle: dict) -> None:
+        """Startup-only native bundle, staged by Core's offline clock-config tool.
+
+        Parse everything before replacing points/clocks. This is not a live apply
+        API and never merges a clock revision with a separately supplied point list.
+        """
+        try:
+            if not isinstance(bundle, dict):
+                raise ValueError("bundle must be an object")
+            if set(bundle) != {"revision", "connector_id", "device_id", "points", "clocks"}:
+                raise ValueError("unsupported bundle keys")
+            if bundle["connector_id"] != self.connector_id or type(bundle["device_id"]) is not int or bundle["device_id"] != self.bacnet_device_id:
+                raise ValueError("connector/device scope mismatch")
+            revision = bundle["revision"]
+            if not isinstance(revision, str) or not re.fullmatch(r'"sha256:[0-9a-f]{64}"', revision):
+                raise ValueError("invalid revision")
+            if not isinstance(bundle["points"], list) or not isinstance(bundle["clocks"], list):
+                raise ValueError("points and clocks must be arrays")
+            for p in bundle["points"]:
+                if not isinstance(p, dict) or set(p) != {"local_id", "device_ref", "unit", "writable"}:
+                    raise ValueError("unsupported native point keys")
+            points = _parse_points(json.dumps(bundle["points"]))
+            point_ids = {p.local_id for p in points}
+            if len(point_ids) != len(points):
+                raise ValueError("duplicate native points")
+            clocks, clock_ids, assigned, clock_objects = [], set(), set(), set()
+            for c in bundle["clocks"]:
+                if not isinstance(c, dict) or set(c) != {"clock_id", "local_id", "property", "point_local_ids"}:
+                    raise ValueError("unsupported clock keys")
+                if not isinstance(c["clock_id"], str) or not c["clock_id"] or c["clock_id"] in clock_ids:
+                    raise ValueError("invalid/duplicate clock ID")
+                match = re.fullmatch(r'(analogValue|analogInput),([0-9]+)', c["local_id"])
+                if not match or int(match[2]) > 4194303 or c["property"] != "presentValue" or c["local_id"] in point_ids or c["local_id"] in clock_objects:
+                    raise ValueError("invalid clock native reference")
+                refs = c["point_local_ids"]
+                if not isinstance(refs, list) or not refs or any(not isinstance(r, str) for r in refs):
+                    raise ValueError("invalid clock point references")
+                if len(set(refs)) != len(refs) or not set(refs) <= point_ids or assigned.intersection(refs):
+                    raise ValueError("dangling/conflicting clock point references")
+                clocks.append(ClockConfig(c["clock_id"], c["local_id"], c["property"], tuple(refs)))
+                clock_ids.add(c["clock_id"])
+                clock_objects.add(c["local_id"])
+                assigned.update(refs)
+            if clocks and self.cov_enabled:
+                raise ValueError("clock acquisition requires BACNET_COV_ENABLED=false")
+        except (ValueError, TypeError, KeyError) as exc:
+            raise ConfigError(f"BACNET_CLOCK_CONFIG_FILE: {exc}") from None
+        self.points, self.clocks, self.clock_revision = points, clocks, revision
 
     def __post_init__(self) -> None:
         if self.poll_interval <= 0:
@@ -140,7 +200,7 @@ class Config:
         it and exits non-zero without a traceback. Mirrors the MQTT connector's
         startup validation.
         """
-        return cls(
+        cfg = cls(
             connector_id=_require("CONNECTOR_ID"),
             nats_url=os.environ.get("NATS_URL", "nats://localhost:4222"),
             bacnet_address=_require("BACNET_ADDRESS"),
@@ -156,3 +216,14 @@ class Config:
             write_timeout=_env_float("BACNET_WRITE_TIMEOUT", "10"),
             health_port=_env_int("HEALTH_PORT", "8080"),
         )
+        path = os.environ.get("BACNET_CLOCK_CONFIG_FILE")
+        if path:
+            if "BACNET_POINTS" in os.environ:
+                raise ConfigError("BACNET_CLOCK_CONFIG_FILE and BACNET_POINTS cannot be combined")
+            try:
+                with open(path, encoding="utf-8") as f:
+                    bundle = json.load(f)
+            except (OSError, ValueError) as exc:
+                raise ConfigError(f"BACNET_CLOCK_CONFIG_FILE: {exc}") from None
+            cfg.apply_clock_bundle(bundle)
+        return cfg
