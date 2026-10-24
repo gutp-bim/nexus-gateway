@@ -150,3 +150,8 @@ file/url/fallback paths are unchanged; the draft snapshot is not fed to the old
 Point List endpoint or merged with its deltas. Do not use separate generated
 artifacts as evidence of atomic live application. Those integration stages
 remain open under #201.
+
+The subsequent [fetch/apply controller stage](clock-provisioning-apply.md) adds
+an opt-in mTLS client, conditional fetch/retry, immutable stage and coordinated
+resolver/lifecycle transaction with mock adapters. It does not yet wire the
+required concrete admission/drain/runtime-receipt adapters into `cmd/gateway`.
