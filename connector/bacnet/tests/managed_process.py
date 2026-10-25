@@ -7,14 +7,11 @@ No Bacpypes3 application is imported/created and no equipment socket is opened.
 Used by fake-Engine Gateway tests and the documented isolated verification flow.
 """
 import asyncio
-import signal
-
-import nats
+import sys
+from types import ModuleType, SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 from bacnet_connector.config import Config
-from bacnet_connector.connector import Connector
-from bacnet_connector.managed import ManagedRuntime
-from bacnet_connector.write_handler import WriteHandler
 
 
 class InjectedBACnet:
@@ -38,21 +35,14 @@ class InjectedBACnet:
 async def main():
     cfg = Config.from_env()
     assert cfg.managed_session, "managed test harness requires explicit managed configuration"
-    nc = await nats.connect(cfg.nats_url)
-    bacnet = InjectedBACnet(cfg)
-    connector = Connector(cfg, bacnet, nc.jetstream())
-    runtime = ManagedRuntime(cfg, connector, nc, WriteHandler(cfg, bacnet))
-    stop = asyncio.Event()
-    loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, stop.set)
-    await nc.subscribe(f"cmd.bacnet.{cfg.connector_id}", cb=runtime.command)
-    await nc.subscribe(f"cfg.bacnet.{cfg.connector_id}.runtime", cb=runtime.control)
-    await nc.flush()
-    try:
-        await runtime.run(stop)
-    finally:
-        await nc.drain()
+    # Exercise the production entrypoint's auth, stream readiness, subscriptions
+    # and shutdown. Replace only equipment construction and the health socket.
+    module = ModuleType("bacnet_connector.bacnet_client")
+    module.Bacpypes3Client = SimpleNamespace(create=AsyncMock(return_value=InjectedBACnet(cfg)))
+    with patch.dict(sys.modules, {"bacnet_connector.bacnet_client": module}):
+        from bacnet_connector.main import _run
+        with patch("bacnet_connector.main.start_health_server", return_value=None):
+            await _run(cfg)
 
 
 if __name__ == "__main__":

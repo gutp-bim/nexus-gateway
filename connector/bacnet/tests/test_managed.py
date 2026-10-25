@@ -99,12 +99,41 @@ def test_receipt_hash_comes_from_actual_native_file(tmp_path, monkeypatch):
     for key, value in {"CONNECTOR_ID": "bacnet-test", "BACNET_ADDRESS": "192.0.2.1", "BACNET_DEVICE_ID": "4321", "BACNET_COV_ENABLED": "false", "BACNET_CLOCK_CONFIG_FILE": str(path), "BACNET_MANAGED_SESSION": "a" * 32}.items():
         monkeypatch.setenv(key, value)
     monkeypatch.delenv("BACNET_POINTS", raising=False)
+    auth = tmp_path / "producer-auth.json"
+    auth.write_text('{"user":"producer","password":"synthetic"}')
+    monkeypatch.setenv("NATS_URL", "nats://broker:4222")
+    monkeypatch.setenv("NATS_AUTH_FILE", str(auth))
     cfg = Config.from_env()
     assert cfg.native_hash == hashlib.sha256(raw).hexdigest()
     assert cfg.managed_session == "a" * 32
     monkeypatch.setenv("BACNET_MANAGED_SESSION", "not-a-session")
     with pytest.raises(ConfigError):
         Config.from_env()
+
+
+def test_managed_nats_authentication_is_file_only_and_fails_closed(tmp_path):
+    from .test_clock import config
+    cfg = config()
+    cfg.managed_session = "a" * 32
+    cfg.nats_url = "nats://broker:4222"
+    auth = tmp_path / "producer-auth.json"
+    cfg.nats_auth_file = str(auth)
+    for body in [None, '{"user":"producer"}', '{"user":"producer","password":""}',
+                 '{"user":"producer","password":"synthetic-secret-202",bad}',
+                 '{"user":"producer","password":"synthetic-secret-202","extra":true}']:
+        if body is not None:
+            auth.write_text(body)
+        with pytest.raises(ConfigError) as err:
+            cfg.nats_auth_options()
+        assert "synthetic-secret-202" not in str(err.value)
+    auth.write_text('{"user":"producer","password":"synthetic-secret-202"}')
+    options = cfg.nats_auth_options()
+    assert options["user"] == "producer" and options["password"] == "synthetic-secret-202"
+    assert options["inbox_prefix"] == b"_INBOX.bacnet-test"
+    cfg.nats_url = "nats://core:synthetic-secret-202@broker:4222"
+    with pytest.raises(ConfigError) as err:
+        cfg.nats_auth_options()
+    assert "synthetic-secret-202" not in str(err.value)
 
 
 @pytest.mark.asyncio

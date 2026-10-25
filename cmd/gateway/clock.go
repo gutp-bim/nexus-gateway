@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"nexus-gateway/internal/clocksync"
 	"nexus-gateway/internal/lifecycle"
 )
 
@@ -48,6 +49,9 @@ func loadClockSpec(path string) (lifecycle.ConnectorSpec, error) {
 	}
 	if !address {
 		return spec, fmt.Errorf("clock connector requires explicit isolated BACNET_ADDRESS")
+	}
+	if _, err := clocksync.ConnectorNATSAuthFile(spec); err != nil {
+		return spec, err
 	}
 	return spec, nil
 }

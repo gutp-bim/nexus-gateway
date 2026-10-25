@@ -76,9 +76,13 @@ func (d *managedConnector) Configure(ctx context.Context, cfg provisioning.Nativ
 	if d.record == nil || cfg.Revision != d.record.snapshot.Revision() {
 		return fmt.Errorf("missing prepared snapshot")
 	}
+	authFile, err := ConnectorNATSAuthFile(d.base)
+	if err != nil {
+		return err
+	}
 	spec := d.base
 	spec.Env = nil
-	reserved := map[string]bool{"BACNET_POINTS": true, "BACNET_CLOCK_CONFIG_FILE": true, "BACNET_MANAGED_SESSION": true, "BACNET_COV_ENABLED": true, "BACNET_DEVICE_ID": true, "CONNECTOR_ID": true, "NATS_URL": true}
+	reserved := map[string]bool{"BACNET_POINTS": true, "BACNET_CLOCK_CONFIG_FILE": true, "BACNET_MANAGED_SESSION": true, "BACNET_COV_ENABLED": true, "BACNET_DEVICE_ID": true, "CONNECTOR_ID": true}
 	for _, e := range d.base.Env {
 		key, _, _ := strings.Cut(e, "=")
 		if !reserved[key] {
@@ -87,6 +91,7 @@ func (d *managedConnector) Configure(ctx context.Context, cfg provisioning.Nativ
 	}
 	spec.Env = append(spec.Env, "BACNET_CLOCK_CONFIG_FILE="+filepath.Join(d.store.dir, "native", d.record.Session+".json"), "BACNET_MANAGED_SESSION="+d.record.Session, "BACNET_COV_ENABLED=false", fmt.Sprintf("BACNET_DEVICE_ID=%d", cfg.DeviceID))
 	spec.Permissions.Mounts = append(append([]string(nil), spec.Permissions.Mounts...), filepath.Join(d.store.dir, "native"))
+	spec.Permissions.Mounts = append(spec.Permissions.Mounts, authFile)
 	return d.owner.Configure(spec)
 }
 func (d *managedConnector) Start(ctx context.Context) error {

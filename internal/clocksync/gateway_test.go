@@ -46,6 +46,7 @@ type daemon struct {
 	mu          sync.Mutex
 	nc          *nats.Conn
 	config      *container.Config
+	hostConfig  *container.HostConfig
 	id          string
 	running     bool
 	sub         *nats.Subscription
@@ -67,6 +68,7 @@ func (d *daemon) ContainerCreate(ctx context.Context, c *container.Config, h *co
 		return container.CreateResponse{}, errors.New("existing container")
 	}
 	d.config = c
+	d.hostConfig = h
 	d.id = fmt.Sprintf("fake-%d", d.starts+1)
 	return container.CreateResponse{ID: d.id}, nil
 }
@@ -87,6 +89,10 @@ func (d *daemon) ContainerStart(ctx context.Context, id string, _ container.Star
 		d.exited = make(chan struct{})
 		exited := d.exited
 		go func() { _ = cmd.Wait(); close(exited) }()
+		if d.failStart > 0 {
+			d.failStart--
+			return errors.New("injected partial start")
+		}
 		return nil
 	}
 	env := map[string]string{}
@@ -188,13 +194,25 @@ func liveFixture(t *testing.T) (*Gateway, *Controller, *daemon, *source, jetstre
 }
 
 func liveFixtureEngine(t *testing.T, python bool) (*Gateway, *Controller, *daemon, *source, jetstream.JetStream, *lifecycle.Manager, *pointlist.SyncedResolver, context.CancelFunc) {
+	return liveFixtureAuthenticated(t, python, false)
+}
+
+func liveFixtureAuthenticated(t *testing.T, python, authenticated bool) (*Gateway, *Controller, *daemon, *source, jetstream.JetStream, *lifecycle.Manager, *pointlist.SyncedResolver, context.CancelFunc) {
 	t.Helper()
-	ns, err := server.NewServer(&server.Options{Host: "127.0.0.1", Port: -1, JetStream: true, StoreDir: t.TempDir(), NoLog: true, NoSigs: true})
+	opts := &server.Options{Host: "127.0.0.1", Port: -1, JetStream: true, StoreDir: t.TempDir(), NoLog: true, NoSigs: true}
+	if authenticated {
+		opts.Users = clockNATSUsers()
+	}
+	ns, err := server.NewServer(opts)
 	require.NoError(t, err)
 	go ns.Start()
 	require.True(t, ns.ReadyForConnections(5*time.Second))
 	t.Cleanup(ns.Shutdown)
-	nc, err := nats.Connect(ns.ClientURL())
+	coreURL := ns.ClientURL()
+	if authenticated {
+		coreURL = strings.Replace(coreURL, "://", "://core:synthetic-core-202@", 1)
+	}
+	nc, err := nats.Connect(coreURL, nats.CustomInboxPrefix("_INBOX.core"))
 	require.NoError(t, err)
 	t.Cleanup(nc.Close)
 	js, err := jetstream.New(nc)
@@ -217,12 +235,14 @@ func liveFixtureEngine(t *testing.T, python bool) (*Gateway, *Controller, *daemo
 		t.Cleanup(func() { _ = d.stderr.Close() })
 	}
 	registry := lifecycle.NewRegistry()
-	manager := lifecycle.NewManagerWithConfig(d, registry, lifecycle.ManagerConfig{NATSURL: ns.ClientURL()})
+	manager := lifecycle.NewManagerWithConfig(d, registry, lifecycle.ManagerConfig{NATSURL: coreURL})
 	resolver := pointlist.NewSynced(nil)
 	buffer, err := storeforward.Open(filepath.Join(t.TempDir(), "sf.db"), 1000)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = buffer.Close() })
-	spec := lifecycle.ConnectorSpec{ID: scope.ConnectorID, Image: "example.com/bacnet@sha256:" + strings.Repeat("a", 64), Env: []string{"BACNET_ADDRESS=192.0.2.1"}}
+	auth := filepath.Join(t.TempDir(), "producer-auth.json")
+	require.NoError(t, os.WriteFile(auth, []byte(`{"user":"producer","password":"synthetic-producer-202"}`), 0600))
+	spec := lifecycle.ConnectorSpec{ID: scope.ConnectorID, Image: "example.com/bacnet@sha256:" + strings.Repeat("a", 64), Env: []string{"BACNET_ADDRESS=192.0.2.1", "NATS_URL=" + ns.ClientURL(), "NATS_AUTH_FILE=" + auth}}
 	g, err := NewGateway(t.Context(), nc, js, manager, spec, t.TempDir(), scope, resolver, buffer, nil)
 	require.NoError(t, err)
 	old, _ := snapshots(t)
@@ -244,7 +264,7 @@ func liveFixtureEngine(t *testing.T, python bool) (*Gateway, *Controller, *daemo
 }
 
 func TestGatewayActualPythonProducerAndRecoveryJournal(t *testing.T) {
-	g, c, _, src, _, _, resolver, _ := liveFixtureEngine(t, true)
+	g, c, _, src, _, _, resolver, _ := liveFixtureAuthenticated(t, true, true)
 	// The same production client used by cmd/gateway fetches the immutable real
 	// Builder→RI snapshot over a real mTLS mock, with no injected identity header.
 	var current atomic.Pointer[provisioning.ClockSnapshot]
@@ -341,6 +361,26 @@ func TestGatewayHoldWaitsForInflightCommand(t *testing.T) {
 	close(release)
 	require.True(t, (<-finished).Success)
 	require.NoError(t, <-held)
+}
+
+func TestGatewayConnectorUsesOwnNATSIdentity(t *testing.T) {
+	g, c, d, _, _, _, _, _ := liveFixture(t)
+	const connectorURL = "nats://connector-identity.invalid:4222"
+	for i, env := range g.producer.base.Env {
+		if strings.HasPrefix(env, "NATS_URL=") {
+			g.producer.base.Env[i] = "NATS_URL=" + connectorURL
+		}
+	}
+	require.NoError(t, c.Sync(t.Context()))
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	var actual string
+	for _, env := range d.config.Env {
+		if strings.HasPrefix(env, "NATS_URL=") {
+			actual = strings.TrimPrefix(env, "NATS_URL=")
+		}
+	}
+	require.Equal(t, connectorURL, actual)
 }
 
 func publishSession(t *testing.T, js jetstream.JetStream, record *sessionRecord, session string) {

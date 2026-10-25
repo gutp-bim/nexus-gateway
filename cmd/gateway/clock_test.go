@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,30 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestClockSpecRequiresSeparateNATSAuthentication(t *testing.T) {
+	dir := t.TempDir()
+	auth := filepath.Join(dir, "producer-auth.json")
+	require.NoError(t, os.WriteFile(auth, []byte(`{"user":"producer","password":"synthetic"}`), 0600))
+	for _, env := range [][]string{
+		{"BACNET_ADDRESS=192.0.2.1"},
+		{"BACNET_ADDRESS=192.0.2.1", "NATS_URL=nats://broker:4222"},
+		{"BACNET_ADDRESS=192.0.2.1", "NATS_AUTH_FILE=" + auth},
+		{"BACNET_ADDRESS=192.0.2.1", "NATS_URL=nats://user:secret@broker:4222", "NATS_AUTH_FILE=" + auth},
+		{"BACNET_ADDRESS=192.0.2.1", "NATS_URL=nats://broker:4222", "NATS_AUTH_FILE=relative.json"},
+		{"BACNET_ADDRESS=192.0.2.1", "NATS_URL=nats://broker:4222", "NATS_AUTH_FILE=" + auth, "NATS_URL=nats://other:4222"},
+	} {
+		body, err := json.Marshal(map[string]any{"ID": "bacnet-test", "Image": "example.com/bacnet@sha256:" + strings.Repeat("a", 64), "Env": env})
+		require.NoError(t, err)
+		path := filepath.Join(dir, "spec.json")
+		require.NoError(t, os.WriteFile(path, body, 0600))
+		_, err = loadClockSpec(path)
+		require.Error(t, err, "managed mode must not inherit Core credentials")
+		if err != nil {
+			require.NotContains(t, err.Error(), "secret")
+		}
+	}
+}
 
 func TestClockModeIsExplicitAndExclusive(t *testing.T) {
 	require.NoError(t, validateClockMode(false, provisioningModeFallback, "url", "file", "", -1, true, true), "legacy behavior is not constrained")
@@ -26,7 +51,9 @@ func TestClockModeIsExplicitAndExclusive(t *testing.T) {
 
 func TestClockSpecRequiresPinnedImageAndNoIndependentPoints(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "connector.json")
-	body := `{"ID":"bacnet-boptest","Image":"example.com/bacnet@sha256:` + strings.Repeat("a", 64) + `","Env":["BACNET_ADDRESS=192.0.2.1"]}`
+	auth := filepath.Join(t.TempDir(), "producer-auth.json")
+	require.NoError(t, os.WriteFile(auth, []byte(`{"user":"producer","password":"synthetic"}`), 0600))
+	body := `{"ID":"bacnet-boptest","Image":"example.com/bacnet@sha256:` + strings.Repeat("a", 64) + `","Env":["BACNET_ADDRESS=192.0.2.1","NATS_URL=nats://broker:4222","NATS_AUTH_FILE=` + auth + `"]}`
 	require.NoError(t, os.WriteFile(path, []byte(body), 0600))
 	spec, err := loadClockSpec(path)
 	require.NoError(t, err)

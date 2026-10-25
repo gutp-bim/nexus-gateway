@@ -62,9 +62,57 @@ quarantined rather than guessed into the new mapping.
 7. Resume that exact session/revision/hash. Persist its active recovery pointer
    and release Core telemetry/control admission only after the response.
 
-The private runtime subject must be restricted to the owning Core by the lab's
-NATS ACLs. The managed connector alone publishes its event subject. Runtime
+The private runtime subject must permit requests only from the owning Core by
+the lab's NATS ACLs. The managed connector subscribes and responds, and alone
+publishes its event subject. Runtime
 session IDs are process identity, **not** a simulation run ID or time fence.
+
+## Separate NATS identities (#202)
+
+Managed specs require their own `NATS_URL` (explicit scheme/host, no userinfo,
+query or fragment) and absolute `NATS_AUTH_FILE`. Core never substitutes its
+`--nats` URL. Only the authentication file path appears in specs, status and
+container environment; Core binds that single existing regular file readonly
+at the same absolute path. The producer reads a JSON object with exactly
+`user` and `password`, both nonempty strings. Supply it through the lab's secret
+delivery mechanism, outside git and the session/native journal. Set ownership
+and mode so only the operator/Core and connector UID 10001 can read it (for
+example, a connector-owned 0400 file delivered by a privileged operator).
+Mount it at the same path in a containerized Core, too; do not mount a directory
+of Core secrets into the producer. Core's identity is configured independently
+through its existing connection configuration. TLS URLs use each runtime's
+normal certificate verification; never disable it to fix authentication.
+
+Missing/malformed files or rejected credentials keep producer admission closed;
+they never fall back to Core's identity. Update a secret by stopping the managed
+Gateway and replacing the file through that same delivery mechanism, then
+restart; preserve the session journal. Existing file mounts retain their inode,
+so replacing a host file is not a live credential rotation protocol. Managed
+authentication is opt-in only; legacy connector behavior is unchanged.
+
+For connector `bacnet-boptest`, configure the following explicit broker policy
+using different Core/producer users and secrets:
+
+| Identity | Publish | Subscribe |
+| --- | --- | --- |
+| Core | `$JS.API.>`, `$JS.ACK.>`, `cfg.bacnet.bacnet-boptest.runtime`, `cmd.bacnet.bacnet-boptest` | `_INBOX.core.>` |
+| Producer | `evt.bacnet.bacnet-boptest` | `cfg.bacnet.bacnet-boptest.runtime`, `cmd.bacnet.bacnet-boptest`, `_INBOX.bacnet-boptest.>` |
+
+Producer permissions additionally require NATS `allow_responses` with one
+response per received request and a bounded expiry (the contract test uses
+one minute). This permits runtime/control replies to Core's generated inboxes
+without granting unrestricted inbox publication. Its own inbox subscription
+receives JetStream PubAcks. No producer `$JS.API` permission is needed: managed
+Core creates EVENTS before starting the child, so managed Python skips legacy
+stream discovery. Core cannot directly publish producer events; producer cannot
+initiate runtime commands, JetStream administration or unsolicited Core inbox
+messages. Scope the bus/account to this one Gateway, as required above.
+
+Authenticated embedded-broker tests run the actual Python startup path with
+injected equipment, verify command replies/PubAcks, assert broker permission
+violations for forbidden operations, and cover apply, partial-start rollback,
+journal recovery and missing/malformed/wrong credentials. Synthetic secrets are
+also checked against the generated spec/environment, status and failure logs.
 
 ## Delayed delivery and recovery
 
@@ -148,7 +196,12 @@ agent. Substitute the resulting digest into a local spec:
 {
   "ID": "bacnet-boptest",
   "Image": "registry.example.com/managed-test@sha256:<verified-64-hex-digest>",
-  "Env": ["BACNET_ADDRESS=192.0.2.1", "BACNET_POLL_INTERVAL=60"]
+  "Env": [
+    "BACNET_ADDRESS=192.0.2.1",
+    "BACNET_POLL_INTERVAL=60",
+    "NATS_URL=nats://nats-lab:4222",
+    "NATS_AUTH_FILE=/run/nexus-secrets/producer-auth.json"
+  ]
 }
 ```
 

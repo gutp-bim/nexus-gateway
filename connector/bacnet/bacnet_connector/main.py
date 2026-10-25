@@ -57,11 +57,13 @@ async def _await_stream(js: JetStreamContext, subject: str, *, poll_interval: fl
 
 
 async def _run(cfg: Config) -> None:
-    nc = await nats.connect(cfg.nats_url, **nats_connect_kwargs())
+    servers = [address.strip() for address in cfg.nats_url.split(",")] if cfg.managed_session else cfg.nats_url
+    nc = await nats.connect(servers, **nats_connect_kwargs(), **cfg.nats_auth_options())
     js: JetStreamContext = nc.jetstream()
 
     subject = f"evt.bacnet.{cfg.connector_id}"
-    await _await_stream(js, subject)
+    if not cfg.managed_session:
+        await _await_stream(js, subject)
 
     bacnet = await Bacpypes3Client.create(cfg.local_address, read_timeout=cfg.read_timeout)
 

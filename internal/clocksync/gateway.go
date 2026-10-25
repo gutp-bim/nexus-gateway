@@ -47,6 +47,9 @@ func NewGateway(ctx context.Context, nc *nats.Conn, js jetstream.JetStream, mana
 	if nc == nil || js == nil || manager == nil || resolver == nil || buffer == nil || spec.ID != scope.ConnectorID {
 		return nil, fmt.Errorf("clock gateway: invalid dependencies/scope")
 	}
+	if _, err := ConnectorNATSAuthFile(spec); err != nil {
+		return nil, err
+	}
 	store, err := openSessions(dir, scope)
 	if err != nil {
 		return nil, err

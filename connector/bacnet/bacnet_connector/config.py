@@ -9,6 +9,7 @@ import os
 import re
 import hashlib
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 
 class ConfigError(ValueError):
@@ -132,6 +133,30 @@ class Config:
     clocks: list[ClockConfig] = field(default_factory=list)
     managed_session: str = ""
     native_hash: str = ""
+    nats_auth_file: str = ""
+
+    def nats_auth_options(self) -> dict:
+        """Read only the producer's mounted secret; never format its contents."""
+        if not self.managed_session:
+            return {}
+        try:
+            for address in self.nats_url.split(","):
+                parsed = urlsplit(address.strip())
+                if (parsed.scheme not in ("nats", "tls", "ws", "wss") or not parsed.hostname
+                        or parsed.username is not None or parsed.query or parsed.fragment):
+                    raise ValueError()
+                parsed.port  # Reject malformed ports without printing the input.
+            if not os.path.isabs(self.nats_auth_file):
+                raise ValueError()
+            with open(self.nats_auth_file, encoding="utf-8") as f:
+                auth = json.load(f)
+            if (not isinstance(auth, dict) or set(auth) != {"user", "password"}
+                    or any(not isinstance(value, str) or not value for value in auth.values())):
+                raise ValueError()
+        except (OSError, ValueError, TypeError):
+            raise ConfigError("managed NATS requires server URLs without credentials and a readable NATS_AUTH_FILE containing user/password") from None
+        return {"user": auth["user"], "password": auth["password"],
+                "inbox_prefix": f"_INBOX.{self.connector_id}".encode()}
 
     def apply_clock_bundle(self, bundle: dict) -> None:
         """Startup-only native bundle, staged by Core's offline clock-config tool.
@@ -234,4 +259,7 @@ class Config:
         cfg.managed_session = os.environ.get("BACNET_MANAGED_SESSION", "")
         if cfg.managed_session and (not re.fullmatch(r"[0-9a-f]{32}", cfg.managed_session) or not path or cfg.cov_enabled):
             raise ConfigError("BACNET_MANAGED_SESSION requires a native bundle, 32 hex characters and poll-only mode")
+        cfg.nats_auth_file = os.environ.get("NATS_AUTH_FILE", "")
+        if cfg.managed_session:
+            cfg.nats_auth_options()
         return cfg

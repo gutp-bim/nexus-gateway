@@ -240,7 +240,12 @@ bacnet:<provisioning-connector-id>.`)
 	// log each transition with structured events (#23), so a broker flap is
 	// visible on /metrics and in logs rather than only surfacing as downstream
 	// publish errors.
+	inboxPrefix := "_INBOX"
+	if *clockEnabled {
+		inboxPrefix = "_INBOX.core"
+	}
 	nc, err := nats.Connect(*natsURL,
+		nats.CustomInboxPrefix(inboxPrefix),
 		nats.RetryOnFailedConnect(true),
 		nats.MaxReconnects(-1),
 		nats.ReconnectWait(2*time.Second),
