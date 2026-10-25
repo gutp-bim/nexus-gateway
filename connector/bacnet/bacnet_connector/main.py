@@ -19,6 +19,7 @@ from bacnet_connector.connector import Connector
 from bacnet_connector.health import start_health_server
 from bacnet_connector.logging_setup import configure as configure_logging
 from bacnet_connector.write_handler import WriteHandler
+from bacnet_connector.managed import ManagedRuntime
 
 logger = logging.getLogger(__name__)
 
@@ -71,19 +72,28 @@ async def _run(cfg: Config) -> None:
         loop.add_signal_handler(sig, stop_event.set)
 
     handler = WriteHandler(cfg, bacnet)
+    connector = Connector(cfg, bacnet, js)
+    managed = ManagedRuntime(cfg, connector, nc, handler) if cfg.managed_session else None
     cmd_subject = f"cmd.bacnet.{cfg.connector_id}"
-    sub = await nc.subscribe(cmd_subject, cb=handler.handle)
+    sub = await nc.subscribe(cmd_subject, cb=managed.command if managed else handler.handle)
+    runtime_sub = None
+    if managed:
+        runtime_sub = await nc.subscribe(f"cfg.bacnet.{cfg.connector_id}.runtime", cb=managed.control)
     logger.info("bacnet: write handler subscribed to %s", cmd_subject)
 
-    connector = Connector(cfg, bacnet, js)
     health_server = start_health_server(cfg.health_port, connector.healthy)
     try:
-        await connector.run(stop_event=stop_event)
+        if managed:
+            await managed.run(stop_event)
+        else:
+            await connector.run(stop_event=stop_event)
     finally:
         if health_server is not None:
             health_server.shutdown()
         try:
             await sub.unsubscribe()
+            if runtime_sub is not None:
+                await runtime_sub.unsubscribe()
         finally:
             await nc.drain()
 

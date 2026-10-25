@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import hashlib
 from dataclasses import dataclass, field
 
 
@@ -129,6 +130,8 @@ class Config:
     health_port: int = 8080
     clock_revision: str = ""
     clocks: list[ClockConfig] = field(default_factory=list)
+    managed_session: str = ""
+    native_hash: str = ""
 
     def apply_clock_bundle(self, bundle: dict) -> None:
         """Startup-only native bundle, staged by Core's offline clock-config tool.
@@ -221,9 +224,14 @@ class Config:
             if "BACNET_POINTS" in os.environ:
                 raise ConfigError("BACNET_CLOCK_CONFIG_FILE and BACNET_POINTS cannot be combined")
             try:
-                with open(path, encoding="utf-8") as f:
-                    bundle = json.load(f)
+                with open(path, "rb") as f:
+                    raw = f.read()
+                    bundle = json.loads(raw)
             except (OSError, ValueError) as exc:
                 raise ConfigError(f"BACNET_CLOCK_CONFIG_FILE: {exc}") from None
             cfg.apply_clock_bundle(bundle)
+            cfg.native_hash = hashlib.sha256(raw).hexdigest()
+        cfg.managed_session = os.environ.get("BACNET_MANAGED_SESSION", "")
+        if cfg.managed_session and (not re.fullmatch(r"[0-9a-f]{32}", cfg.managed_session) or not path or cfg.cov_enabled):
+            raise ConfigError("BACNET_MANAGED_SESSION requires a native bundle, 32 hex characters and poll-only mode")
         return cfg

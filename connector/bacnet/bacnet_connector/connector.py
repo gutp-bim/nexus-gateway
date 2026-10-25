@@ -340,7 +340,13 @@ class Connector:
             timestamp=timestamp,
         )
         try:
-            await self._js.publish(self._subject, data)
+            if self._cfg.managed_session:
+                await self._js.publish(self._subject, data, headers={
+                    "Nexus-Session": self._cfg.managed_session,
+                    "Nexus-Config-Revision": self._cfg.clock_revision,
+                })
+            else:
+                await self._js.publish(self._subject, data)
             logger.debug("bacnet: published %s=%s quality=%s", pt.local_id, value, quality)
         except Exception as exc:
             logger.warning("bacnet: NATS publish failed — withholding for %s: %s", pt.local_id, exc)

@@ -1,0 +1,7 @@
+# Isolated harness image only. Base must be a preloaded, verified digest-pinned
+# connector image with its existing dependencies. Never a production entrypoint.
+ARG CONNECTOR_BASE
+FROM ${CONNECTOR_BASE}
+COPY bacnet_connector/ /app/bacnet_connector/
+COPY tests/managed_process.py /app/managed_process.py
+ENTRYPOINT ["python", "/app/managed_process.py"]

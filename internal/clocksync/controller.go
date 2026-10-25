@@ -48,15 +48,16 @@ type Status struct {
 }
 
 type Controller struct {
-	source  Source
-	runtime Runtime
-	scope   provisioning.ClockScope
-	timeout time.Duration
-	serial  sync.Mutex
-	mu      sync.RWMutex
-	status  Status
-	desired *provisioning.ClockSnapshot
-	good    *provisioning.ClockSnapshot
+	source      Source
+	runtime     Runtime
+	scope       provisioning.ClockScope
+	timeout     time.Duration
+	serial      sync.Mutex
+	mu          sync.RWMutex
+	status      Status
+	desired     *provisioning.ClockSnapshot
+	good        *provisioning.ClockSnapshot
+	initialized bool
 }
 
 func New(source Source, runtime Runtime, scope provisioning.ClockScope, timeout time.Duration) (*Controller, error) {
@@ -77,12 +78,13 @@ func (c *Controller) Sync(ctx context.Context) error {
 		return fmt.Errorf("clocksync: sync already in progress")
 	}
 	defer c.serial.Unlock()
-	if c.good == nil {
+	if !c.initialized {
 		if err := c.step(ctx, "holding", c.runtime.Hold); err != nil {
 			c.update(func(s *Status) { s.Phase = "halted"; s.LastError = err.Error() })
 			return err
 		}
 		c.phase("waiting_snapshot")
+		c.initialized = true
 	}
 	known := ""
 	if c.desired != nil {
@@ -162,7 +164,7 @@ func (c *Controller) apply(ctx context.Context, s *provisioning.ClockSnapshot) e
 		fn    func(context.Context) error
 	}{
 		{"holding", c.runtime.Hold}, {"stopping", c.runtime.Stop}, {"draining", c.runtime.Drain},
-		{"configuring", func(ctx context.Context) error { return c.runtime.Configure(ctx, s.Native(), s.Entries()) }},
+		{"configuring", func(ctx context.Context) error { return c.configure(ctx, s) }},
 		{"starting", c.runtime.Start}, {"verifying", func(ctx context.Context) error { return c.runtime.Verify(ctx, s.Revision()) }},
 		{"resuming", c.runtime.Resume},
 	} {
@@ -194,7 +196,7 @@ func (c *Controller) rollback(ctx context.Context) error {
 		c.phase("halted")
 		return nil
 	}
-	if err := c.runtime.Configure(ctx, c.good.Native(), c.good.Entries()); err != nil {
+	if err := c.configure(ctx, c.good); err != nil {
 		return fail(err)
 	}
 	for _, fn := range []func(context.Context) error{c.runtime.Start, func(ctx context.Context) error { return c.runtime.Verify(ctx, c.good.Revision()) }, c.runtime.Resume} {
@@ -204,6 +206,53 @@ func (c *Controller) rollback(ctx context.Context) error {
 	}
 	c.update(func(s *Status) { s.Phase = "retry_pending"; s.AppliedRevision = c.good.Revision() })
 	return nil
+}
+
+func (c *Controller) configure(ctx context.Context, s *provisioning.ClockSnapshot) error {
+	if runtime, ok := c.runtime.(interface {
+		ConfigureSnapshot(context.Context, *provisioning.ClockSnapshot) error
+	}); ok {
+		return runtime.ConfigureSnapshot(ctx, s)
+	}
+	return c.runtime.Configure(ctx, s.Native(), s.Entries())
+}
+
+// RestoreLastGood restores only a validated rollback candidate, never a runtime
+// applied claim. It is allowed only before the first Sync. The initial gate is
+// still closed and RI must be fetched/verified before normal acquisition resumes.
+func (c *Controller) RestoreLastGood(s *provisioning.ClockSnapshot) error {
+	c.serial.Lock()
+	defer c.serial.Unlock()
+	if c.initialized {
+		return fmt.Errorf("clocksync: recovery already started")
+	}
+	if s == nil {
+		return nil
+	}
+	copy, err := provisioning.StageClock(s.Bytes(), c.scope)
+	if err != nil {
+		return err
+	}
+	c.good = copy
+	c.update(func(status *Status) { status.LastGoodRevision = copy.Revision() })
+	return nil
+}
+
+// WithRuntimeLease serializes explicit shutdown with a still-cleaning-up Sync.
+func (c *Controller) WithRuntimeLease(ctx context.Context, fn func(context.Context) error) error {
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		if c.serial.TryLock() {
+			defer c.serial.Unlock()
+			return fn(ctx)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-tick.C:
+		}
+	}
 }
 
 // Run performs one immediate sync and then polls. Fetch errors preserve the

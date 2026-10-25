@@ -153,5 +153,6 @@ remain open under #201.
 
 The subsequent [fetch/apply controller stage](clock-provisioning-apply.md) adds
 an opt-in mTLS client, conditional fetch/retry, immutable stage and coordinated
-resolver/lifecycle transaction with mock adapters. It does not yet wire the
-required concrete admission/drain/runtime-receipt adapters into `cmd/gateway`.
+resolver/lifecycle transaction with mock adapters. The following
+[Gateway wiring stage](clock-gateway-isolated.md) connects the concrete
+admission/drain/runtime-receipt adapters to `cmd/gateway` behind explicit opt-in.

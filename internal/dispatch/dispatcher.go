@@ -12,8 +12,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 
-	pb "nexus-gateway/gen"
 	"nexus-gateway/connector/sdk"
+	pb "nexus-gateway/gen"
 	"nexus-gateway/internal/pointlist"
 )
 
@@ -33,11 +33,21 @@ type WriteRequest = sdk.WriteRequest
 // Dispatcher routes ControlCommands to connectors via NATS core request-reply (ADR-0004).
 // NATS subject: cmd.<protocol>.<connectorID>
 type Dispatcher struct {
-	nc       *nats.Conn
-	resolver Resolver
-	timeout  time.Duration
-	mu       sync.Mutex
-	dedup    map[string]*pb.ControlResult
+	nc        *nats.Conn
+	resolver  Resolver
+	timeout   time.Duration
+	mu        sync.Mutex
+	dedup     map[string]*pb.ControlResult
+	admission interface {
+		Enter(context.Context) (func(), bool)
+	}
+}
+
+func (d *Dispatcher) WithAdmission(gate interface {
+	Enter(context.Context) (func(), bool)
+}) *Dispatcher {
+	d.admission = gate
+	return d
 }
 
 func New(nc *nats.Conn, resolver Resolver, timeout time.Duration) *Dispatcher {
@@ -53,6 +63,13 @@ func (d *Dispatcher) Execute(ctx context.Context, cmd *pb.ControlCommand) *pb.Co
 		return r
 	}
 	d.mu.Unlock()
+	if d.admission != nil {
+		release, ok := d.admission.Enter(ctx)
+		if !ok {
+			return &pb.ControlResult{ControlId: cmd.ControlId, Success: false, Response: "configuration_paused"}
+		}
+		defer release()
+	}
 
 	result := d.execute(ctx, cmd)
 

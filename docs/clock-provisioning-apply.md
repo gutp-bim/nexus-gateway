@@ -139,16 +139,19 @@ snapshot. SQLite frames are never re-resolved, retimestamped or relabeled.
 No run context, run ID, step ID or `valid` is introduced; clocked observations
 continue to have `sim_run_status=absent`.
 
-## Tested boundary and remaining gateway adapters
+## Initial component boundary and subsequent Gateway adapters
 
-This stage implements the reusable HTTP client, controller and resolver runtime,
+The initial `e8fa5df` stage implemented the reusable HTTP client, controller and resolver runtime,
 with real Normalizer/temporary SQLite and HTTP mock + fake connector lifecycle
-tests. It deliberately is **not wired into `cmd/gateway`'s live sync loop**.
-That existing pipeline has no scoped admission gate, broker drain receipt,
+tests. At that point it was **not wired into `cmd/gateway`'s live sync loop**.
+That existing pipeline had no scoped admission gate, broker drain receipt,
 paused-start/revision receipt or lifecycle lease spanning admin/watch/update.
-The existing `lifecycle.Manager.Restart` and connector health boolean cannot
-stand in for those guarantees. Implementing those concrete adapters is required
-before live use; there is no automatic activation flag or unsafe fallback.
+The legacy `lifecycle.Manager.Restart` and connector health boolean cannot
+stand in for those guarantees. The subsequent
+[Gateway wiring and isolated runbook](clock-gateway-isolated.md) implements the
+concrete adapters and explicit opt-in branch, including persisted session-bound
+resolution, paused producer receipts and management exclusion. It also records
+the concrete startup/shutdown/recovery procedure and validation boundaries.
 
 An admission adapter must account for delayed publications and ACK-loss/replay:
 no old raw event may subsequently be resolved against a new mapping. It needs a

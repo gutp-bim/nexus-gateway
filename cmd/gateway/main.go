@@ -28,6 +28,7 @@ import (
 	"nexus-gateway/connector/sim"
 	"nexus-gateway/internal/adminapi"
 	"nexus-gateway/internal/catalog"
+	"nexus-gateway/internal/clocksync"
 	"nexus-gateway/internal/dispatch"
 	"nexus-gateway/internal/egress"
 	"nexus-gateway/internal/lifecycle"
@@ -88,6 +89,11 @@ never reads --provisioning-file; "fallback" starts from --provisioning-file whil
 	provCert := flag.String("provisioning-cert", envOrDefault("PROVISIONING_CERT_FILE", ""), "Client certificate for mTLS to the provisioning endpoint (CN/SAN = gateway_id)")
 	provKey := flag.String("provisioning-key", envOrDefault("PROVISIONING_KEY_FILE", ""), "Client private key for mTLS to the provisioning endpoint")
 	provServerName := flag.String("provisioning-servername", envOrDefault("PROVISIONING_SERVER_NAME", ""), "Override the server name verified in the provisioning server cert")
+	clockEnabled := flag.Bool("clock-provisioning", envOrDefault("CLOCK_PROVISIONING", "") == "true", "Opt in to dedicated managed BACnet provisioning/v1 (disables legacy sync/normalizer)")
+	clockSpecFile := flag.String("clock-connector-spec", envOrDefault("CLOCK_CONNECTOR_SPEC", ""), "Managed BACnet spec JSON; digest-pinned image must already be installed locally")
+	clockStateDir := flag.String("clock-state-dir", envOrDefault("CLOCK_STATE_DIR", ""), "Absolute persistent directory, shared with Docker at the identical host path")
+	clockDevice := flag.Int("clock-device-id", envOrDefaultInt("CLOCK_DEVICE_ID", -1), "Expected BACnet native device instance for managed snapshot")
+	clockTimeout := flag.Duration("clock-operation-timeout", 15*time.Second, "Managed fetch/apply operation deadline")
 	connectorMapStr := flag.String("connector-map", envOrDefault("CONNECTOR_MAP", ""),
 		`Comma-separated protocol:connectorID pairs, shared by both the HTTP and
 file provisioning paths (e.g. "bacnet:bacnet-01,opcua:opcua-01,mqtt:mqtt-01").
@@ -144,6 +150,26 @@ bacnet:<provisioning-connector-id>.`)
 	if err != nil {
 		slog.Error("invalid --provisioning-mode / PROVISIONING_MODE", "err", err)
 		os.Exit(1)
+	}
+	if err := validateClockMode(*clockEnabled, resolvedProvMode, *provURL, *provFile, *clockStateDir, *clockDevice, *devSim, *catalogURL != "" || *catalogFile != ""); err != nil || (*clockEnabled && *clockTimeout <= 0) {
+		slog.Error("invalid clock provisioning options", "err", err)
+		os.Exit(1)
+	}
+	var clockSpec lifecycle.ConnectorSpec
+	var clockSource *provisioning.ClockHTTPClient
+	var clockScope provisioning.ClockScope
+	if *clockEnabled {
+		clockSpec, err = loadClockSpec(*clockSpecFile)
+		if err != nil {
+			slog.Error("clock connector spec invalid", "err", err)
+			os.Exit(1)
+		}
+		clockScope = provisioning.ClockScope{GatewayID: *gatewayID, ConnectorID: clockSpec.ID, DeviceID: *clockDevice}
+		clockSource, err = provisioning.NewClockHTTPClient(*provURL, clockScope, provisioning.ClockHTTPOptions{TLS: provisioning.TLSOptions{CAFile: *provCA, CertFile: *provCert, KeyFile: *provKey, ServerName: *provServerName}})
+		if err != nil {
+			slog.Error("clock provisioning mTLS client invalid", "err", err)
+			os.Exit(1)
+		}
 	}
 
 	*bosIngressAddr = resolveBOSAddr(*bosAddr, *bosIngressAddr)
@@ -282,6 +308,22 @@ bacnet:<provisioning-connector-id>.`)
 	// always overrides the local fixture bootstrap once synced.
 	resolver := pointlist.NewSynced(nil)
 
+	// Lifecycle manager; actual daemon operations remain opt-in.
+	connRegistry := lifecycle.NewRegistry()
+	docker, dockerErr := dockerclient.NewClientWithOpts(dockerclient.FromEnv, dockerclient.WithAPIVersionNegotiation())
+	if dockerErr != nil {
+		slog.Warn("admin: Docker client unavailable — lifecycle actions disabled", "err", dockerErr)
+	}
+	var dockerCC lifecycle.ContainerClient
+	if docker != nil {
+		dockerCC = docker
+	}
+	connMgr := lifecycle.NewManagerWithConfig(dockerCC, connRegistry, lifecycle.ManagerConfig{
+		NATSURL:          *natsURL,
+		ConnectorNetwork: *connectorNetwork,
+	})
+	healthMon := lifecycle.NewHealthMonitor(dockerCC, connRegistry)
+
 	var mqttSyncSubQoSMap, mqttSyncCmdQoSMap map[string]byte
 	if err := json.Unmarshal([]byte(*mqttSyncSubQoS), &mqttSyncSubQoSMap); err != nil {
 		slog.Error("MQTT_SYNC_DEFAULT_QOS_JSON: invalid JSON", "err", err)
@@ -335,24 +377,26 @@ bacnet:<provisioning-connector-id>.`)
 	}
 
 	var provClient provisioning.Client
-	switch resolvedProvMode {
-	case provisioningModeURL:
-		provClient = newProvHTTPClient()
-	case provisioningModeFile:
-		provClient = newProvFileClient()
-	case provisioningModeFallback:
-		fb := provisioning.NewFallbackClient(newProvHTTPClient(), newProvFileClient())
-		fb.OnPromote(func(etag string) {
-			slog.Info("provisioning: promoted from local file to Building OS", "url", *provURL, "etag", etag)
-			metrics.SetProvisioningPromoted(true)
-		})
-		provClient = fb
-	default: // provisioningModeAuto: pre-EP-013 behavior, byte-for-byte.
-		switch {
-		case *provURL != "":
+	if !*clockEnabled {
+		switch resolvedProvMode {
+		case provisioningModeURL:
 			provClient = newProvHTTPClient()
-		case *provFile != "":
+		case provisioningModeFile:
 			provClient = newProvFileClient()
+		case provisioningModeFallback:
+			fb := provisioning.NewFallbackClient(newProvHTTPClient(), newProvFileClient())
+			fb.OnPromote(func(etag string) {
+				slog.Info("provisioning: promoted from local file to Building OS", "url", *provURL, "etag", etag)
+				metrics.SetProvisioningPromoted(true)
+			})
+			provClient = fb
+		default: // provisioningModeAuto: pre-EP-013 behavior, byte-for-byte.
+			switch {
+			case *provURL != "":
+				provClient = newProvHTTPClient()
+			case *provFile != "":
+				provClient = newProvFileClient()
+			}
 		}
 	}
 	// Ensure the persist directory exists before the sync loop tries to write.
@@ -387,7 +431,7 @@ bacnet:<provisioning-connector-id>.`)
 			// point-list miss and is dropped (ADR-0002). Make that loud rather than silent.
 			slog.Error("point list: initial sync did not complete within 30s — starting with an empty Point List; telemetry will be dropped as point-list misses until sync succeeds")
 		}
-	} else {
+	} else if !*clockEnabled {
 		// Bootstrap from fixture file (dev / no provisioning API)
 		entries, err := loadFixtureEntries(*plFile)
 		if err != nil {
@@ -398,10 +442,14 @@ bacnet:<provisioning-connector-id>.`)
 	}
 
 	// Start Normalizer
-	norm, err := normalizer.New(ctx, js, resolver, *gatewayID)
-	if err != nil {
-		slog.Error("normalizer init failed", "err", err)
-		os.Exit(1)
+	var norm *normalizer.Normalizer
+	if !*clockEnabled {
+		norm, err = normalizer.New(ctx, js, resolver, *gatewayID)
+		if err != nil {
+			slog.Error("normalizer init failed", "err", err)
+			os.Exit(1)
+		}
+
 	}
 
 	// Open Store-and-Forward buffer (create parent directory if needed)
@@ -423,26 +471,69 @@ bacnet:<provisioning-connector-id>.`)
 	// — so buf.Close never races an in-flight write or the uplink's final
 	// checkpoint (#27).
 	var pipelineWg sync.WaitGroup
-	pipelineWg.Add(1)
-	go func() {
-		defer pipelineWg.Done()
-		storeforward.Pump(ctx, fanIn, buf)
-	}()
-	pipelineWg.Add(1)
-	go func() {
-		defer pipelineWg.Done()
-		for fm := range norm.Frames() {
-			// recentStore is ack-agnostic (live "last known value" only); the
-			// source msg rides only the Pump branch, which owns the ack after a
-			// durable write (#28).
-			recentStore.Record(fm.Frame)
-			select {
-			case fanIn <- fm:
-			case <-ctx.Done():
-				return
-			}
+	var clockGateway *clocksync.Gateway
+	var clockController *clocksync.Controller
+	var clockWorkerCancel context.CancelFunc
+	var clockSyncDone chan struct{}
+	if *clockEnabled {
+		clockGateway, err = clocksync.NewGateway(ctx, nc, js, connMgr, clockSpec, *clockStateDir, clockScope, resolver, buf, recentStore.Record)
+		if err != nil {
+			slog.Error("clock runtime init failed", "err", err)
+			os.Exit(1)
 		}
-	}()
+		clockController, err = clocksync.New(clockSource, clockGateway.Runtime(), clockScope, *clockTimeout)
+		if err != nil {
+			slog.Error("clock controller init failed", "err", err)
+			os.Exit(1)
+		}
+		lastGood, restoreErr := clockGateway.LastGood()
+		if restoreErr != nil {
+			slog.Error("clock recovery journal invalid", "err", restoreErr)
+			os.Exit(1)
+		}
+		if err = clockController.RestoreLastGood(lastGood); err != nil {
+			slog.Error("clock recovery failed", "err", err)
+			os.Exit(1)
+		}
+		// Legacy Egress applied_revision denotes the point-only API's ETag.
+		// Do not report the full clock snapshot as that different contract.
+		// Full desired/applied state is exposed on /clock-provisioning instead.
+		workerCtx, workerCancel := context.WithCancel(context.Background())
+		clockWorkerCancel = workerCancel
+		pipelineWg.Add(1)
+		go func() {
+			defer pipelineWg.Done()
+			if err := clockGateway.Run(workerCtx); err != nil && workerCtx.Err() == nil {
+				slog.Error("clock worker stopped", "err", err)
+				cancel()
+			}
+		}()
+		clockSyncDone = make(chan struct{})
+		go func() { defer close(clockSyncDone); _ = clockController.Run(ctx, *syncInterval) }()
+	}
+	if !*clockEnabled {
+		pipelineWg.Add(1)
+		go func() {
+			defer pipelineWg.Done()
+			storeforward.Pump(ctx, fanIn, buf)
+		}()
+		pipelineWg.Add(1)
+		go func() {
+			defer pipelineWg.Done()
+			for fm := range norm.Frames() {
+				// recentStore is ack-agnostic (live "last known value" only); the
+				// source msg rides only the Pump branch, which owns the ack after a
+				// durable write (#28).
+				recentStore.Record(fm.Frame)
+				select {
+				case fanIn <- fm:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+
+	}
 
 	// Start Ingress uplink
 	ul, err := uplink.NewIngress(ctx, *bosIngressAddr, *gatewayID, buf, uplink.DefaultConfig, bosCreds)
@@ -460,6 +551,9 @@ bacnet:<provisioning-connector-id>.`)
 
 	// Start Egress agent (control path, ADR-0004); also signals revalidatePL on PointListUpdate.
 	d := dispatch.New(nc, resolver, 5*time.Second)
+	if clockGateway != nil {
+		d.WithAdmission(clockGateway)
+	}
 	egressAgent := egress.New(*bosEgressAddr, *gatewayID, d, bosCreds, revalidatePL).
 		WithRevisionProvider(revProvider)
 	pipelineWg.Add(1)
@@ -467,22 +561,6 @@ bacnet:<provisioning-connector-id>.`)
 		defer pipelineWg.Done()
 		egressAgent.Run(ctx)
 	}()
-
-	// Start Admin API
-	connRegistry := lifecycle.NewRegistry()
-	docker, dockerErr := dockerclient.NewClientWithOpts(dockerclient.FromEnv, dockerclient.WithAPIVersionNegotiation())
-	if dockerErr != nil {
-		slog.Warn("admin: Docker client unavailable — lifecycle actions disabled", "err", dockerErr)
-	}
-	var dockerCC lifecycle.ContainerClient
-	if docker != nil {
-		dockerCC = docker
-	}
-	connMgr := lifecycle.NewManagerWithConfig(dockerCC, connRegistry, lifecycle.ManagerConfig{
-		NATSURL:          *natsURL,
-		ConnectorNetwork: *connectorNetwork,
-	})
-	healthMon := lifecycle.NewHealthMonitor(dockerCC, connRegistry)
 
 	// Build the Connector Catalog installer if a catalog source is configured (ADR-0006).
 	var catalogInstaller adminapi.ConnectorInstaller
@@ -542,6 +620,10 @@ bacnet:<provisioning-connector-id>.`)
 			NearCapacityFrac: *healthNearCapacityFrac,
 		},
 	}
+	if clockController != nil {
+		adminOpts.MQTTSync = nil
+		adminOpts.ClockStatus = func() any { return clockController.Status() }
+	}
 	var adminSrv *adminapi.Server
 	if *jwksURL != "" {
 		adminSrv = adminapi.NewSecureServer(connMgr, healthMon, adminOpts,
@@ -570,9 +652,28 @@ bacnet:<provisioning-connector-id>.`)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-	<-stop
+	select {
+	case <-stop:
+	case <-ctx.Done():
+	}
 	slog.Info("gateway shutting down")
+	if clockGateway != nil {
+		clockGateway.RequestStop()
+	}
 	cancel()
+	if clockGateway != nil {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 3*(*clockTimeout))
+		select {
+		case <-clockSyncDone:
+		case <-shutdownCtx.Done():
+			slog.Error("clock controller shutdown deadline exceeded")
+		}
+		if err := clockController.WithRuntimeLease(shutdownCtx, clockGateway.Shutdown); err != nil {
+			slog.Error("clock producer stop/drain failed; admission held", "err", err)
+		}
+		clockWorkerCancel()
+		shutdownCancel()
+	}
 	shutCtx, shutCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutCancel()
 	if err := httpSrv.Shutdown(shutCtx); err != nil {
