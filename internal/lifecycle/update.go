@@ -44,6 +44,9 @@ func (m *Manager) Update(
 
 	unlock := m.lockConn(id)
 	defer unlock()
+	if err := m.checkReserved(id); err != nil {
+		return err
+	}
 
 	current, ok := m.registry.Get(id)
 	if !ok {
@@ -190,6 +193,9 @@ func (m *Manager) soakCheck(ctx context.Context, containerID string, soakWindow 
 func (m *Manager) Rollback(ctx context.Context, id string) error {
 	unlock := m.lockConn(id)
 	defer unlock()
+	if err := m.checkReserved(id); err != nil {
+		return err
+	}
 
 	current, ok := m.registry.Get(id)
 	if !ok {

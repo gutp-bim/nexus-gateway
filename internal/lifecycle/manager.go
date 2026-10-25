@@ -52,8 +52,9 @@ type Manager struct {
 	docker   ContainerClient
 	registry *Registry
 	cfg      ManagerConfig
-	mu       sync.Mutex              // guards connLock map
-	connLock map[string]*sync.Mutex  // per-connector serialisation lock
+	mu       sync.Mutex             // guards connLock map
+	connLock map[string]*sync.Mutex // per-connector serialisation lock
+	reserved map[string]bool
 }
 
 func NewManager(docker ContainerClient, registry *Registry) *Manager {
@@ -106,6 +107,9 @@ func (m *Manager) tryLockConn(id string) (func(), bool) {
 func (m *Manager) Start(ctx context.Context, id string) error {
 	unlock := m.lockConn(id)
 	defer unlock()
+	if err := m.checkReserved(id); err != nil {
+		return err
+	}
 	return m.doStart(ctx, id)
 }
 
@@ -131,6 +135,9 @@ func (m *Manager) doStart(ctx context.Context, id string) error {
 func (m *Manager) Stop(ctx context.Context, id string) error {
 	unlock := m.lockConn(id)
 	defer unlock()
+	if err := m.checkReserved(id); err != nil {
+		return err
+	}
 	return m.doStop(ctx, id)
 }
 
@@ -156,6 +163,9 @@ func (m *Manager) doStop(ctx context.Context, id string) error {
 func (m *Manager) Restart(ctx context.Context, id string) error {
 	unlock := m.lockConn(id)
 	defer unlock()
+	if err := m.checkReserved(id); err != nil {
+		return err
+	}
 
 	status, ok := m.registry.Get(id)
 	if !ok {
@@ -178,6 +188,9 @@ func (m *Manager) Restart(ctx context.Context, id string) error {
 func (m *Manager) Upgrade(ctx context.Context, id, newImage string) error {
 	unlock := m.lockConn(id)
 	defer unlock()
+	if err := m.checkReserved(id); err != nil {
+		return err
+	}
 
 	// Capture full spec once — avoids TOCTOU from multiple registry.Get calls.
 	status, ok := m.registry.Get(id)
@@ -231,12 +244,16 @@ func (m *Manager) Watch(ctx context.Context, interval time.Duration) {
 				if resp.ContainerJSONBase == nil || resp.State == nil || resp.State.Running {
 					continue // healthy
 				}
-				slog.Warn("lifecycle: connector container stopped — restarting", "id", status.Spec.ID)
 				unlock, ok := m.tryLockConn(status.Spec.ID)
 				if !ok {
 					// Connector is being updated; skip this tick.
 					continue
 				}
+				if m.checkReserved(status.Spec.ID) != nil {
+					unlock()
+					continue
+				}
+				slog.Warn("lifecycle: connector container stopped — restarting", "id", status.Spec.ID)
 				m.registry.SetRunning(status.Spec.ID, "", false)
 				if restartErr := m.doStart(ctx, status.Spec.ID); restartErr != nil {
 					slog.Error("lifecycle: restart failed", "id", status.Spec.ID, "err", restartErr)
@@ -248,6 +265,10 @@ func (m *Manager) Watch(ctx context.Context, interval time.Duration) {
 }
 
 func (m *Manager) create(ctx context.Context, spec ConnectorSpec) (string, error) {
+	return m.createWithLabels(ctx, spec, nil)
+}
+
+func (m *Manager) createWithLabels(ctx context.Context, spec ConnectorSpec, labels map[string]string) (string, error) {
 	hc := &container.HostConfig{}
 	for _, mount := range spec.Permissions.Mounts {
 		hc.Binds = append(hc.Binds, mount+":"+mount+":ro")
@@ -286,8 +307,9 @@ func (m *Manager) create(ctx context.Context, spec ConnectorSpec) (string, error
 
 	resp, err := m.docker.ContainerCreate(ctx,
 		&container.Config{
-			Image: spec.Image,
-			Env:   env,
+			Image:  spec.Image,
+			Env:    env,
+			Labels: labels,
 		},
 		hc,
 		netCfg, nil,

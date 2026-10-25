@@ -113,6 +113,7 @@ type GatewayLogSource interface {
 // ServerOptions holds all optional feature sources. A nil field disables the
 // corresponding endpoints. Use with NewServer (no auth) or NewSecureServer (JWT).
 type ServerOptions struct {
+	ClockStatus func() any
 	Installer   ConnectorInstaller
 	Catalog     CatalogSource
 	PointList   PointListSource
@@ -148,6 +149,7 @@ type HealthSnapshotter interface {
 
 // Server is the Admin HTTP API server.
 type Server struct {
+	clockStatus func() any
 	mux         *http.ServeMux
 	auth        *JWTMiddleware
 	mgr         ConnectorManager
@@ -196,6 +198,7 @@ func (s *Server) Shutdown() {
 // routes. authenticated controls whether operator routes go through the JWT middleware.
 func buildServer(mgr ConnectorManager, monitor HealthSnapshotter, opts ServerOptions, auth *JWTMiddleware, authenticated bool) *Server {
 	s := &Server{
+		clockStatus: opts.ClockStatus,
 		mux:         http.NewServeMux(),
 		auth:        auth,
 		mgr:         mgr,
@@ -228,6 +231,12 @@ func (s *Server) registerRoutes(authenticated bool) {
 	s.mux.HandleFunc("GET /health/live", s.handleLive)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /capabilities", require(RoleViewer, s.handleCapabilities))
+	if s.clockStatus != nil {
+		s.mux.HandleFunc("GET /clock-provisioning", require(RoleViewer, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(s.clockStatus())
+		}))
+	}
 	s.mux.HandleFunc("GET /connectors", require(RoleViewer, s.handleListConnectors))
 	s.mux.HandleFunc("POST /connectors/{id}/{action}", require(RoleOperator, s.handleAction))
 	if s.installer != nil {
