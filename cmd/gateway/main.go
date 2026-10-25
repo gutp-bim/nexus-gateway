@@ -218,7 +218,7 @@ bacnet:<provisioning-connector-id>.`)
 	slog.Info("resolved configuration",
 		"version", version.String(),
 		"gateway_id", *gatewayID,
-		"nats", *natsURL,
+		"nats", logging.NATSAddress(*natsURL),
 		"bos_ingress", *bosIngressAddr,
 		"bos_egress", *bosEgressAddr,
 		"bos_tls", !*bosInsecure,
@@ -250,15 +250,18 @@ bacnet:<provisioning-connector-id>.`)
 		// would stay 0 while NATS is actually up.
 		nats.ConnectHandler(func(c *nats.Conn) {
 			metrics.SetNatsConnected(true)
-			slog.Info("nats: connected", "url", c.ConnectedUrl())
+			slog.Info("nats: connected", "url", logging.NATSAddress(c.ConnectedUrl()))
 		}),
 		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
 			metrics.SetNatsConnected(false)
-			slog.Warn("nats: disconnected", "err", err)
+			slog.Warn("nats: disconnected", "err", logging.NATSError(err))
 		}),
 		nats.ReconnectHandler(func(c *nats.Conn) {
 			metrics.SetNatsConnected(true)
-			slog.Info("nats: reconnected", "url", c.ConnectedUrl())
+			slog.Info("nats: reconnected", "url", logging.NATSAddress(c.ConnectedUrl()))
+		}),
+		nats.ErrorHandler(func(_ *nats.Conn, _ *nats.Subscription, err error) {
+			slog.Warn("nats: asynchronous error", "err", logging.NATSError(err))
 		}),
 		nats.ClosedHandler(func(_ *nats.Conn) {
 			metrics.SetNatsConnected(false)
@@ -266,7 +269,7 @@ bacnet:<provisioning-connector-id>.`)
 		}),
 	)
 	if err != nil {
-		slog.Error("NATS connect failed", "err", err)
+		slog.Error("NATS connect failed", "err", logging.NATSError(err))
 		os.Exit(1)
 	}
 	defer nc.Close()
@@ -648,7 +651,7 @@ bacnet:<provisioning-connector-id>.`)
 		startDevSim(ctx, js, connRegistry, *devSimInterval)
 	}
 
-	slog.Info("gateway started", "gateway_id", *gatewayID, "nats", *natsURL, "bos-ingress", *bosIngressAddr, "bos-egress", *bosEgressAddr)
+	slog.Info("gateway started", "gateway_id", *gatewayID, "nats", logging.NATSAddress(*natsURL), "bos-ingress", *bosIngressAddr, "bos-egress", *bosEgressAddr)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
