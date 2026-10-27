@@ -90,6 +90,7 @@ never reads --provisioning-file; "fallback" starts from --provisioning-file whil
 	provKey := flag.String("provisioning-key", envOrDefault("PROVISIONING_KEY_FILE", ""), "Client private key for mTLS to the provisioning endpoint")
 	provServerName := flag.String("provisioning-servername", envOrDefault("PROVISIONING_SERVER_NAME", ""), "Override the server name verified in the provisioning server cert")
 	clockEnabled := flag.Bool("clock-provisioning", envOrDefault("CLOCK_PROVISIONING", "") == "true", "Opt in to dedicated managed BACnet provisioning/v1 (disables legacy sync/normalizer)")
+	clockRunContext := flag.String("clock-run-context", envOrDefault("CLOCK_RUN_CONTEXT", ""), "Opt-in operator run-context config JSON; explicit public key and existing durable ledger required")
 	clockSpecFile := flag.String("clock-connector-spec", envOrDefault("CLOCK_CONNECTOR_SPEC", ""), "Managed BACnet spec JSON; digest-pinned image must already be installed locally")
 	clockStateDir := flag.String("clock-state-dir", envOrDefault("CLOCK_STATE_DIR", ""), "Absolute persistent directory, shared with Docker at the identical host path")
 	clockDevice := flag.Int("clock-device-id", envOrDefaultInt("CLOCK_DEVICE_ID", -1), "Expected BACnet native device instance for managed snapshot")
@@ -153,6 +154,10 @@ bacnet:<provisioning-connector-id>.`)
 	}
 	if err := validateClockMode(*clockEnabled, resolvedProvMode, *provURL, *provFile, *clockStateDir, *clockDevice, *devSim, *catalogURL != "" || *catalogFile != ""); err != nil || (*clockEnabled && *clockTimeout <= 0) {
 		slog.Error("invalid clock provisioning options", "err", err)
+		os.Exit(1)
+	}
+	if *clockRunContext != "" && !*clockEnabled {
+		slog.Error("clock-run-context requires clock-provisioning")
 		os.Exit(1)
 	}
 	var clockSpec lifecycle.ConnectorSpec
@@ -488,6 +493,12 @@ bacnet:<provisioning-connector-id>.`)
 		if err != nil {
 			slog.Error("clock runtime init failed", "err", err)
 			os.Exit(1)
+		}
+		if *clockRunContext != "" {
+			if err = clockGateway.EnableRunContextFile(*clockRunContext); err != nil {
+				slog.Error("run context verification failed", "err", err)
+				os.Exit(1)
+			}
 		}
 		clockController, err = clocksync.New(clockSource, clockGateway.Runtime(), clockScope, *clockTimeout)
 		if err != nil {

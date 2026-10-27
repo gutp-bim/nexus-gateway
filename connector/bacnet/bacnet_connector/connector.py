@@ -226,6 +226,7 @@ class Connector:
         Equality is observational evidence only: a reset and return to the same
         value between reads is undetectable without Testbed's step fence.
         """
+        started_at = datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
         samples: dict[str, list[float | None]] = {c.clock_id: [] for c in self._cfg.clocks}
 
         async def boundary() -> None:
@@ -264,6 +265,7 @@ class Connector:
                 logger.warning("bacnet: clocked poll chunk [%d:%d] failed: %s", start, start + len(points), exc)
             await boundary()
 
+        ended_at = datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
         attributes = {}
         for c in self._cfg.clocks:
             values = samples[c.clock_id]
@@ -284,7 +286,7 @@ class Connector:
             for local_id in c.point_local_ids:
                 attributes[local_id] = attrs
         for pt, value, quality, timestamp in pending:
-            await self._publish(pt, value, quality, attributes.get(pt.local_id), timestamp)
+            await self._publish(pt, value, quality, attributes.get(pt.local_id), timestamp, (started_at, ended_at))
         self._healthy = any_success
 
     def _warn_bad_value(self, local_id: str, status: str | None) -> None:
@@ -328,7 +330,8 @@ class Connector:
                 await asyncio.sleep(30)
 
     async def _publish(self, pt: PointConfig, value: float | str | bool, quality: str,
-                       attributes: dict[str, str] | None = None, timestamp: str | None = None) -> None:
+                       attributes: dict[str, str] | None = None, timestamp: str | None = None,
+                       poll_interval: tuple[str, str] | None = None) -> None:
         data = make_event(
             connector_id=self._cfg.connector_id,
             local_id=pt.local_id,
@@ -341,10 +344,11 @@ class Connector:
         )
         try:
             if self._cfg.managed_session:
-                await self._js.publish(self._subject, data, headers={
-                    "Nexus-Session": self._cfg.managed_session,
-                    "Nexus-Config-Revision": self._cfg.clock_revision,
-                })
+                headers = {"Nexus-Session": self._cfg.managed_session,
+                           "Nexus-Config-Revision": self._cfg.clock_revision}
+                if poll_interval is not None:
+                    headers["Nexus-Poll-Started-At"], headers["Nexus-Poll-Ended-At"] = poll_interval
+                await self._js.publish(self._subject, data, headers=headers)
             else:
                 await self._js.publish(self._subject, data)
             logger.debug("bacnet: published %s=%s quality=%s", pt.local_id, value, quality)
