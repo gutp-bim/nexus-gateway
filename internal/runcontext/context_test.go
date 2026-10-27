@@ -227,7 +227,7 @@ func TestWholeAcquisitionIntervalAndRevocation(t *testing.T) {
 		start, end     time.Time
 		status         string
 	}{
-		{"before-apply", "rev-a", now, now.Add(2 * time.Second), "unverified"},
+		{"before-apply", "rev-a", now, now.Add(2 * time.Second), "invalid"},
 		{"before-valid", "rev-a", now.Add(-time.Second), now, "invalid"},
 		{"expires-at-end", "rev-a", now.Add(time.Second), c.ExpiresAt, "invalid"},
 		{"revision", "rev-b", now.Add(time.Second), now.Add(2 * time.Second), "invalid"},

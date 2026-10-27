@@ -222,19 +222,38 @@ func (l *Ledger) Evaluate(revision string, start, end time.Time) Result {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.failed {
-		return Result{Status: "unverified", Reason: "durability-failure"}
+		return Result{Status: "unverified", Reason: "generation_history_unavailable"}
 	}
 	if l.context == nil {
 		return Result{Status: "absent"}
 	}
 	c := l.context
 	invalid := func(reason string) Result { return Result{Status: "invalid", Reason: reason} }
-	if end.Before(start) || c.ProvisioningRevision != revision || start.Before(c.ValidFrom) || !end.Before(c.ExpiresAt) || c.Status != "active" || l.data.InvalidRuns[c.RunID] {
-		return invalid("scope-lifetime-or-revocation")
+	if end.Before(start) {
+		return invalid("invalid_acquisition_interval")
 	}
-	if l.data.AppliedAt == nil || start.Before(*l.data.AppliedAt) {
-		return Result{Status: "unverified", Reason: "not-applied-before-acquisition"}
+	if c.ProvisioningRevision != revision {
+		return invalid("revision_mismatch")
 	}
+	if c.Status == "revoked" {
+		return invalid("revoked")
+	}
+	if start.Before(c.ValidFrom) {
+		return invalid("not_yet_valid")
+	}
+	if !end.Before(c.ExpiresAt) {
+		return invalid("expired")
+	}
+	if l.data.AppliedAt == nil {
+		return Result{Status: "unverified", Reason: "context_not_applied"}
+	}
+	if start.Before(*l.data.AppliedAt) {
+		return invalid("context_not_active_at_start")
+	}
+	if l.data.InvalidRuns[c.RunID] {
+		return invalid("reset_detected")
+	}
+
 	return Result{Status: "valid", RunID: c.RunID, Generation: c.Generation}
 }
 

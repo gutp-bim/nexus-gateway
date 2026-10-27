@@ -67,3 +67,13 @@ protection; an external trusted floor/checkpoint is required before such recover
 
 Rollback: do not configure the future opt-in integration. Existing runtime is
 unchanged. Do not delete a ledger and initialize it to bypass generation history.
+
+## Verification scope
+
+Go tests exercise the actual Ed25519/ledger implementation, including restart,
+revocation/reset, storage failure, malformed scope/generation and interval bounds.
+Seven acquisition states also compare status/reason with the unchanged pinned RI
+offline oracle (`test/contracts/ri-clock-v2/UPSTREAM.json`, source 9b64339).
+This exposed and fixed the distinction between a missing apply receipt
+(unverified/context_not_applied) and an apply after acquisition started
+(invalid/context_not_active_at_start). This remains offline, not real RI ingress.
