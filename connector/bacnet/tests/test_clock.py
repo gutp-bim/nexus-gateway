@@ -185,3 +185,23 @@ def test_env_native_bundle_and_separate_points_are_exclusive(tmp_path, monkeypat
     monkeypatch.setenv("BACNET_POINTS", "[]")
     with pytest.raises(ConfigError, match="cannot be combined"):
         Config.from_env()
+
+
+@pytest.mark.asyncio
+async def test_managed_poll_carries_one_complete_acquisition_interval():
+    cfg = config()
+    cfg.managed_session = "a" * 32
+    js = AsyncMock()
+    conn = Connector(cfg, Responses({"analogValue,87": [120, 120, 120]}), js)
+    await conn._poll_all()
+    intervals = set()
+    for call in js.publish.call_args_list:
+        event = json.loads(call.args[1])
+        headers = call.kwargs["headers"]
+        start = datetime.fromisoformat(headers["Nexus-Poll-Started-At"].replace("Z", "+00:00"))
+        end = datetime.fromisoformat(headers["Nexus-Poll-Ended-At"].replace("Z", "+00:00"))
+        observed = datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00"))
+        assert start <= observed <= end
+        assert event["attributes"]["sim_run_status"] == "absent"
+        intervals.add((start, end))
+    assert len(intervals) == 1

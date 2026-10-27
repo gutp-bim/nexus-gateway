@@ -325,3 +325,100 @@ func syncDirectory(path string) error {
 	defer dir.Close()
 	return dir.Sync()
 }
+
+// Archive records a new acquisition activation boundary in an immutable,
+// receiver-owned session journal. The caller must still hold producer admission.
+func (l *Ledger) Archive(path string, appliedAt time.Time) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.failed || l.context == nil || l.data.AppliedAt == nil || appliedAt.Before(l.data.CommittedAt) || !appliedAt.Before(l.context.ExpiresAt) {
+		return errors.New("run context not ready for session archive")
+	}
+	next := l.data
+	next.AppliedAt = &appliedAt
+	raw, err := json.Marshal(next)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(raw)
+	if err == nil {
+		err = file.Sync()
+	}
+	closeErr := file.Close()
+	if err == nil {
+		err = closeErr
+	}
+	if err == nil {
+		err = syncDirectory(path)
+	}
+	return err
+}
+
+// Current exposes an authenticated copy, never a pointer to live state.
+func (l *Ledger) Current() (Context, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.failed || l.context == nil {
+		return Context{}, errors.New("run history unavailable")
+	}
+	return *l.context, nil
+}
+
+func (l *Ledger) Invalidated(runID string) (bool, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.failed {
+		return false, errors.New("run ledger requires recovery")
+	}
+	return l.data.InvalidRuns[runID], nil
+}
+
+// SignedEnvelope returns an authenticated copy for a receiver-owned archive.
+func (l *Ledger) SignedEnvelope() (Envelope, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.failed || l.data.Envelope == nil {
+		return Envelope{}, errors.New("run history unavailable")
+	}
+	return Envelope{Payload: append([]byte(nil), l.data.Envelope.Payload...), Signature: append([]byte(nil), l.data.Envelope.Signature...)}, nil
+}
+
+// InvalidateContext also accepts an authenticated historical run in this same
+// authority domain, so delayed reset evidence cannot be cleared by a newer run.
+func (l *Ledger) InvalidateContext(envelope Envelope) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.failed || l.context == nil {
+		return errors.New("run history unavailable")
+	}
+	context, err := l.verify(envelope)
+	if err != nil {
+		return err
+	}
+	if context.Generation > l.context.Generation {
+		return errors.New("uncommitted reset context")
+	}
+	next := l.data
+	next.InvalidRuns = copyInvalidRuns(l.data.InvalidRuns)
+	next.InvalidRuns[context.RunID] = true
+	return l.persist(next)
+}
+
+// ReceiverTimes exposes only acquisition activation evidence, not the signed
+// context payload or signature. Signed files stay in the pre-distributed path.
+func (l *Ledger) ReceiverTimes() (time.Time, *time.Time, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.failed || l.context == nil {
+		return time.Time{}, nil, errors.New("run history unavailable")
+	}
+	if l.data.AppliedAt == nil {
+		return l.data.CommittedAt, nil, nil
+	}
+	applied := *l.data.AppliedAt
+	return l.data.CommittedAt, &applied, nil
+}
