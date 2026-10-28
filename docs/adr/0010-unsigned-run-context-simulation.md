@@ -1,6 +1,6 @@
 # Run context without signatures (simulation scope)
 
-Status: Proposed. Supersedes the Ed25519 signature requirement of ADR-0009 only.
+Status: Accepted (2026-10-28, project owner). Supersedes the Ed25519 signature requirement of ADR-0009 only.
 Related: #201, RI #613, BDE #773 / ADR-0016.
 
 ## Decision
