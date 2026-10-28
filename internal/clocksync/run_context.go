@@ -3,7 +3,7 @@
 package clocksync
 
 import (
-	"crypto/ed25519"
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -20,11 +20,10 @@ import (
 	rc "nexus-gateway/internal/runcontext"
 )
 
-// RunContextConfig is operator configuration, never a key supplied by telemetry.
+// RunContextConfig is operator configuration (ADR-0010: unsigned; file permissions are the only control).
 // The ledger MUST already exist; recovery never silently initializes history.
 type RunContextConfig struct {
 	ClockID      string `json:"clockId"`
-	PublicKey    []byte `json:"publicKey"`
 	EnvelopeFile string `json:"envelopeFile"`
 	LedgerFile   string `json:"ledgerFile"`
 }
@@ -47,13 +46,15 @@ func (g *Gateway) EnableRunContextFile(path string) error {
 		return err
 	}
 	var cfg RunContextConfig
-	if err = json.Unmarshal(raw, &cfg); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields() // a legacy signed config (publicKey) is rejected, not ignored
+	if err = decoder.Decode(&cfg); err != nil {
 		return err
 	}
-	if cfg.ClockID == "" || len(cfg.PublicKey) != ed25519.PublicKeySize || !filepath.IsAbs(cfg.EnvelopeFile) || !filepath.IsAbs(cfg.LedgerFile) {
+	if cfg.ClockID == "" || !filepath.IsAbs(cfg.EnvelopeFile) || !filepath.IsAbs(cfg.LedgerFile) {
 		return errors.New("invalid run context configuration")
 	}
-	ledger, err := rc.Open(cfg.LedgerFile, rc.Scope{GatewayID: g.store.scope.GatewayID, ClockID: cfg.ClockID}, cfg.PublicKey)
+	ledger, err := rc.Open(cfg.LedgerFile, rc.Scope{GatewayID: g.store.scope.GatewayID, ClockID: cfg.ClockID})
 	if err != nil {
 		return err
 	}
@@ -157,7 +158,7 @@ func (g *Gateway) bindRunFrame(msg jetstream.Msg, record *sessionRecord, frame *
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
-	archive, err := rc.Open(filepath.Join(g.store.dir, "run-context", record.Session+".json"), rc.Scope{GatewayID: g.store.scope.GatewayID, ClockID: record.RunClockID}, g.run.config.PublicKey)
+	archive, err := rc.Open(filepath.Join(g.store.dir, "run-context", record.Session+".json"), rc.Scope{GatewayID: g.store.scope.GatewayID, ClockID: record.RunClockID})
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +167,7 @@ func (g *Gateway) bindRunFrame(msg jetstream.Msg, record *sessionRecord, frame *
 		return nil, err
 	}
 	if frame.Attributes["sim_time_quality"] == "reset" {
-		envelope, err := archive.SignedEnvelope()
+		envelope, err := archive.CurrentEnvelope()
 		if err != nil {
 			return nil, err
 		}

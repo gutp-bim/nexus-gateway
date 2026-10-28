@@ -4,8 +4,6 @@ package runcontext_test
 
 import (
 	"bytes"
-	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/json"
 	rc "nexus-gateway/internal/runcontext"
 	"os"
@@ -15,21 +13,20 @@ import (
 	"time"
 )
 
-// Test the actual signed receiver against the unchanged pinned RI oracle.
+// Test the actual unsigned receiver against the unchanged pinned RI oracle.
 // Receiver booleans are oracle evidence from this test, never telemetry claims.
 func TestRIOracleCompatibility(t *testing.T) {
 	python, err := exec.LookPath("python3")
 	if err != nil {
 		t.Skip("RI offline oracle requires python3")
 	}
-	public, private, _ := ed25519.GenerateKey(rand.Reader)
 	scope := rc.Scope{GatewayID: "GW-EXAMPLE", ClockID: "urn:clock:test"}
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	context := rc.Context{SchemaVersion: "clock-run-context/2-draft", GatewayID: scope.GatewayID, ClockID: scope.ClockID, ProvisioningRevision: "rev-a", RunID: "run-a", Generation: 1, Status: "active", IssuedAt: now, ValidFrom: now, ExpiresAt: now.Add(time.Hour)}
 	var cases []any
 	for _, name := range []string{"committed", "applied", "before-apply", "expired", "revision", "revoked", "reset"} {
 		t.Run(name, func(t *testing.T) {
-			ledger, err := rc.Initialize(filepath.Join(t.TempDir(), "ledger.json"), scope, public)
+			ledger, err := rc.Initialize(filepath.Join(t.TempDir(), "ledger.json"), scope)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -37,7 +34,7 @@ func TestRIOracleCompatibility(t *testing.T) {
 			if name == "revoked" {
 				c.Status = "revoked"
 			}
-			if err = ledger.Commit(signed(t, private, c), now); err != nil {
+			if err = ledger.Commit(envelopeOf(t, c), now); err != nil {
 				t.Fatal(err)
 			}
 			var applied *time.Time

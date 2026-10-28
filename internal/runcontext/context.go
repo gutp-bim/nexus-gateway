@@ -1,13 +1,12 @@
 // Copyright 2026 nexus-gateway contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// Package runcontext verifies a signed run lease against a durable receiver
+// Package runcontext checks an unsigned run lease (ADR-0010) against a durable receiver
 // ledger. It does not fetch leases, infer simulator state, or attach telemetry.
 package runcontext
 
 import (
 	"bytes"
-	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,11 +36,16 @@ type Context struct {
 	ExpiresAt            time.Time `json:"expiresAt"`
 }
 
-// Payload is base64-encoded by JSON so its signed bytes survive persistence.
+// Envelope carries the exact payload bytes (base64 in JSON). It is unsigned:
+// the payload is trusted only because the operator placed the file (ADR-0010).
 type Envelope struct {
-	Payload   []byte `json:"payload"`
-	Signature []byte `json:"signature"`
+	Payload []byte `json:"payload"`
 }
+
+// ledgerVersion 2 is the unsigned format. Version 1 (signed, with a bound public
+// key) ledgers are rejected, never reused across formats.
+const ledgerVersion = 2
+
 type Result struct {
 	Status, Reason, RunID string
 	Generation            uint64
@@ -50,7 +54,6 @@ type state struct {
 	InvalidRuns map[string]bool `json:"invalidRuns"`
 	Version     int             `json:"version"`
 	Scope       Scope           `json:"scope"`
-	PublicKey   []byte          `json:"publicKey"`
 	Envelope    *Envelope       `json:"envelope"`
 	CommittedAt time.Time       `json:"committedAt"`
 	AppliedAt   *time.Time      `json:"appliedAt"`
@@ -65,11 +68,11 @@ type Ledger struct {
 
 // Initialize is an explicit new authority-domain operation, never a recovery
 // fallback. The caller must exclusively own the ledger for its whole lifetime.
-func Initialize(path string, scope Scope, key ed25519.PublicKey) (*Ledger, error) {
-	if scope.GatewayID == "" || scope.ClockID == "" || len(key) != ed25519.PublicKeySize {
-		return nil, errors.New("invalid scope/key")
+func Initialize(path string, scope Scope) (*Ledger, error) {
+	if scope.GatewayID == "" || scope.ClockID == "" {
+		return nil, errors.New("invalid scope")
 	}
-	data := state{Version: 1, InvalidRuns: map[string]bool{}, Scope: scope, PublicKey: append([]byte(nil), key...)}
+	data := state{Version: ledgerVersion, InvalidRuns: map[string]bool{}, Scope: scope}
 	raw, _ := json.Marshal(data)
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
@@ -92,7 +95,7 @@ func Initialize(path string, scope Scope, key ed25519.PublicKey) (*Ledger, error
 	return &Ledger{path: path, data: data}, nil
 }
 
-func Open(path string, scope Scope, key ed25519.PublicKey) (*Ledger, error) {
+func Open(path string, scope Scope) (*Ledger, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -101,8 +104,8 @@ func Open(path string, scope Scope, key ed25519.PublicKey) (*Ledger, error) {
 	if err = decode(raw, &data); err != nil {
 		return nil, err
 	}
-	if data.InvalidRuns == nil || data.Version != 1 || data.Scope != scope || len(key) != ed25519.PublicKeySize || !bytes.Equal(data.PublicKey, key) {
-		return nil, errors.New("ledger scope/key mismatch")
+	if data.InvalidRuns == nil || data.Version != ledgerVersion || data.Scope != scope {
+		return nil, errors.New("ledger scope/version mismatch")
 	}
 	ledger := &Ledger{path: path, data: data}
 	if data.Envelope != nil {
@@ -136,8 +139,8 @@ func decode(raw []byte, value any) error {
 }
 func (l *Ledger) verify(envelope Envelope) (Context, error) {
 	var context Context
-	if len(envelope.Payload) > 65536 || !ed25519.Verify(l.data.PublicKey, envelope.Payload, envelope.Signature) {
-		return context, errors.New("invalid run context signature")
+	if len(envelope.Payload) > 65536 {
+		return context, errors.New("run context payload too large")
 	}
 	if err := decode(envelope.Payload, &context); err != nil {
 		return context, err
@@ -154,7 +157,7 @@ func (l *Ledger) verify(envelope Envelope) (Context, error) {
 	return context, nil
 }
 
-// Commit persists authentication and generation before any apply receipt.
+// Commit persists validation and generation before any apply receipt.
 func (l *Ledger) Commit(envelope Envelope, at time.Time) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -185,7 +188,7 @@ func (l *Ledger) Commit(envelope Envelope, at time.Time) error {
 		}
 	}
 	next := l.data
-	next.Envelope = &Envelope{Payload: append([]byte(nil), envelope.Payload...), Signature: append([]byte(nil), envelope.Signature...)}
+	next.Envelope = &Envelope{Payload: append([]byte(nil), envelope.Payload...)}
 	next.CommittedAt = at
 	next.AppliedAt = nil
 	if context.Status == "revoked" {
@@ -377,14 +380,14 @@ func (l *Ledger) Invalidated(runID string) (bool, error) {
 	return l.data.InvalidRuns[runID], nil
 }
 
-// SignedEnvelope returns an authenticated copy for a receiver-owned archive.
-func (l *Ledger) SignedEnvelope() (Envelope, error) {
+// CurrentEnvelope returns a copy for a receiver-owned archive.
+func (l *Ledger) CurrentEnvelope() (Envelope, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.failed || l.data.Envelope == nil {
 		return Envelope{}, errors.New("run history unavailable")
 	}
-	return Envelope{Payload: append([]byte(nil), l.data.Envelope.Payload...), Signature: append([]byte(nil), l.data.Envelope.Signature...)}, nil
+	return Envelope{Payload: append([]byte(nil), l.data.Envelope.Payload...)}, nil
 }
 
 // InvalidateContext also accepts an authenticated historical run in this same
@@ -408,8 +411,8 @@ func (l *Ledger) InvalidateContext(envelope Envelope) error {
 	return l.persist(next)
 }
 
-// ReceiverTimes exposes only acquisition activation evidence, not the signed
-// context payload or signature. Signed files stay in the pre-distributed path.
+// ReceiverTimes exposes only acquisition activation evidence, not the
+// context payload.
 func (l *Ledger) ReceiverTimes() (time.Time, *time.Time, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
