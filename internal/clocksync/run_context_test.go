@@ -3,8 +3,6 @@
 package clocksync
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -17,9 +15,9 @@ import (
 	rc "nexus-gateway/internal/runcontext"
 )
 
-func TestGatewaySignedRunContextBindsAcquisitionAndReplaysOriginalFrame(t *testing.T) {
+func TestGatewayRunContextBindsAcquisitionAndReplaysOriginalFrame(t *testing.T) {
 	g, c, _, src, js, _, _, _ := liveFixture(t)
-	enableTestSignedRun(t, g, src.s)
+	enableTestRun(t, g, src.s)
 	clock := src.s.Native().Clocks[0].ClockID
 	require.NoError(t, c.Sync(t.Context()))
 	record := g.producer.record
@@ -74,31 +72,29 @@ func TestGatewaySignedRunContextBindsAcquisitionAndReplaysOriginalFrame(t *testi
 
 }
 
-func enableTestSignedRun(t *testing.T, g *Gateway, snapshot *provisioning.ClockSnapshot) {
+func enableTestRun(t *testing.T, g *Gateway, snapshot *provisioning.ClockSnapshot) {
 	t.Helper()
-	public, private, err := ed25519.GenerateKey(rand.Reader)
-	require.NoError(t, err)
 	clock := snapshot.Native().Clocks[0].ClockID
 	directory := t.TempDir()
 	ledgerPath := filepath.Join(directory, "ledger.json")
-	_, err = rc.Initialize(ledgerPath, rc.Scope{GatewayID: scope.GatewayID, ClockID: clock}, public)
+	_, err := rc.Initialize(ledgerPath, rc.Scope{GatewayID: scope.GatewayID, ClockID: clock})
 	require.NoError(t, err)
 	now := time.Now().UTC()
 	payload, err := json.Marshal(rc.Context{SchemaVersion: "clock-run-context/2-draft", GatewayID: scope.GatewayID, ClockID: clock, ProvisioningRevision: snapshot.Revision(), RunID: "run-test", Generation: 1, Status: "active", IssuedAt: now.Add(-time.Second), ValidFrom: now.Add(-time.Second), ExpiresAt: now.Add(time.Hour)})
 	require.NoError(t, err)
-	envelope, _ := json.Marshal(rc.Envelope{Payload: payload, Signature: ed25519.Sign(private, payload)})
+	envelope, _ := json.Marshal(rc.Envelope{Payload: payload})
 	envelopePath := filepath.Join(directory, "envelope.json")
 	require.NoError(t, os.WriteFile(envelopePath, envelope, 0600))
-	cfg, _ := json.Marshal(RunContextConfig{ClockID: clock, PublicKey: public, EnvelopeFile: envelopePath, LedgerFile: ledgerPath})
+	cfg, _ := json.Marshal(RunContextConfig{ClockID: clock, EnvelopeFile: envelopePath, LedgerFile: ledgerPath})
 	configPath := filepath.Join(directory, "config.json")
 	require.NoError(t, os.WriteFile(configPath, cfg, 0600))
 	require.NoError(t, g.EnableRunContextFile(configPath))
 
 }
 
-func TestGatewayActualPythonSignedRunContext(t *testing.T) {
+func TestGatewayActualPythonRunContext(t *testing.T) {
 	g, c, _, src, _, _, _, _ := liveFixtureAuthenticated(t, true, true)
-	enableTestSignedRun(t, g, src.s)
+	enableTestRun(t, g, src.s)
 	require.NoError(t, c.Sync(t.Context()))
 	require.Eventually(t, func() bool { return g.buffer.Written() >= int64(len(src.s.Entries())) }, 5*time.Second, 10*time.Millisecond)
 	frames, err := g.buffer.ReadBatch(0, 100)

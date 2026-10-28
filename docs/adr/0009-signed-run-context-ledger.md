@@ -1,6 +1,6 @@
 # Signed run context: durable receiver ledger
 
-Status: Proposed. Related: #201, RI ADR-0010, BDE #773 / ADR-0016, Testbed #2.
+Status: Proposed. Partly superseded by ADR-0010 (the Ed25519 signature, configured public key and key-rotation parts are dropped; scope, ledger, generation and lifetime semantics remain). Related: #201, RI ADR-0010, BDE #773 / ADR-0016, Testbed #2.
 
 ## Contract proposal
 

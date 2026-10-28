@@ -3,8 +3,6 @@
 package runcontext_test
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -15,16 +13,15 @@ import (
 )
 
 func TestCommittedContextRequiresApplyAndSurvivesRecovery(t *testing.T) {
-	public, private, _ := ed25519.GenerateKey(rand.Reader)
 	scope := rc.Scope{GatewayID: "GW-EXAMPLE", ClockID: "urn:clock:test"}
 	path := filepath.Join(t.TempDir(), "ledger.json")
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	ledger, err := rc.Initialize(path, scope, public)
+	ledger, err := rc.Initialize(path, scope)
 	if err != nil {
 		t.Fatal(err)
 	}
 	payload, _ := json.Marshal(rc.Context{SchemaVersion: "clock-run-context/2-draft", GatewayID: scope.GatewayID, ClockID: scope.ClockID, ProvisioningRevision: "rev-a", RunID: "run-a", Generation: 1, Status: "active", IssuedAt: now, ValidFrom: now, ExpiresAt: now.Add(time.Hour)})
-	envelope := rc.Envelope{Payload: payload, Signature: ed25519.Sign(private, payload)}
+	envelope := rc.Envelope{Payload: payload}
 	if err := ledger.Commit(envelope, now); err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +31,7 @@ func TestCommittedContextRequiresApplyAndSurvivesRecovery(t *testing.T) {
 	if err := ledger.Apply(now.Add(time.Second)); err != nil {
 		t.Fatal(err)
 	}
-	ledger, err = rc.Open(path, scope, public)
+	ledger, err = rc.Open(path, scope)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,26 +41,25 @@ func TestCommittedContextRequiresApplyAndSurvivesRecovery(t *testing.T) {
 	}
 }
 
-func signed(t *testing.T, private ed25519.PrivateKey, context rc.Context) rc.Envelope {
+func envelopeOf(t *testing.T, context rc.Context) rc.Envelope {
 	t.Helper()
 	payload, err := json.Marshal(context)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return rc.Envelope{Payload: payload, Signature: ed25519.Sign(private, payload)}
+	return rc.Envelope{Payload: payload}
 }
 
 func TestResetCannotBeClearedByRestartOrRenewingTheSameRun(t *testing.T) {
-	public, private, _ := ed25519.GenerateKey(rand.Reader)
 	scope := rc.Scope{GatewayID: "GW-EXAMPLE", ClockID: "urn:clock:test"}
 	path := filepath.Join(t.TempDir(), "ledger.json")
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	context := rc.Context{SchemaVersion: "clock-run-context/2-draft", GatewayID: scope.GatewayID, ClockID: scope.ClockID, ProvisioningRevision: "rev-a", RunID: "run-a", Generation: 1, Status: "active", IssuedAt: now, ValidFrom: now, ExpiresAt: now.Add(time.Hour)}
-	ledger, err := rc.Initialize(path, scope, public)
+	ledger, err := rc.Initialize(path, scope)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = ledger.Commit(signed(t, private, context), now); err != nil {
+	if err = ledger.Commit(envelopeOf(t, context), now); err != nil {
 		t.Fatal(err)
 	}
 	if err = ledger.Apply(now); err != nil {
@@ -72,12 +68,12 @@ func TestResetCannotBeClearedByRestartOrRenewingTheSameRun(t *testing.T) {
 	if err = ledger.InvalidateRun("run-a"); err != nil {
 		t.Fatal(err)
 	}
-	ledger, err = rc.Open(path, scope, public)
+	ledger, err = rc.Open(path, scope)
 	if err != nil {
 		t.Fatal(err)
 	}
 	context.Generation = 2
-	if err = ledger.Commit(signed(t, private, context), now); err != nil {
+	if err = ledger.Commit(envelopeOf(t, context), now); err != nil {
 		t.Fatal(err)
 	}
 	if err = ledger.Apply(now); err != nil {
@@ -88,7 +84,7 @@ func TestResetCannotBeClearedByRestartOrRenewingTheSameRun(t *testing.T) {
 	}
 	context.Generation = 3
 	context.RunID = "run-b"
-	if err = ledger.Commit(signed(t, private, context), now); err != nil {
+	if err = ledger.Commit(envelopeOf(t, context), now); err != nil {
 		t.Fatal(err)
 	}
 	if err = ledger.Apply(now); err != nil {
@@ -100,17 +96,16 @@ func TestResetCannotBeClearedByRestartOrRenewingTheSameRun(t *testing.T) {
 }
 
 func TestPersistenceFailurePoisonsTheLiveLedger(t *testing.T) {
-	public, private, _ := ed25519.GenerateKey(rand.Reader)
 	scope := rc.Scope{GatewayID: "GW-EXAMPLE", ClockID: "urn:clock:test"}
 	directory := t.TempDir()
 	path := filepath.Join(directory, "ledger.json")
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	context := rc.Context{SchemaVersion: "clock-run-context/2-draft", GatewayID: scope.GatewayID, ClockID: scope.ClockID, ProvisioningRevision: "rev-a", RunID: "run-a", Generation: 1, Status: "active", IssuedAt: now, ValidFrom: now, ExpiresAt: now.Add(time.Hour)}
-	ledger, err := rc.Initialize(path, scope, public)
+	ledger, err := rc.Initialize(path, scope)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = ledger.Commit(signed(t, private, context), now); err != nil {
+	if err = ledger.Commit(envelopeOf(t, context), now); err != nil {
 		t.Fatal(err)
 	}
 	if err = ledger.Apply(now); err != nil {
@@ -128,8 +123,7 @@ func TestPersistenceFailurePoisonsTheLiveLedger(t *testing.T) {
 	}
 }
 
-func TestRejectsInvalidSignedContextsAndGenerationConflicts(t *testing.T) {
-	public, private, _ := ed25519.GenerateKey(rand.Reader)
+func TestRejectsInvalidContextsAndGenerationConflicts(t *testing.T) {
 	scope := rc.Scope{GatewayID: "GW-EXAMPLE", ClockID: "urn:clock:test"}
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	base := rc.Context{SchemaVersion: "clock-run-context/2-draft", GatewayID: scope.GatewayID, ClockID: scope.ClockID, ProvisioningRevision: "rev-a", RunID: "run-a", Generation: 1, Status: "active", IssuedAt: now, ValidFrom: now, ExpiresAt: now.Add(time.Hour)}
@@ -143,13 +137,13 @@ func TestRejectsInvalidSignedContextsAndGenerationConflicts(t *testing.T) {
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
-			ledger, err := rc.Initialize(filepath.Join(t.TempDir(), "ledger.json"), scope, public)
+			ledger, err := rc.Initialize(filepath.Join(t.TempDir(), "ledger.json"), scope)
 			if err != nil {
 				t.Fatal(err)
 			}
 			c := base
 			mutate(&c)
-			if err = ledger.Commit(signed(t, private, c), now); err == nil {
+			if err = ledger.Commit(envelopeOf(t, c), now); err == nil {
 				t.Fatal("accepted invalid context")
 			}
 			if got := ledger.Evaluate("rev-a", now, now); got.Status != "absent" {
@@ -157,18 +151,13 @@ func TestRejectsInvalidSignedContextsAndGenerationConflicts(t *testing.T) {
 			}
 		})
 	}
-	t.Run("signature-and-history", func(t *testing.T) {
+	t.Run("history", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "ledger.json")
-		ledger, err := rc.Initialize(path, scope, public)
+		ledger, err := rc.Initialize(path, scope)
 		if err != nil {
 			t.Fatal(err)
 		}
-		envelope := signed(t, private, base)
-		envelope.Signature[0] ^= 1
-		if err = ledger.Commit(envelope, now); err == nil {
-			t.Fatal("accepted wrong signature")
-		}
-		if err = ledger.Commit(signed(t, private, base), now); err != nil {
+		if err = ledger.Commit(envelopeOf(t, base), now); err != nil {
 			t.Fatal(err)
 		}
 		if err = ledger.Apply(now); err != nil {
@@ -179,44 +168,43 @@ func TestRejectsInvalidSignedContextsAndGenerationConflicts(t *testing.T) {
 		var fields map[string]any
 		json.Unmarshal(raw, &fields)
 		raw, _ = json.Marshal(fields)
-		if err = ledger.Commit(rc.Envelope{Payload: raw, Signature: ed25519.Sign(private, raw)}, now); err != nil {
+		if err = ledger.Commit(rc.Envelope{Payload: raw}, now); err != nil {
 			t.Fatal(err)
 		}
 		c := base
 		c.RunID = "run-b"
-		if err = ledger.Commit(signed(t, private, c), now); err == nil {
+		if err = ledger.Commit(envelopeOf(t, c), now); err == nil {
 			t.Fatal("accepted same-generation conflict")
 		}
 		c = base
 		c.Generation = 2
-		if err = ledger.Commit(signed(t, private, c), now); err != nil {
+		if err = ledger.Commit(envelopeOf(t, c), now); err != nil {
 			t.Fatal(err)
 		}
-		if err = ledger.Commit(signed(t, private, base), now); err == nil {
+		if err = ledger.Commit(envelopeOf(t, base), now); err == nil {
 			t.Fatal("accepted rollback")
 		}
-		if _, err = rc.Initialize(path, scope, public); err == nil {
+		if _, err = rc.Initialize(path, scope); err == nil {
 			t.Fatal("reinitialized history")
 		}
-		if _, err = rc.Open(path, rc.Scope{GatewayID: "other", ClockID: scope.ClockID}, public); err == nil {
+		if _, err = rc.Open(path, rc.Scope{GatewayID: "other", ClockID: scope.ClockID}); err == nil {
 			t.Fatal("opened wrong scope")
 		}
-		if _, err = rc.Open(filepath.Join(t.TempDir(), "missing.json"), scope, public); err == nil {
+		if _, err = rc.Open(filepath.Join(t.TempDir(), "missing.json"), scope); err == nil {
 			t.Fatal("recovery silently initialized")
 		}
 	})
 }
 
 func TestWholeAcquisitionIntervalAndRevocation(t *testing.T) {
-	public, private, _ := ed25519.GenerateKey(rand.Reader)
 	scope := rc.Scope{GatewayID: "GW-EXAMPLE", ClockID: "urn:clock:test"}
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	c := rc.Context{SchemaVersion: "clock-run-context/2-draft", GatewayID: scope.GatewayID, ClockID: scope.ClockID, ProvisioningRevision: "rev-a", RunID: "run-a", Generation: 1, Status: "active", IssuedAt: now, ValidFrom: now, ExpiresAt: now.Add(time.Hour)}
-	ledger, err := rc.Initialize(filepath.Join(t.TempDir(), "ledger.json"), scope, public)
+	ledger, err := rc.Initialize(filepath.Join(t.TempDir(), "ledger.json"), scope)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = ledger.Commit(signed(t, private, c), now); err != nil {
+	if err = ledger.Commit(envelopeOf(t, c), now); err != nil {
 		t.Fatal(err)
 	}
 	if err = ledger.Apply(now.Add(time.Second)); err != nil {
@@ -247,7 +235,7 @@ func TestWholeAcquisitionIntervalAndRevocation(t *testing.T) {
 	}
 	c.Generation = 2
 	c.Status = "revoked"
-	if err = ledger.Commit(signed(t, private, c), now); err != nil {
+	if err = ledger.Commit(envelopeOf(t, c), now); err != nil {
 		t.Fatal(err)
 	}
 	if got := ledger.Evaluate("rev-a", now, now); got.Status != "invalid" {
@@ -255,7 +243,7 @@ func TestWholeAcquisitionIntervalAndRevocation(t *testing.T) {
 	}
 	c.Generation = 3
 	c.Status = "active"
-	if err = ledger.Commit(signed(t, private, c), now); err != nil {
+	if err = ledger.Commit(envelopeOf(t, c), now); err != nil {
 		t.Fatal(err)
 	}
 	if err = ledger.Apply(now); err != nil {
@@ -263,5 +251,23 @@ func TestWholeAcquisitionIntervalAndRevocation(t *testing.T) {
 	}
 	if got := ledger.Evaluate("rev-a", now, now); got.Status != "invalid" {
 		t.Fatalf("revoked run revived: %+v", got)
+	}
+}
+
+// ADR-0010: a signed-format (version 1) ledger must be rejected, not reused.
+func TestSignedFormatLedgerIsRejected(t *testing.T) {
+	scope := rc.Scope{GatewayID: "GW-EXAMPLE", ClockID: "urn:clock:test"}
+	path := filepath.Join(t.TempDir(), "ledger.json")
+	legacy := `{"invalidRuns":{},"version":1,"scope":{"gatewayId":"GW-EXAMPLE","clockId":"urn:clock:test"},"publicKey":"AAAA","envelope":null,"committedAt":"0001-01-01T00:00:00Z","appliedAt":null}`
+	if err := os.WriteFile(path, []byte(legacy), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rc.Open(path, scope); err == nil {
+		t.Fatal("reused signed-format ledger")
+	}
+	legacy = `{"invalidRuns":{},"version":1,"scope":{"gatewayId":"GW-EXAMPLE","clockId":"urn:clock:test"},"envelope":null,"committedAt":"0001-01-01T00:00:00Z","appliedAt":null}`
+	os.WriteFile(path, []byte(legacy), 0600)
+	if _, err := rc.Open(path, scope); err == nil {
+		t.Fatal("accepted old ledger version")
 	}
 }
