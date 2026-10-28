@@ -146,7 +146,9 @@ async def test_managed_event_headers_bind_even_clockless_observations():
     js = AsyncMock()
     await Connector(cfg, Responses({"analogValue,87": [120] * 3}), js)._poll_all()
     for call in js.publish.call_args_list:
-        assert call.kwargs["headers"] == {"Nexus-Session": cfg.managed_session, "Nexus-Config-Revision": cfg.clock_revision}
+        assert call.kwargs["headers"]["Nexus-Session"] == cfg.managed_session
+        assert call.kwargs["headers"]["Nexus-Config-Revision"] == cfg.clock_revision
+        assert call.kwargs["headers"]["Nexus-Poll-Started-At"] <= call.kwargs["headers"]["Nexus-Poll-Ended-At"]
         assert json.loads(call.args[1])["attributes"]["sim_run_status"] == "absent"
     cfg.clocks = []
     js.reset_mock()
