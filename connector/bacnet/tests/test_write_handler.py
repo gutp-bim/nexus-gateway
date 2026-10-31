@@ -266,3 +266,39 @@ def test_nats_connect_kwargs_configures_unlimited_reconnect():
     kwargs = nats_connect_kwargs()
     assert kwargs["max_reconnect_attempts"] == -1
     assert kwargs["reconnect_time_wait"] > 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("priority,expected", [(0, 8), (4, 4)])
+async def test_release_uses_null_and_deduplicates(priority, expected):
+    bacnet = MockBACnetClient(write_delay=0.01)
+    handler = WriteHandler(make_config([writable_point()]), bacnet)
+    payload = json.dumps(dict(control_id="release-1", local_id="analogOutput,0",
+                              release=True, priority=priority)).encode()
+    await asyncio.gather(handler.handle(MockMsg(payload)), handler.handle(MockMsg(payload)))
+    retry = MockMsg(payload)
+    await handler.handle(retry)
+    assert retry.reply_json() == {"success": True, "response": "ok"}
+    assert bacnet.writes == [("analogOutput,0", "presentValue", None, expected)]
+
+
+@pytest.mark.asyncio
+async def test_release_readonly_rejected():
+    bacnet = MockBACnetClient()
+    handler = WriteHandler(make_config([readonly_point()]), bacnet)
+    msg = MockMsg(json.dumps(dict(control_id="r", local_id="analogInput,0", release=True)).encode())
+    await handler.handle(msg)
+    assert msg.reply_json()["response"] == "not_writable"
+    assert not bacnet.writes
+
+
+@pytest.mark.parametrize("payload", [
+    {"release": "true"}, {"release": False}, {"release": True, "priority": 17},
+    {"release": True, "priority": -1}, {"release": True, "priority": 1.5},
+])
+async def test_invalid_release_wire_is_bad_request(payload):
+    msg = MockMsg(json.dumps(dict(control_id="r", local_id="analogOutput,0", **payload)).encode())
+    bacnet = MockBACnetClient()
+    await WriteHandler(make_config([writable_point()]), bacnet).handle(msg)
+    assert msg.reply_json()["response"] == "bad_request"
+    assert not bacnet.writes

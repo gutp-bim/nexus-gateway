@@ -58,6 +58,8 @@ _CASES: list[tuple[dict[str, str | None], str]] = [
     ({"BACNET_POINTS": '[{"local_id": 5}]'}, "local_id"),        # wrong type
     ({"BACNET_POINTS": '[{"local_id": "a", "writable": "yes"}]'}, "writable"),
     ({"BACNET_POINTS": '[{"local_id": "a", "unit": 7}]'}, "unit"),
+    ({"BACNET_POINTS": '[{"local_id": "a", "release_of": 7}]'}, "release_of"),
+    ({"BACNET_POINTS": '[{"local_id": "a", "releaseOf": ["t"]}]'}, "release_of"),
     ({"BACNET_POLL_INTERVAL": "fast"}, "BACNET_POLL_INTERVAL"),
     ({"BACNET_RPM_CHUNK_SIZE": "1.5"}, "BACNET_RPM_CHUNK_SIZE"),
     ({"HEALTH_PORT": "abc"}, "HEALTH_PORT"),

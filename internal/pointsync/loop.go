@@ -144,7 +144,9 @@ func applyDiff(current []pointlist.Entry, r *provisioning.FetchResult) []pointli
 	byLocal := make(map[string]string, len(current)) // connectorID+"\x00"+localID → pointID
 	for _, e := range current {
 		byID[e.PointID] = e
-		byLocal[e.ConnectorID+"\x00"+e.LocalID] = e.PointID
+		if e.ReleaseOf == "" {
+			byLocal[e.ConnectorID+"\x00"+e.LocalID] = e.PointID
+		}
 	}
 	for _, pid := range r.Removed {
 		delete(byID, pid)
@@ -156,7 +158,7 @@ func applyDiff(current []pointlist.Entry, r *provisioning.FetchResult) []pointli
 		// If the PointID was renamed, delete the old entry so the resolver does not
 		// see two entries for the same (connectorID, localID) with different pointIDs
 		// (map iteration order is non-deterministic → flaky Resolve results).
-		if oldPID := byLocal[e.ConnectorID+"\x00"+e.LocalID]; oldPID != "" && oldPID != e.PointID {
+		if oldPID := byLocal[e.ConnectorID+"\x00"+e.LocalID]; e.ReleaseOf == "" && oldPID != "" && oldPID != e.PointID {
 			delete(byID, oldPID)
 		}
 		byID[e.PointID] = e

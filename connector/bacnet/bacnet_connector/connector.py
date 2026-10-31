@@ -49,7 +49,7 @@ class BACnetClient:
         device_id: int,
         obj_id: str,
         prop_id: str,
-        value: float,
+        value: float | None,
         priority: int,
     ) -> None:
         """Write a single property. Raises on device error or transport failure."""
@@ -75,7 +75,8 @@ class Connector:
         self._bacnet = bacnet
         self._js = js
         self._subject = f"evt.bacnet.{cfg.connector_id}"
-        self._point_map = {pt.local_id: pt for pt in cfg.points}
+        self._read_points = [pt for pt in cfg.points if not pt.release_of]
+        self._point_map = {pt.local_id: pt for pt in self._read_points}
         self._cov_tasks: list[asyncio.Task] = []
         # Device-reachability proxy for health: True once the most recent poll
         # cycle produced at least one successful read (or there are no points).
@@ -103,7 +104,7 @@ class Connector:
         # Skipped in poll-only mode: thousands of long-lived COV sessions can
         # overwhelm a device, so large deployments rely on periodic polling alone.
         if self._cfg.cov_enabled:
-            for pt in self._cfg.points:
+            for pt in self._read_points:
                 task = asyncio.create_task(
                     self._subscribe_cov(pt),
                     name=f"cov-{pt.local_id}",
@@ -143,12 +144,13 @@ class Connector:
         "segmentation-not-supported". A failed chunk is logged and skipped so the
         remaining chunks still publish.
         """
-        if not self._cfg.points:
-            # Nothing to poll — the stack is up, so report healthy.
+        if not self._read_points:
+            # Nothing to poll (no points, or only virtual release points) — the
+            # stack is up, so report healthy.
             self._healthy = True
             return
 
-        requests = [(pt.local_id, "presentValue") for pt in self._cfg.points]
+        requests = [(pt.local_id, "presentValue") for pt in self._read_points]
         chunk_size = self._cfg.rpm_chunk_size
         any_success = False
         for start in range(0, len(requests), chunk_size):

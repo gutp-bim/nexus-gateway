@@ -26,7 +26,7 @@ class WriteHandler:
     def __init__(self, cfg: Config, bacnet: BACnetClient) -> None:
         self._cfg = cfg
         self._bacnet = bacnet
-        self._point_map = {pt.local_id: pt for pt in cfg.points}
+        self._point_map = {pt.local_id: pt for pt in cfg.points if not pt.release_of}
         self._dedup: dict[str, WriteReply] = {}
 
     async def handle(self, msg: object) -> None:
@@ -70,7 +70,7 @@ class WriteHandler:
                     self._cfg.bacnet_device_id,
                     cmd.local_id,
                     "presentValue",
-                    cmd.value,
+                    None if cmd.release else cmd.value,
                     priority,
                 ),
                 timeout=self._cfg.write_timeout,

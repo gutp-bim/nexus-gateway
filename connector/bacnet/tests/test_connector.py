@@ -447,3 +447,28 @@ def test_make_event_local_id_is_not_subject():
     assert data["local_id"] == "analogInput,3"
     # Native addressing stays in the payload, never leaks into the NATS subject.
     # The connector publishes to "evt.bacnet.c1", tested in test_poll_publishes_event_for_each_point.
+
+@pytest.mark.asyncio
+async def test_release_points_are_not_polled_or_subscribed():
+    bacnet = MockBACnetClient()
+    bacnet.read_property_multiple = AsyncMock(return_value=[])
+    points = [PointConfig("analogOutput,37", "dev"),
+              PointConfig("release:analogOutput,37", "dev", release_of="target")]
+    stop = asyncio.Event()
+    original_subscribe = bacnet.subscribe_cov
+    async def subscribe(*args, **kwargs):
+        await original_subscribe(*args, **kwargs)
+        stop.set()
+    bacnet.subscribe_cov = subscribe
+    await asyncio.wait_for(Connector(make_config(points), bacnet, MockJetStream()).run(stop_event=stop), 2)
+    requests = bacnet.read_property_multiple.call_args.args[2]
+    assert requests == [("analogOutput,37", "presentValue")]
+    assert set(bacnet.cov_callbacks) == {"analogOutput,37"}
+
+@pytest.mark.parametrize("key", ["release_of", "releaseOf"])
+def test_virtual_point_marker_loaded_from_env(monkeypatch, key):
+    monkeypatch.setenv("CONNECTOR_ID", "bacnet-test")
+    monkeypatch.setenv("BACNET_ADDRESS", "127.0.0.1")
+    monkeypatch.setenv("BACNET_DEVICE_ID", "42")
+    monkeypatch.setenv("BACNET_POINTS", json.dumps([{"local_id": "release:analogOutput,37", key: "target"}]))
+    assert Config.from_env().points[0].release_of == "target"
