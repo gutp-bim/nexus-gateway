@@ -213,6 +213,8 @@ func TestDispatch_ReleaseValidation(t *testing.T) {
 		{"readonly", 1, 8, pointlist.Entry{PointID: "target"}, "not_writable"},
 		{"unsupported", 1, 8, pointlist.Entry{PointID: "target", Writable: true, Protocol: "mqtt"}, "bad_request"},
 		{"chain", 1, 8, pointlist.Entry{PointID: "target", Writable: true, ReleaseOf: "another"}, "bad_request"},
+		{"no_connector", 1, 8, pointlist.Entry{PointID: "target", Writable: true, Protocol: "bacnet", LocalID: "analogOutput,37"}, "bad_request"},
+		{"no_local_id", 1, 8, pointlist.Entry{PointID: "target", Writable: true, Protocol: "bacnet", ConnectorID: "bacnet-01"}, "bad_request"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := buildResolver([]pointlist.Entry{{PointID: "release", ReleaseOf: "target", Writable: true}, tc.target})

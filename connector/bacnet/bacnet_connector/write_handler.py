@@ -75,10 +75,16 @@ class WriteHandler:
                 ),
                 timeout=self._cfg.write_timeout,
             )
-            logger.info(
-                "bacnet: wrote %s=%s priority=%d for control_id=%s",
-                cmd.local_id, cmd.value, priority, cmd.control_id,
-            )
+            if cmd.release:
+                logger.info(
+                    "bacnet: released %s priority=%d for control_id=%s",
+                    cmd.local_id, priority, cmd.control_id,
+                )
+            else:
+                logger.info(
+                    "bacnet: wrote %s=%s priority=%d for control_id=%s",
+                    cmd.local_id, cmd.value, priority, cmd.control_id,
+                )
             return WriteReply(success=True, response="ok")
         except asyncio.TimeoutError:
             logger.warning("bacnet: write timed out for %s control_id=%s", cmd.local_id, cmd.control_id)

@@ -327,6 +327,16 @@ the connector's configured points and be writable. Connector point lists are
 currently injected at startup; a new physical target requires updating that
 configuration independently of gateway Point List synchronization.
 
+The target's protocol must be exactly `bacnet`; a target exported with another
+protocol string (for example `bacnet-sim`) is rejected as `bad_request` even if
+ordinary writes to it route to `cmd.<protocol>.*`. Confirm the RI export's
+top-level `protocol` before relying on release in an environment.
+
+The local CSV `release_of` column is a Nexus-only optional extension. The SBCO
+Data Model Builder CSV schema has no such column, so release points cannot be
+expressed through a Builder-generated CSV today; they arrive only through the RI
+HTTP export (`releaseOf`). CSVs without the column parse as before.
+
 ### 4.2 WriteReply
 
 The connector **must reply** to every `Request` with a WriteReply JSON body.

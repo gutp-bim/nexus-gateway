@@ -75,9 +75,17 @@ def _parse_points(raw: str) -> list[PointConfig]:
             raise ConfigError(f"BACNET_POINTS[{i}]: 'writable' must be a boolean, got {entry['writable']!r}")
         # A release point (RI bos:releaseOf) names the BACnet object it releases.
         # Accept the Go Point List spelling (releaseOf) as well as snake_case.
-        release_of = entry.get("release_of") or entry.get("releaseOf")
-        if release_of is not None and (not isinstance(release_of, str) or release_of == ""):
-            raise ConfigError(f"BACNET_POINTS[{i}]: 'release_of' must be a non-empty string, got {release_of!r}")
+        # Validate by key presence, not truthiness, so "", 0, false or null are
+        # rejected instead of silently turning the entry into an ordinary point.
+        release_of = None
+        for key in ("release_of", "releaseOf"):
+            if key in entry:
+                release_of = entry[key]
+                if not isinstance(release_of, str) or release_of == "":
+                    raise ConfigError(
+                        f"BACNET_POINTS[{i}]: 'release_of' must be a non-empty string, got {release_of!r}"
+                    )
+                break
         points.append(
             PointConfig(
                 local_id=local_id,

@@ -25,6 +25,16 @@ func TestDerive_FiltersByProtocolAndConnector(t *testing.T) {
 	assert.Equal(t, "sensors/a", specs[0].Topic)
 }
 
+func TestDerive_SkipsReleasePoints(t *testing.T) {
+	entries := []pointlist.Entry{
+		{ConnectorID: "mqtt-01", Protocol: "mqtt", LocalID: "actuators/valve", PointID: "target", Writable: true},
+		{ConnectorID: "mqtt-01", Protocol: "mqtt", LocalID: "actuators/valve/release", PointID: "release", ReleaseOf: "target", Writable: true},
+	}
+	specs := Derive(entries, "mqtt-01", 1, 1)
+	require.Len(t, specs, 1)
+	assert.Equal(t, "actuators/valve", specs[0].Topic)
+}
+
 func TestDerive_WritablePointGetsCommandTopicEqualToTopic(t *testing.T) {
 	entries := []pointlist.Entry{
 		{ConnectorID: "mqtt-01", Protocol: "mqtt", LocalID: "actuators/valve", Writable: true, DeviceRef: "dev-1", Unit: "bool"},
