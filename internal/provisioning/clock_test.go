@@ -27,8 +27,13 @@ func clockFixture(t *testing.T) []byte {
 // Re-sign mutations to exercise semantic validation separately from integrity.
 func mutateClockFixture(t *testing.T, change func(map[string]any), resign bool) []byte {
 	t.Helper()
+	return mutateClockData(t, clockFixture(t), change, resign)
+}
+
+func mutateClockData(t *testing.T, data []byte, change func(map[string]any), resign bool) []byte {
+	t.Helper()
 	var b map[string]any
-	require.NoError(t, json.Unmarshal(clockFixture(t), &b))
+	require.NoError(t, json.Unmarshal(data, &b))
 	change(b)
 	if resign {
 		delete(b, "revision")
@@ -93,6 +98,8 @@ func TestStageClockRejectsInvalidSnapshots(t *testing.T) {
 		},
 		"different point revision": func(b map[string]any) { point(b)["native"].(map[string]any)["deviceId"] = "5678" },
 		"missing equipment":        func(b map[string]any) { delete(point(b), "device") },
+		"missing native":           func(b map[string]any) { delete(point(b), "native") },
+		"releaseOf with native":    func(b map[string]any) { point(b)["releaseOf"] = "BPT-0003" },
 	}
 	for name, change := range tests {
 		t.Run(name, func(t *testing.T) {

@@ -318,7 +318,8 @@ func (g *Gateway) boundFrame(evt common.Event, r *sessionRecord) (*pb.TelemetryF
 	var point *pointlist.Entry
 	entries := r.snapshot.Entries()
 	for i := range entries {
-		if entries[i].LocalID == evt.LocalID {
+		// Release points (RI #600) have no native object and never carry telemetry.
+		if entries[i].ReleaseOf == "" && entries[i].LocalID == evt.LocalID {
 			point = &entries[i]
 			break
 		}
