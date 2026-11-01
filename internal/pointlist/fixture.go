@@ -5,6 +5,7 @@ package pointlist
 
 // Entry maps one native address to one canonical PointID (ADR-0003).
 type Entry struct {
+	ReleaseOf     string `json:"release_of,omitempty"` // canonical target point_id; control-only virtual point
 	ConnectorID   string `json:"connector_id"`
 	Protocol      string `json:"protocol"`
 	LocalID       string `json:"local_id"`
@@ -37,7 +38,9 @@ type Fixture struct {
 func NewFixture(entries []Entry) *Fixture {
 	f := &Fixture{index: make(map[string]string, len(entries))}
 	for _, e := range entries {
-		f.index[key(e.ConnectorID, e.LocalID)] = e.PointID
+		if e.ReleaseOf == "" {
+			f.index[key(e.ConnectorID, e.LocalID)] = e.PointID
+		}
 	}
 	return f
 }

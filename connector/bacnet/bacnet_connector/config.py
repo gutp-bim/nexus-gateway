@@ -76,12 +76,26 @@ def _parse_points(raw: str) -> list[PointConfig]:
                 raise ConfigError(f"BACNET_POINTS[{i}]: '{key}' must be a string, got {entry[key]!r}")
         if "writable" in entry and not isinstance(entry["writable"], bool):
             raise ConfigError(f"BACNET_POINTS[{i}]: 'writable' must be a boolean, got {entry['writable']!r}")
+        # A release point (RI bos:releaseOf) names the BACnet object it releases.
+        # Accept the Go Point List spelling (releaseOf) as well as snake_case.
+        # Validate by key presence, not truthiness, so "", 0, false or null are
+        # rejected instead of silently turning the entry into an ordinary point.
+        release_of = None
+        for key in ("release_of", "releaseOf"):
+            if key in entry:
+                release_of = entry[key]
+                if not isinstance(release_of, str) or release_of == "":
+                    raise ConfigError(
+                        f"BACNET_POINTS[{i}]: 'release_of' must be a non-empty string, got {release_of!r}"
+                    )
+                break
         points.append(
             PointConfig(
                 local_id=local_id,
                 device_ref=entry.get("device_ref", ""),
                 unit=entry.get("unit", ""),
                 writable=entry.get("writable", False),
+                release_of=release_of,
             )
         )
     return points
@@ -93,6 +107,7 @@ class PointConfig:
     device_ref: str      # opaque device reference for the Normalizer
     unit: str = ""       # engineering unit, e.g. "degC"
     writable: bool = False
+    release_of: str | None = None
 
 
 @dataclass(frozen=True)

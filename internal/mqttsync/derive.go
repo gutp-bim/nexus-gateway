@@ -28,7 +28,9 @@ import (
 func Derive(entries []pointlist.Entry, connectorID string, subQoS, cmdQoS byte) []sdk.SubscriptionSpec {
 	var specs []sdk.SubscriptionSpec
 	for _, e := range entries {
-		if e.Protocol != "mqtt" || e.ConnectorID != connectorID || e.LocalID == "" {
+		// Release points (ReleaseOf set) are control-only virtual points and
+		// never become MQTT subscriptions or command topics.
+		if e.Protocol != "mqtt" || e.ConnectorID != connectorID || e.LocalID == "" || e.ReleaseOf != "" {
 			continue
 		}
 		spec := sdk.SubscriptionSpec{

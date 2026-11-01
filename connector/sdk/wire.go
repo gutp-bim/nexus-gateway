@@ -9,6 +9,7 @@ package sdk
 // WriteRequest is the JSON payload sent by the gateway to a connector's
 // write handler over NATS request-reply (subject: cmd.<protocol>.<connectorID>).
 type WriteRequest struct {
+	Release   bool    `json:"release,omitempty"`
 	ControlID string  `json:"control_id"`
 	LocalID   string  `json:"local_id"`
 	DeviceRef string  `json:"device_ref"`

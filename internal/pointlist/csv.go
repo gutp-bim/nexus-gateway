@@ -71,7 +71,11 @@ type CSVOptions struct {
 //
 // Native address / protocol resolution (in priority order):
 //  1. object_type_bacnet + instance_no_bacnet both non-empty → local_id "type,instance", protocol "bacnet" (backward-compat)
-//  2. local_id column non-empty → used as-is; protocol comes from the per-row
+//  2. release_of non-empty → a virtual release point (RI bos:releaseOf, #208):
+//     it needs no native address, keeps any local_id as-is, and takes its
+//     protocol only from an explicit "protocol" column (never inferred). The
+//     dispatcher writes to the release_of target's native address instead.
+//  3. local_id column non-empty → used as-is; protocol comes from the per-row
 //     "protocol" column (case-insensitive) if present, else is inferred from
 //     the local_id's shape via protocolPatterns, else "unknown" (logged).
 //
@@ -128,6 +132,7 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 		objType := get(row, "object_type_bacnet")
 		instance := get(row, "instance_no_bacnet")
 		localIDCol := get(row, "local_id")
+		releaseOf := get(row, "release_of")
 
 		var localID, proto string
 		switch {
@@ -135,6 +140,8 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 			// BACnet columns present — construct native address (backward-compat).
 			localID = objType + "," + instance
 			proto = protocolBACnet
+		case releaseOf != "":
+			localID = localIDCol // virtual points need no native address
 		case localIDCol != "":
 			// local_id column present — use as-is (OPC-UA, MQTT, …). Protocol is
 			// resolved below (explicit column, else pattern inference).
@@ -143,7 +150,12 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 			continue // no resolvable native address
 		}
 
-		if proto != protocolBACnet {
+		switch {
+		case proto == protocolBACnet:
+		case releaseOf != "":
+			// A release point has no native address to infer a protocol from.
+			proto = strings.ToLower(strings.TrimSpace(get(row, "protocol")))
+		default:
 			// Per-row protocol column overrides inference, normalized so
 			// "OPCUA"/"Opcua"/"opcua" are all recognized alike.
 			if p := strings.ToLower(strings.TrimSpace(get(row, "protocol"))); p != "" {
@@ -165,7 +177,9 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 				cid = v
 			} else {
 				cid = opts.ConnectorID
-				warnFallback(warned, opts, proto, pointID)
+				if releaseOf == "" { // a release point is never routed by its own connector id
+					warnFallback(warned, opts, proto, pointID)
+				}
 			}
 		}
 
@@ -180,6 +194,7 @@ func LoadCSV(r io.Reader, opts CSVOptions) ([]Entry, error) {
 			Protocol:    proto,
 			LocalID:     localID,
 			PointID:     pointID,
+			ReleaseOf:   releaseOf,
 			Unit:        get(row, "unit"),
 			Writable:    strings.EqualFold(get(row, "writable"), "true"),
 			DeviceRef:   get(row, "device_id"),

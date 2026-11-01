@@ -18,6 +18,16 @@ class WriteHandlerTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    @Test
+    void releaseCommandIsRejectedWithoutWriting() throws Exception {
+        var client = new MockOpcUaClient();
+        var replies = new Replies();
+        var handler = new WriteHandler(makeConfig(List.of(writablePoint())), client, replies.asResponder());
+        handler.handle("{\"control_id\":\"release\",\"local_id\":\"ns=2;i=1001\",\"release\":true,\"value\":0}".getBytes(java.nio.charset.StandardCharsets.UTF_8), "reply");
+        assertEquals("bad_request", replies.last().get("response"));
+        assertTrue(client.writes.isEmpty());
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     static class MockOpcUaClient implements OpcUaClientFacade {

@@ -220,6 +220,7 @@ type gatewayPointDTOJSON struct {
 	PointID       string                `json:"pointId"`
 	LocalID       string                `json:"localId,omitempty"`
 	Protocol      string                `json:"protocol,omitempty"`
+	ReleaseOf     string                `json:"releaseOf,omitempty"` // RI #600: target pointId of a release point, or null
 	Native        *nativeAddressingJSON `json:"native,omitempty"`
 	Unit          string                `json:"unit,omitempty"`
 	Writable      *bool                 `json:"writable,omitempty"`
@@ -257,9 +258,10 @@ func (c *HTTPClient) mapDTOs(dtos []gatewayPointDTOJSON) []pointlist.Entry {
 
 func (c *HTTPClient) mapDTO(dto gatewayPointDTOJSON) pointlist.Entry {
 	e := pointlist.Entry{
-		PointID:  dto.PointID,
-		Unit:     dto.Unit,
-		Writable: dto.Writable != nil && *dto.Writable,
+		PointID:   dto.PointID,
+		ReleaseOf: dto.ReleaseOf,
+		Unit:      dto.Unit,
+		Writable:  dto.Writable != nil && *dto.Writable,
 	}
 
 	if dto.Native != nil {
@@ -291,16 +293,24 @@ func (c *HTTPClient) mapDTO(dto gatewayPointDTOJSON) pointlist.Entry {
 	if protocol == "" && dto.Native != nil {
 		protocol = strings.ToLower(strings.TrimSpace(dto.Native.Protocol))
 	}
-	if protocol == "" {
-		protocol = pointlist.InferProtocol(e.LocalID)
+	if e.ReleaseOf != "" {
+		// A release point (RI #600) is virtual: it has no native address to infer a
+		// protocol from, and the dispatcher routes a release through its target's
+		// protocol and connector, never its own. Keep what the server sent, silently.
+		e.Protocol = protocol
+		e.ConnectorID = c.connectorMap[protocol]
+	} else {
+		if protocol == "" {
+			protocol = pointlist.InferProtocol(e.LocalID)
+		}
+		if protocol == "" {
+			protocol = "unknown"
+			slog.Warn("provisioning: could not resolve protocol for point; connector routing may be wrong",
+				"point_id", dto.PointID, "local_id", e.LocalID)
+		}
+		e.Protocol = protocol
+		e.ConnectorID = c.connectorFor(protocol, dto.PointID)
 	}
-	if protocol == "" {
-		protocol = "unknown"
-		slog.Warn("provisioning: could not resolve protocol for point; connector routing may be wrong",
-			"point_id", dto.PointID, "local_id", e.LocalID)
-	}
-	e.Protocol = protocol
-	e.ConnectorID = c.connectorFor(protocol, dto.PointID)
 
 	if dto.ControlSchema != nil {
 		if data, err := json.Marshal(dto.ControlSchema); err == nil {

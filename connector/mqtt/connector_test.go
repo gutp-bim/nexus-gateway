@@ -801,3 +801,30 @@ func assertNoEvent(t *testing.T, ctx context.Context, js jetstream.JetStream, su
 		t.Fatalf("unexpected event on %s", subject)
 	}
 }
+
+// A release command is BACnet-only (#208): the MQTT connector must reject it
+// as bad_request and publish nothing to the command topic.
+func TestMQTT_ReleaseRejected(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	brokerAddr := startBroker(t)
+	nc, js := startNATS(t)
+	conn := mqttconn.New(mqttconn.Config{ConnectorID: "mqtt-release", BrokerURL: "mqtt://" + brokerAddr, ClientID: "release-test", KeepAlive: 30, SessionExpiry: 60,
+		Points: []mqttconn.PointConfig{{Topic: "point", Writable: true, CommandTopic: "commands", PayloadTemplate: `%g`}}}, nc, js)
+	go conn.Run(ctx)
+	require.NoError(t, conn.AwaitReady(ctx))
+	received := make(chan []byte, 1)
+	sub := subscribeOnBroker(t, ctx, brokerAddr, "commands", received)
+	defer sub.Disconnect(&pahoClient.Disconnect{})
+	msg, err := nc.RequestWithContext(ctx, "cmd.mqtt.mqtt-release", []byte(`{"control_id":"release","local_id":"point","release":true,"value":0}`))
+	require.NoError(t, err)
+	var reply mqttconn.WriteReply
+	require.NoError(t, json.Unmarshal(msg.Data, &reply))
+	assert.False(t, reply.Success)
+	assert.Equal(t, "bad_request", reply.Response)
+	select {
+	case <-received:
+		t.Fatal("unsupported release published a value")
+	case <-time.After(100 * time.Millisecond):
+	}
+}

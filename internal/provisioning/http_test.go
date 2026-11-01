@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -427,4 +428,54 @@ func TestHTTPClient_FallbackUseIsWarnedOncePerProtocol(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, strings.Count(buf.String(), "using the fallback connector id"))
 	assert.Contains(t, buf.String(), "connector_id=conn-default")
+}
+
+// releaseOf (RI #600) survives both full and delta responses; an explicit null
+// leaves an ordinary point untouched.
+func TestHTTPClient_ReleaseOfFullAndDelta(t *testing.T) {
+	for _, full := range []bool{true, false} {
+		t.Run(fmt.Sprint(full), func(t *testing.T) {
+			key := "changed"
+			if full {
+				key = "points"
+			}
+			srv := serveRaw(t, fmt.Sprintf(`{"full":%t,"%s":[{"pointId":"release","writable":true,"releaseOf":"target"},`+
+				`{"pointId":"normal","native":{"protocol":"bacnet","objectType":"analogOutput","instanceNo":"1"},"releaseOf":null}]}`, full, key))
+			c := mustHTTPClient(t, srv.URL, "gw-test", map[string]string{"bacnet": "bacnet-01"})
+			etag := "previous"
+			if full {
+				etag = ""
+			}
+			result, err := c.Fetch(context.Background(), etag)
+			require.NoError(t, err)
+			entries := result.Changed
+			if full {
+				entries = result.Entries
+			}
+			require.Len(t, entries, 2)
+			assert.Equal(t, "target", entries[0].ReleaseOf)
+			assert.True(t, entries[0].Writable)
+			assert.Empty(t, entries[1].ReleaseOf)
+			assert.Equal(t, "bacnet-01", entries[1].ConnectorID, "an ordinary point keeps its routing")
+		})
+	}
+}
+
+// A release point carries no native address, so the protocol-resolution and
+// unmapped-connector warnings must not fire for it.
+func TestHTTPClient_ReleasePointDoesNotWarn(t *testing.T) {
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	srv := serveRaw(t, `{"gatewayId":"GW001","revision":"etag-v1","full":true,"points":[`+
+		`{"pointId":"release","writable":true,"releaseOf":"target"}]}`)
+	c := mustHTTPClient(t, srv.URL, "GW001", map[string]string{"bacnet": "bacnet-01"})
+
+	result, err := c.Fetch(context.Background(), "")
+	require.NoError(t, err)
+	require.Len(t, result.Entries, 1)
+	assert.Equal(t, "target", result.Entries[0].ReleaseOf)
+	assert.Empty(t, buf.String())
 }

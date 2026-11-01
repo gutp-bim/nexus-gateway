@@ -144,3 +144,26 @@ func TestSynced_LoadCorruptFileErrors(t *testing.T) {
 	err := r.Load(path)
 	assert.Error(t, err)
 }
+
+func TestReleaseSnapshotPersistenceAndForwardExclusion(t *testing.T) {
+	r := pointlist.NewSynced(nil)
+	entries := []pointlist.Entry{
+		{PointID: "target", ConnectorID: "b", LocalID: "analogOutput,37", Writable: true},
+		{PointID: "release", ConnectorID: "b", LocalID: "analogOutput,37", ReleaseOf: "target", Writable: true},
+	}
+	r.Update(entries)
+	id, ok := r.Resolve("b", "analogOutput,37")
+	require.True(t, ok)
+	assert.Equal(t, "target", id)
+	path := t.TempDir() + "/points.json"
+	require.NoError(t, r.Persist(path))
+	restored := pointlist.NewSynced(nil)
+	require.NoError(t, restored.Load(path))
+	entry, target, ok := restored.ResolveControl("release")
+	require.True(t, ok)
+	assert.Equal(t, "target", entry.ReleaseOf)
+	assert.Equal(t, "target", target.PointID)
+	r.Update(entries[:1])
+	_, _, ok = r.ResolveControl("release")
+	assert.False(t, ok)
+}
