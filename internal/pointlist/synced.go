@@ -61,7 +61,9 @@ func (r *SyncedResolver) Update(entries []Entry) {
 	}
 	copy(newIdx.entries, entries)
 	for _, e := range entries {
-		newIdx.forward[key(e.ConnectorID, e.LocalID)] = e.PointID
+		if e.ReleaseOf == "" {
+			newIdx.forward[key(e.ConnectorID, e.LocalID)] = e.PointID
+		}
 		newIdx.reverse[e.PointID] = e
 	}
 	r.storeIndex(newIdx)
@@ -114,4 +116,16 @@ func (r *SyncedResolver) loadIndex() *index {
 
 func (r *SyncedResolver) storeIndex(idx *index) {
 	atomic.StorePointer(&r.ptr, unsafe.Pointer(idx))
+}
+
+// ResolveControl resolves a command and its release target from the same snapshot.
+// A missing target is returned as a zero Entry so dispatch can reject the relation.
+func (r *SyncedResolver) ResolveControl(pointID string) (Entry, Entry, bool) {
+	idx := r.loadIndex()
+	entry, ok := idx.reverse[pointID]
+	target := entry
+	if entry.ReleaseOf != "" {
+		target = idx.reverse[entry.ReleaseOf]
+	}
+	return entry, target, ok
 }

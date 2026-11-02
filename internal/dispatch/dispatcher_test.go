@@ -164,3 +164,63 @@ func buildResolver(entries []pointlist.Entry) *pointlist.SyncedResolver {
 	r.Update(entries)
 	return r
 }
+
+func TestDispatch_Release(t *testing.T) {
+	nc := startNATS(t)
+	entries := []pointlist.Entry{
+		{PointID: "release", ReleaseOf: "target", Writable: true},
+		{PointID: "target", ConnectorID: "bacnet-01", Protocol: "bacnet", LocalID: "analogOutput,37", DeviceRef: "device-1", Writable: true},
+	}
+	resolver := buildResolver(entries)
+	received := make(chan map[string]any, 10)
+	_, err := nc.Subscribe("cmd.bacnet.bacnet-01", func(msg *nats.Msg) {
+		var req map[string]any
+		_ = json.Unmarshal(msg.Data, &req)
+		received <- req
+		_ = msg.Respond([]byte(`{"success":true,"response":"ok"}`))
+	})
+	require.NoError(t, err)
+	require.NoError(t, nc.Flush())
+	d := dispatch.New(nc, resolver, time.Second)
+	cmd := &pb.ControlCommand{ControlId: "release-1", PointId: "release", PresentValue: 1, Priority: 8}
+	require.True(t, d.Execute(context.Background(), cmd).Success)
+	require.True(t, d.Execute(context.Background(), cmd).Success)
+	req := <-received
+	assert.Equal(t, true, req["release"])
+	assert.Equal(t, "analogOutput,37", req["local_id"])
+	assert.Equal(t, "device-1", req["device_ref"])
+	assert.Equal(t, float64(8), req["priority"])
+	assert.Empty(t, received)
+	// Ordinary write wire must still contain value, including zero, and no release key.
+	result := d.Execute(context.Background(), &pb.ControlCommand{ControlId: "normal", PointId: "target"})
+	require.True(t, result.Success)
+	req = <-received
+	assert.Equal(t, float64(0), req["value"])
+	assert.NotContains(t, req, "release")
+}
+
+func TestDispatch_ReleaseValidation(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		value    float64
+		priority int32
+		target   pointlist.Entry
+		response string
+	}{
+		{"zero", 0, 8, pointlist.Entry{PointID: "target", Writable: true, Protocol: "bacnet"}, "bad_request"},
+		{"priority", 1, 17, pointlist.Entry{PointID: "target", Writable: true, Protocol: "bacnet"}, "bad_request"},
+		{"missing", 1, 8, pointlist.Entry{}, "bad_request"},
+		{"readonly", 1, 8, pointlist.Entry{PointID: "target"}, "not_writable"},
+		{"unsupported", 1, 8, pointlist.Entry{PointID: "target", Writable: true, Protocol: "mqtt"}, "bad_request"},
+		{"chain", 1, 8, pointlist.Entry{PointID: "target", Writable: true, ReleaseOf: "another"}, "bad_request"},
+		{"no_connector", 1, 8, pointlist.Entry{PointID: "target", Writable: true, Protocol: "bacnet", LocalID: "analogOutput,37"}, "bad_request"},
+		{"no_local_id", 1, 8, pointlist.Entry{PointID: "target", Writable: true, Protocol: "bacnet", ConnectorID: "bacnet-01"}, "bad_request"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := buildResolver([]pointlist.Entry{{PointID: "release", ReleaseOf: "target", Writable: true}, tc.target})
+			result := dispatch.New(nil, r, time.Second).Execute(context.Background(), &pb.ControlCommand{ControlId: tc.name, PointId: "release", PresentValue: tc.value, Priority: tc.priority})
+			assert.False(t, result.Success)
+			assert.Equal(t, tc.response, result.Response)
+		})
+	}
+}

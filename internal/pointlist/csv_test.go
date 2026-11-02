@@ -333,3 +333,36 @@ PT1,ns=2;s=A,opcua,opcua-09
 	require.NoError(t, err)
 	assert.Empty(t, logs.String())
 }
+
+// ── Release points (RI bos:releaseOf, #208) ────────────────────────────────
+
+func TestCSVReleasePointWithoutNativeAddress(t *testing.T) {
+	entries, err := pointlist.LoadCSV(strings.NewReader("point_id,writable,release_of\nrelease,true,target\n"),
+		pointlist.CSVOptions{ConnectorID: "bacnet-01"})
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	assert.Equal(t, "target", entries[0].ReleaseOf)
+	assert.Empty(t, entries[0].LocalID)
+	assert.True(t, entries[0].Writable)
+}
+
+// A release point has no native address, so its protocol is never inferred and
+// it never triggers the unmapped-protocol warnings; ordinary rows are unchanged.
+func TestCSVReleasePoint_NoProtocolInferenceOrFallbackWarning(t *testing.T) {
+	const csv = `point_id,object_type_bacnet,instance_no_bacnet,writable,release_of
+target,analogOutput,1,true,
+release,,,true,target
+`
+	logs := captureLogs(t)
+	entries, err := pointlist.LoadCSV(strings.NewReader(csv), pointlist.CSVOptions{
+		ConnectorID:  "default-connector",
+		ConnectorMap: map[string]string{"bacnet": "bacnet-01"},
+	})
+	require.NoError(t, err)
+	require.Len(t, entries, 2)
+	assert.Equal(t, "bacnet", entries[0].Protocol)
+	assert.Empty(t, entries[0].ReleaseOf)
+	assert.Equal(t, "target", entries[1].ReleaseOf)
+	assert.Empty(t, entries[1].Protocol)
+	assert.Empty(t, logs.String())
+}

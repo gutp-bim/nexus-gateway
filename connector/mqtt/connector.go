@@ -1088,6 +1088,12 @@ func (c *Connector) handleWrite(ctx context.Context, cm *autopaho.ConnectionMana
 		return
 	}
 
+	// Release (BACnet Null relinquish) has no MQTT equivalent (#208).
+	if req.Release {
+		respond(msg, WriteReply{Success: false, Response: "bad_request"})
+		return
+	}
+
 	// The connection may not be established yet (a command can arrive between the
 	// NATS subscribe and cm.Store). Fail fast rather than dereference a nil manager.
 	if cm == nil {

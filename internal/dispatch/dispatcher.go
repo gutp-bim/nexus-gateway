@@ -17,10 +17,11 @@ import (
 	"nexus-gateway/internal/pointlist"
 )
 
-// Resolver is the reverse Point List seam the Dispatcher dispatches against.
-// It is an alias of pointlist.ReverseResolver: the interface is owned by the
-// pointlist package (its only implementation), not redeclared here.
-type Resolver = pointlist.ReverseResolver
+// Resolver resolves a control point and its optional release target atomically.
+// Both entries must come from the same Point List snapshot.
+type Resolver interface {
+	ResolveControl(pointID string) (pointlist.Entry, pointlist.Entry, bool)
+}
 
 // ConnectorReply is the JSON payload returned by a connector write handler over NATS.
 // Alias of sdk.WriteReply — connector/sdk is the authoritative definition.
@@ -81,7 +82,7 @@ func (d *Dispatcher) Execute(ctx context.Context, cmd *pb.ControlCommand) *pb.Co
 }
 
 func (d *Dispatcher) execute(ctx context.Context, cmd *pb.ControlCommand) *pb.ControlResult {
-	entry, ok := d.resolver.ResolveReverse(cmd.PointId)
+	entry, target, ok := d.resolver.ResolveControl(cmd.PointId)
 	if !ok {
 		return &pb.ControlResult{ControlId: cmd.ControlId, Success: false, Response: "no_connector"}
 	}
@@ -89,7 +90,25 @@ func (d *Dispatcher) execute(ctx context.Context, cmd *pb.ControlCommand) *pb.Co
 		return &pb.ControlResult{ControlId: cmd.ControlId, Success: false, Response: "not_writable"}
 	}
 
+	release := entry.ReleaseOf != ""
+	if release {
+		if cmd.PresentValue != 1 || cmd.Priority < 0 || cmd.Priority > 16 {
+			return &pb.ControlResult{ControlId: cmd.ControlId, Response: "bad_request"}
+		}
+		if target.PointID == "" || target.ReleaseOf != "" {
+			return &pb.ControlResult{ControlId: cmd.ControlId, Response: "bad_request"}
+		}
+		if !target.Writable {
+			return &pb.ControlResult{ControlId: cmd.ControlId, Response: "not_writable"}
+		}
+		if target.Protocol != "bacnet" || target.ConnectorID == "" || target.LocalID == "" {
+			return &pb.ControlResult{ControlId: cmd.ControlId, Response: "bad_request"}
+		}
+		entry = target
+	}
+
 	req := WriteRequest{
+		Release:   release,
 		ControlID: cmd.ControlId,
 		LocalID:   entry.LocalID,
 		DeviceRef: entry.DeviceRef,

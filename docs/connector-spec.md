@@ -299,8 +299,43 @@ Sent by the gateway as the body of a NATS core `Request`. The connector receives
 | `control_id` | string | Globally unique command identifier. Used for idempotency (§8). |
 | `local_id` | string | Native address of the point to write. Matches a `local_id` in the point list. |
 | `device_ref` | string | Opaque device reference from the point list. |
-| `value` | number | Value to write as present-value. |
+| `value` | number | Value to write as present-value. May be omitted for `release: true`. |
+| `release` | boolean | Optional; defaults to false. BACnet only: write Null at the requested priority. Unsupported connectors return `bad_request`. |
 | `priority` | integer | Write priority. `0` means "use connector default". For BACnet: 1 (highest) – 16 (lowest). |
+
+A release point is a control-only virtual point. The Building OS export supplies
+`releaseOf` as the target canonical point ID; gateway snapshots and local JSON/CSV
+use `release_of`. The gateway accepts only value `1`, validates both points as
+writable, resolves the target from the same Point List snapshot, and sends
+`release: true` with the **target's** native address. Missing targets, chained
+release points, unsupported protocols, or invalid priorities return `bad_request`.
+The public gRPC command continues to identify the release point; its `control_id`
+is retained in the result and for connector deduplication.
+
+```json
+{"control_id":"release-1","local_id":"analogOutput,37","device_ref":"device-001","release":true,"priority":8}
+```
+
+Only the specified priority slot is cleared; `0` selects the connector's configured
+default (normally 8). Other slots remain intact. `presentValue` returns to
+`relinquishDefault` only when all slots are empty. This does not implement automatic
+release on upstream disconnect or TTL expiry.
+
+BACnet `BACNET_POINTS` entries can carry `release_of` (or export-style `releaseOf`)
+to exclude virtual points from polling and COV. The physical target must remain in
+the connector's configured points and be writable. Connector point lists are
+currently injected at startup; a new physical target requires updating that
+configuration independently of gateway Point List synchronization.
+
+The target's protocol must be exactly `bacnet`; a target exported with another
+protocol string (for example `bacnet-sim`) is rejected as `bad_request` even if
+ordinary writes to it route to `cmd.<protocol>.*`. Confirm the RI export's
+top-level `protocol` before relying on release in an environment.
+
+The local CSV `release_of` column is a Nexus-only optional extension. The SBCO
+Data Model Builder CSV schema has no such column, so release points cannot be
+expressed through a Builder-generated CSV today; they arrive only through the RI
+HTTP export (`releaseOf`). CSVs without the column parse as before.
 
 ### 4.2 WriteReply
 
@@ -693,12 +728,15 @@ Keep at least the last **1000** `control_id` → WriteReply entries. Evict the o
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["control_id","local_id","device_ref","value","priority"],
+  "required": ["control_id","local_id","device_ref","priority"],
+  "if": { "properties": { "release": { "const": true } }, "required": ["release"] },
+  "else": { "required": ["value"] },
   "properties": {
     "control_id": { "type": "string" },
     "local_id":   { "type": "string" },
     "device_ref": { "type": "string" },
     "value":      { "type": "number" },
+    "release":    { "type": "boolean", "default": false },
     "priority":   { "type": "integer", "minimum": 0 }
   }
 }
@@ -717,3 +755,50 @@ Keep at least the last **1000** `control_id` → WriteReply entries. Evict the o
   }
 }
 ```
+
+### Release verification (#208 / RI #600)
+
+The normal Go CI job runs BACnet unit tests and `TestControl_BACnetRelease` with
+Python installed. To reproduce locally from the repository root:
+
+```sh
+python3 -m venv /tmp/nexus-release-tests
+/tmp/nexus-release-tests/bin/pip install -e ./connector/bacnet pytest pytest-asyncio
+/tmp/nexus-release-tests/bin/python -m pytest connector/bacnet/tests -q
+E2E_BACNET_PYTHON=/tmp/nexus-release-tests/bin/python \
+  go test -race ./integration -run TestControl_BACnetRelease -v -timeout 60s
+```
+
+This test uses production HTTP provisioning parsing, the gRPC egress agent, NATS,
+the Python write handler/client, and BACpypes' real commandable priority array.
+The Building OS HTTP/gRPC servers and BACnet Application transport boundary are
+test doubles; this is a contract integration test, not proof of RI authorization,
+audit, WaitForResult, or BACnet UDP interoperability.
+
+`TestE2E_BosReleaseDispatch` is the opt-in real-RI counterpart. It requires RI #600
+implemented and running, with a dedicated gateway bound to `bacnet-sim`, not
+already connected to another gateway agent. Seed a writable target point at
+`analogOutput,37`, plus a writable release point whose `releaseOf` is the target
+point ID and whose ControlSchema accepts only numeric `1`. The local BACpypes
+object starts at `relinquishDefault=18`; physical device transport remains local
+in this test too. Required environment variables:
+
+- `E2E_BOS_RELEASE=1`
+- `E2E_BOS_API_URL` — RI API base, e.g. `http://localhost:5000`
+- `E2E_BOS_EGRESS_ADDR` — local RI GatewayBridge h2c endpoint, e.g. `localhost:5052`
+- `E2E_GATEWAY_ID`, `E2E_WRITABLE_POINT_ID`, `E2E_RELEASE_POINT_ID`
+- `E2E_BOS_TOKEN` — admin JWT for provisioning and control/audit on the test points
+- `E2E_BOS_ACTOR_SUB` — expected audit actor for that token
+- `E2E_BACNET_PYTHON` — Python executable with the connector installed
+
+Run `go test ./integration -run TestE2E_BosReleaseDispatch -v -timeout 60s`.
+It checks the actual export, REST write/release, returned result persisted in
+control-audit with actor identity, schema rejection of zero, and unauthenticated
+rejection without additional device writes. The RI REST request currently accepts
+only `value`, so explicit priority coverage is in the contract integration test.
+
+Joint release verification still needs a BACnet UDP device/simulator run and a
+`PointControlService.WaitForResult` subscriber alongside REST, plus Point List
+relation updates, unauthorized authenticated actors, and outage/no-stale-replay
+checks. Do not count the opt-in RI test as passed when it was skipped because RI
+#600 or its isolated fixture is unavailable.
