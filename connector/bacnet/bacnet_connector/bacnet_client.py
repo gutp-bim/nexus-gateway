@@ -176,7 +176,7 @@ class Bacpypes3Client(BACnetClient):
         device_id: int,
         obj_id: str,
         prop_id: str,
-        value: float,
+        value: float | None,
         priority: int,
     ) -> None:
         try:
@@ -184,7 +184,7 @@ class Bacpypes3Client(BACnetClient):
                 address,
                 obj_id,
                 prop_id,
-                Real(value),
+                Null(()) if value is None else Real(value),
                 priority=priority,
             )
         except ErrorRejectAbortNack as exc:

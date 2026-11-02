@@ -51,7 +51,7 @@ class BACnetClient:
         device_id: int,
         obj_id: str,
         prop_id: str,
-        value: float,
+        value: float | None,
         priority: int,
     ) -> None:
         """Write a single property. Raises on device error or transport failure."""
@@ -77,7 +77,8 @@ class Connector:
         self._bacnet = bacnet
         self._js = js
         self._subject = f"evt.bacnet.{cfg.connector_id}"
-        self._point_map = {pt.local_id: pt for pt in cfg.points}
+        self._read_points = [pt for pt in cfg.points if not pt.release_of]
+        self._point_map = {pt.local_id: pt for pt in self._read_points}
         self._cov_tasks: list[asyncio.Task] = []
         # Device-reachability proxy for health: True once the most recent poll
         # cycle produced at least one successful read (or there are no points).
@@ -109,7 +110,7 @@ class Connector:
         # Skipped in poll-only mode: thousands of long-lived COV sessions can
         # overwhelm a device, so large deployments rely on periodic polling alone.
         if self._cfg.cov_enabled:
-            for pt in self._cfg.points:
+            for pt in self._read_points:
                 task = asyncio.create_task(
                     self._subscribe_cov(pt),
                     name=f"cov-{pt.local_id}",
@@ -152,12 +153,13 @@ class Connector:
         if self._cfg.clocks:
             await self._poll_with_clocks()
             return
-        if not self._cfg.points:
-            # Nothing to poll — the stack is up, so report healthy.
+        if not self._read_points:
+            # Nothing to poll (no points, or only virtual release points) — the
+            # stack is up, so report healthy.
             self._healthy = True
             return
 
-        requests = [(pt.local_id, "presentValue") for pt in self._cfg.points]
+        requests = [(pt.local_id, "presentValue") for pt in self._read_points]
         chunk_size = self._cfg.rpm_chunk_size
         any_success = False
         for start in range(0, len(requests), chunk_size):
@@ -241,8 +243,10 @@ class Connector:
         await boundary()
         pending = []
         any_success = False
-        for start in range(0, len(self._cfg.points), self._cfg.rpm_chunk_size):
-            points = self._cfg.points[start:start + self._cfg.rpm_chunk_size]
+        # Release points are virtual (no BACnet object to read); skip them here
+        # as in the unclocked path.
+        for start in range(0, len(self._read_points), self._cfg.rpm_chunk_size):
+            points = self._read_points[start:start + self._cfg.rpm_chunk_size]
             chunk_ids = {p.local_id for p in points}
             try:
                 rows = await asyncio.wait_for(self._bacnet.read_property_multiple(
