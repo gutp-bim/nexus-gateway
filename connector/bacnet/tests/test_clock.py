@@ -205,3 +205,21 @@ async def test_managed_poll_carries_one_complete_acquisition_interval():
         assert event["attributes"]["sim_run_status"] == "absent"
         intervals.add((start, end))
     assert len(intervals) == 1
+
+
+@pytest.mark.asyncio
+async def test_clocked_poll_skips_virtual_release_points():
+    # #208 with run context: a release point (release_of) has no BACnet
+    # object, so the clocked poll must not read it, just like the unclocked path.
+    from bacnet_connector.config import PointConfig
+
+    cfg = config()
+    cfg.points.append(PointConfig(local_id="release,17", device_ref="4321", writable=True, release_of="analogInput,17"))
+    client = Responses({"analogValue,87": [120, 120, 120]})
+    js = AsyncMock()
+    conn = Connector(cfg, client, js)
+    await conn._poll_all()
+    read_ids = [obj for req in client.requests for obj, _ in req]
+    assert "release,17" not in read_ids
+    assert len(js.publish.call_args_list) == 2
+    assert conn.healthy()
