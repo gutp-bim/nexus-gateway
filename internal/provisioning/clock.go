@@ -156,7 +156,22 @@ func StageClockSnapshot(data []byte, gatewayID, connectorID string, deviceID int
 	ids, nativeIDs, equipment := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	mapper := &HTTPClient{connectorMap: map[string]string{"bacnet": connectorID}}
 	entries := []pointlist.Entry{}
+	// RI #600 release points are virtual control points without a native object.
+	// They are validated against their targets after the loop (order independent).
+	writableTargets, released := map[string]bool{}, map[string]bool{}
+	var releases []gatewayPointDTOJSON
 	for _, p := range s.Points {
+		if p.ReleaseOf != "" {
+			if p.PointID == "" || ids[p.PointID] || p.Native != nil || p.LocalID != "" || p.Protocol != "bacnet" || p.Writable == nil || !*p.Writable {
+				return fail("invalid release point")
+			}
+			ids[p.PointID] = true
+			releases = append(releases, p)
+			// Mapped exactly as the non-clock path does so that the dispatcher can
+			// resolve the target; it never enters the native config or clock binding.
+			entries = append(entries, mapper.mapDTO(p))
+			continue
+		}
 		n := p.Native
 		if p.PointID == "" || ids[p.PointID] || n == nil || n.Protocol != "bacnet" || p.Protocol != "bacnet" || n.DeviceID != strconv.Itoa(deviceID) || n.ObjectType == "" {
 			return fail("invalid point or unsupported scope")
@@ -171,6 +186,9 @@ func StageClockSnapshot(data []byte, gatewayID, connectorID string, deviceID int
 		}
 		ids[p.PointID] = true
 		nativeIDs[e.LocalID] = true
+		if e.Writable {
+			writableTargets[p.PointID] = true
+		}
 		cfg.Points = append(cfg.Points, NativeClockPoint{LocalID: e.LocalID, DeviceRef: e.DeviceRef, Unit: e.Unit, Writable: e.Writable})
 		entries = append(entries, e)
 		if p.Device != nil {
@@ -185,6 +203,14 @@ func StageClockSnapshot(data []byte, gatewayID, connectorID string, deviceID int
 		} else if len(s.ClockSources) > 0 {
 			return fail("missing equipment membership")
 		}
+	}
+	// A release target must be a writable BACnet equipment point of this snapshot
+	// (never another release point), and each target has at most one release point.
+	for _, r := range releases {
+		if !writableTargets[r.ReleaseOf] || released[r.ReleaseOf] {
+			return fail("invalid release target")
+		}
+		released[r.ReleaseOf] = true
 	}
 	for e := range bindings {
 		if !equipment[e] {
