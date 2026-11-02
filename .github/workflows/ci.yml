@@ -31,6 +31,18 @@ jobs:
       - name: Install mosquitto
         # The MQTT connector tests run against a real broker (internal/testbroker).
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mosquitto
+      - name: Let mosquitto read the test broker's files (AppArmor)
+        # ubuntu-26.04 ships an AppArmor profile that confines /usr/sbin/mosquitto to
+        # /etc/mosquitto, so it cannot open the config internal/testbroker writes under
+        # $TMPDIR ("Unable to open config file"). Allow only those directories, through
+        # the profile's local include. No-op on images without the profile.
+        run: |
+          if [ -f /etc/apparmor.d/mosquitto ]; then
+            sudo mkdir -p /etc/apparmor.d/local
+            printf '%s\n' '/tmp/{,**/}testbroker-*/ r,' '/tmp/{,**/}testbroker-*/** rwk,' \
+              | sudo tee /etc/apparmor.d/local/mosquitto
+            sudo apparmor_parser -r /etc/apparmor.d/mosquitto
+          fi
       - name: Test
         env:
           NEXUS_REQUIRE_MOSQUITTO: "1" # a missing broker must fail the build, not skip the tests
