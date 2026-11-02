@@ -329,6 +329,7 @@ func (m *mockDocker) ContainerRemove(_ context.Context, _ string, _ container.Re
 func (m *mockDocker) ContainerInspect(_ context.Context, id string) (container.InspectResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.inc("inspect")
 	if id == "" {
 		return container.InspectResponse{}, errors.New("no container")
 	}

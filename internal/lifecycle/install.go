@@ -36,6 +36,9 @@ func (m *Manager) Install(
 
 	unlock := m.lockConn(manifest.Name)
 	defer unlock()
+	if err := m.checkReserved(manifest.Name); err != nil {
+		return err
+	}
 
 	// Prefer a locally available image over a registry pull: in dev the catalog
 	// uses placeholder digests (sha256:000...000) that would always fail against

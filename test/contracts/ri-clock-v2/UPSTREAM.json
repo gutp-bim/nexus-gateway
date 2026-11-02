@@ -1,0 +1,17 @@
+{
+  "repository": "gutp-bim/gutp-building-os-ri",
+  "commit": "9b643391d7273de4d92166d2474de1e5e0ea9f83",
+  "files": {
+    "time_contract.py": "d8556408bdc471a9a332194f7532cae026c90ef632d2538affa11ed7fea12167",
+    "fixtures/acquisition-evidence.json": "8aeb409cafbd3b096c309dd6eda85e52174095c0e16d27e2a05915e7863704af",
+    "fixtures/compat/nexus-bc1a9e5-telemetry.json": "a9e813a17528c1ce6136764e98ff650249e35657b221f17e35e36a0f23ef4fc1",
+    "fixtures/compat/ri-6e0fefe-run-context.json": "bdfec75b6471ee00404ef5e89a2347989b5fe06d14f79afc82a091a991458893",
+    "fixtures/compat/ri-6e0fefe-telemetry.json": "67fced38c1f1a2adaba36f660c6f173c4a2ea331b225caf5dd91690acd3cd21c",
+    "fixtures/provisioning.json": "ed7e81c894697b985da52da39c74a24ea25edbf8d58a8d3afd2ff7554f8ad696",
+    "fixtures/receiver-evidence.json": "9201c99d5f181aa1db722e7e9982fe3a3694134190d0afaf324fd7899b2d1dcb",
+    "fixtures/run-context.json": "67bab6f0a8b60b8657555f6328949948a70a592daa77a857566b08b4cc84cbe4",
+    "fixtures/telemetry-with-run.json": "e8ee11a2a567641e2e8e402c520cf96d9aad5ea8778546a11b332de827cab487",
+    "fixtures/telemetry.json": "83954624dc4fbe70a4d667e953baebee66df6f46de7d4d08a0f3e682b867de27",
+    "fixtures/time-contract-cases.json": "3dfc53ccb28c1ed345d25115a8d2b991523bb724b5e36f6de6342506edfd2111"
+  }
+}

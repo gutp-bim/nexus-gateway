@@ -94,6 +94,9 @@ async def test_poll_publishes_event_for_each_point():
     assert local_ids == {"analogInput,0", "analogInput,1"}
     assert all(b["protocol"] == "bacnet" for b in bodies)
     assert all(b["connector_id"] == "test-conn" for b in bodies)
+    # No clock configuration preserves the original wire shape and UTC format.
+    assert all("attributes" not in b for b in bodies)
+    assert all(b["timestamp"].endswith("Z") and "." not in b["timestamp"] for b in bodies)
 
 
 class ChunkRecordingClient(BACnetClient):
