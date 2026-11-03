@@ -20,6 +20,7 @@ import (
 var sessionPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 type sessionRecord struct {
+	RunClockID string          `json:"runClockId,omitempty"`
 	Session    string          `json:"session"`
 	Snapshot   json.RawMessage `json:"snapshot"`
 	snapshot   *provisioning.ClockSnapshot
@@ -85,6 +86,20 @@ func openSessions(dir string, scope provisioning.ClockScope) (*sessions, error) 
 		}
 		if string(native) != string(expected) {
 			return nil, fmt.Errorf("archived native bundle mismatch")
+		}
+		if r.RunClockID != "" {
+			found := false
+			for _, clock := range r.snapshot.Native().Clocks {
+				if clock.ClockID == r.RunClockID {
+					found = true
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("archived run clock missing from snapshot")
+			}
+			if _, err = os.Stat(filepath.Join(dir, "run-context", r.Session+".json")); err != nil {
+				return nil, fmt.Errorf("run session history unavailable: %w", err)
+			}
 		}
 		r.nativeHash = fmt.Sprintf("%x", sha256.Sum256(native))
 		proof, err := os.ReadFile(file + ".verified")

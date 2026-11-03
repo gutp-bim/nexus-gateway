@@ -29,6 +29,7 @@ import (
 // Its worker exclusively owns the target subject; the legacy normalizer MUST
 // NOT run alongside it. Archived session mappings are used even after rollback.
 type Gateway struct {
+	run *runBinding
 	*ResolverRuntime
 	nc               *nats.Conn
 	consumer         jetstream.Consumer
@@ -146,6 +147,9 @@ func (g *Gateway) Drain(ctx context.Context) error {
 }
 
 func (g *Gateway) ConfigureSnapshot(ctx context.Context, snapshot *provisioning.ClockSnapshot) error {
+	if err := g.validateRunSnapshot(snapshot); err != nil {
+		return err
+	}
 	r, err := g.store.create(snapshot)
 	if err != nil {
 		return err
@@ -159,6 +163,9 @@ func (g *Gateway) Resume(ctx context.Context) error {
 		return fmt.Errorf("gateway shutdown requested")
 	}
 	// Called by ResolverRuntime only after its observed runtime receipt succeeds.
+	if err := g.activateRunSession(g.producer.record); err != nil {
+		return err
+	}
 	r, err := g.producer.request(ctx, "resume")
 	if err != nil {
 		return err
@@ -259,13 +266,19 @@ func (g *Gateway) process(ctx context.Context, msg jetstream.Msg) error {
 	var evt common.Event
 	if ok && r.verified && msg.Headers().Get("Nexus-Config-Revision") == r.snapshot.Revision() && json.Unmarshal(msg.Data(), &evt) == nil {
 		if frame, valid := g.boundFrame(evt, r); valid {
-			if err = g.buffer.Write(frame); err != nil {
+			frame, err = g.bindRunFrame(msg, r, frame)
+			if err != nil && !errors.Is(err, errInvalidPoll) {
 				return err
 			}
-			if g.recent != nil {
-				g.recent(frame)
+			if err == nil {
+				if err = g.buffer.Write(frame); err != nil {
+					return err
+				}
+				if g.recent != nil {
+					g.recent(frame)
+				}
+				return msg.DoubleAck(ctx)
 			}
-			return msg.DoubleAck(ctx)
 		}
 		reason = "event does not match its archived session"
 	}
